@@ -1,0 +1,10 @@
+venv/
+db.sqlite3
+__pycache__/
+media/
+.idea
+*.pyc
+*.swp
+\.env
+deployment/ansible_vars.yml
+TODO.txt

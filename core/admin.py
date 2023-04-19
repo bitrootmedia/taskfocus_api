@@ -1,0 +1,174 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from .models import (
+    Attachment,
+    Comment,
+    Log,
+    Project,
+    ProjectAccess,
+    Task,
+    TaskAccess,
+    User,
+    TaskWorkSession,
+    Notification,
+    NotificationAck
+)
+
+admin.site.site_header = "Project management API"
+admin.site.register(User, UserAdmin)
+
+
+@admin.register(Attachment)
+class AttachmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "task",
+        "project",
+        "owner",
+        "created_at",
+        "is_deleted",
+        "archived_at",
+    )
+    list_filter = (
+        "title",
+        "task",
+        "project",
+        "owner",
+        "created_at",
+        "is_deleted",
+        "archived_at",
+    )
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = (
+        "task",
+        "project",
+        "author",
+        "response_to_comment",
+        "created_at",
+        "archived_at",
+    )
+    list_filter = (
+        "task",
+        "project",
+        "author",
+        "response_to_comment",
+        "created_at",
+        "archived_at",
+    )
+
+
+@admin.register(Log)
+class LogAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "task",
+        "project",
+        "comment",
+        "action",
+        "created_at",
+        "archived_at",
+    )
+    list_filter = (
+        "user",
+        "task",
+        "project",
+        "comment",
+        "action",
+        "created_at",
+        "archived_at",
+    )
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "owner",
+        "last_updated",
+        "created_at",
+        "archived_at",
+    )
+    list_filter = (
+        "title",
+        "owner",
+        "last_updated",
+        "created_at",
+        "archived_at",
+    )
+
+
+@admin.register(ProjectAccess)
+class ProjectAccessAdmin(admin.ModelAdmin):
+    list_display = (
+        "project",
+        "user",
+    )
+    list_filter = (
+        "project",
+        "user",
+    )
+
+
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "project",
+        "tag",
+        "parent_task",
+        "owner",
+        "is_closed",
+        "progress",
+        "eta_date",
+        "responsible",
+        "status",
+        "created_at",
+        "archived_at",
+    )
+    list_filter = (
+        "title",
+        "project",
+        "tag",
+        "parent_task",
+        "owner",
+        "is_closed",
+        "progress",
+        "eta_date",
+        "responsible",
+        "status",
+        "created_at",
+        "archived_at",
+    )
+
+
+@admin.register(TaskAccess)
+class TaskAccessAdmin(admin.ModelAdmin):
+    list_display = (
+        "task",
+        "user",
+    )
+    list_filter = (
+        "task",
+        "user",
+    )
+
+
+@admin.register(TaskWorkSession)
+class TaskWorkSessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "task",
+        "user",
+    )
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('created_at',)
+
+
+@admin.register(NotificationAck)
+class NotificationAckAdmin(admin.ModelAdmin):
+    list_display = ('created_at',)

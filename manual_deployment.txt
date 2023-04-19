@@ -1,0 +1,11 @@
+Todo ...
+- config dir , log
+- uwsgi setup
+- nginx setup
+- postgres setup?
+- visudo for service
+
+apt install zip htop screen git fail2ban nginx python3-pip python3-dev build-essential python3-distutils python3-dev libpq-dev supervisor postgresql postgresql-contrib libpq-dev python3-psycopg2 redis-server openssl libssl-dev libssl-doc python3-certbot-nginx acl
+usermod -a -G deploy www-data
+
+
