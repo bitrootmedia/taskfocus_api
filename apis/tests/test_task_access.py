@@ -74,7 +74,7 @@ class TaskAccessTests(APITestCase):
 
     def test_api_task_access_list_authenticated(self):
         self.client.force_login(self.user_1)
-        response = self.client.get(reverse("task_access_list"))
+        response = self.client.get(reverse("task_access_list") + f"?task={self.task_1_user_1.pk}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.json().get("results")
