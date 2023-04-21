@@ -62,4 +62,6 @@ urlpatterns = [
     ),
     path("dictionary", views.DictionaryView.as_view(), name="dictionary_view"),
     path("current-task", views.CurrentTaskView.as_view(), name="current_task"),
+    path("notifications", views.NotificationAckListView.as_view(), name="notifications"),
+    path("notification-confirm/<pk>", views.NotificationAckConfirmView.as_view(), name="confirm_notification")
 ]

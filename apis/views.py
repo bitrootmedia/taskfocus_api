@@ -6,6 +6,7 @@ from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import OrderingFilter, SearchFilter
 from django.core.files.storage import default_storage
@@ -38,7 +39,7 @@ from .serializers import (
     ProjectAccessDetailSerializer,
     TaskReadOnlySerializer,
     TaskAccessDetailSerializer,
-    TaskAccessSerializer,
+    TaskAccessSerializer, NotificationAckSerializer,
 )
 
 from core.models import (
@@ -50,7 +51,7 @@ from core.models import (
     ProjectAccess,
     User,
     TaskWorkSession,
-    TaskAccess,
+    TaskAccess, NotificationAck,
 )
 from django.db.models import Q
 from .permissions import (
@@ -455,6 +456,8 @@ class UploadView(APIView):
             # TODO: create thumbnail if it's an image, use some defaults if it's pdf,csv etc
             #   todo- this should probably be done in celery task ...
 
+            # TODO: I can create some demo assets to use and put to static or cdn or sth
+
             att = Attachment.objects.create(
                 task_id=task_id,
                 project_id=project_id,
@@ -476,3 +479,25 @@ class DictionaryView(APIView):
             {"task_status_choices": Task.StatusChoices.choices},
             {"task_urgency_level_choices": Task.UrgencyLevelChoices.choices},
         )
+
+
+class NotificationAckListView(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = NotificationAckSerializer
+
+    def get_queryset(self):
+        acks = NotificationAck.objects.filter(user=self.request.user,
+                                              status=NotificationAck.Status.UNREAD)
+        return acks
+
+
+class NotificationAckConfirmView(APIView):
+    def post(self, request, pk):
+        na = NotificationAck.objects.filter(pk=pk, user=self.request.user).first()
+        if not na:
+            return JsonResponse({"status": "OK"})
+        na.status = NotificationAck.Status.READ
+        na.save()
+
+        return JsonResponse({"status": "OK"})
+
