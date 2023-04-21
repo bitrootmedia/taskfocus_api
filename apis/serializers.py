@@ -8,7 +8,7 @@ from core.models import (
     Attachment,
     ProjectAccess,
     TaskAccess,
-    User, Notification, NotificationAck,
+    User, Notification, NotificationAck, UserTaskQueue,
 )
 
 
@@ -213,3 +213,11 @@ class NotificationAckSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationAck
         fields = ("id", "notification", "created_at")
+
+
+class UserTaskQueueSerializer(serializers.ModelSerializer):
+    task = TaskReadOnlySerializer()
+
+    class Meta:
+        model = UserTaskQueue
+        fields = ("id", "priority", "task")

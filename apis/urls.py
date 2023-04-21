@@ -31,6 +31,11 @@ urlpatterns = [
         views.TaskPositionChangeView.as_view(),
         name="task_position_change",
     ),
+    path(
+        "user-task-queue-position-change",
+        views.UserTaskQueuePositionChangeView.as_view(),
+        name="user_task_queue_position_change",
+    ),
     path("upload", views.UploadView.as_view(), name="upload"),
     path("task/<pk>", views.TaskDetail.as_view(), name="task_detail"),
     path(
@@ -63,5 +68,6 @@ urlpatterns = [
     path("dictionary", views.DictionaryView.as_view(), name="dictionary_view"),
     path("current-task", views.CurrentTaskView.as_view(), name="current_task"),
     path("notifications", views.NotificationAckListView.as_view(), name="notifications"),
-    path("notification-confirm/<pk>", views.NotificationAckConfirmView.as_view(), name="confirm_notification")
+    path("notification-confirm/<pk>", views.NotificationAckConfirmView.as_view(), name="confirm_notification"),
+    path("user-task-queue", views.UserTaskQueueView.as_view(), name="user_task_queue")
 ]

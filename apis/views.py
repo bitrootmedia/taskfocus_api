@@ -39,7 +39,7 @@ from .serializers import (
     ProjectAccessDetailSerializer,
     TaskReadOnlySerializer,
     TaskAccessDetailSerializer,
-    TaskAccessSerializer, NotificationAckSerializer,
+    TaskAccessSerializer, NotificationAckSerializer, UserTaskQueueSerializer,
 )
 
 from core.models import (
@@ -51,7 +51,7 @@ from core.models import (
     ProjectAccess,
     User,
     TaskWorkSession,
-    TaskAccess, NotificationAck,
+    TaskAccess, NotificationAck, UserTaskQueue,
 )
 from django.db.models import Q
 from .permissions import (
@@ -410,11 +410,13 @@ class TaskStopWorkView(APIView):
 class CurrentTaskView(APIView):
     def get(self, request):
         # returns task with project - there should be only one allowed
-        # TODO: option to return all users current tasks to see who is working on what and how long etc ...
+        user = request.user
+        # TODO: think on some permissions
+        if request.GET.get('user'):
+            user = User.objects.get(pk=request.GET.get('user'))
 
-        # TODO: this is just a mockup for FE
         task_work_session = TaskWorkSession.objects.filter(
-            user=request.user, stopped_at__isnull=True
+            user=user, stopped_at__isnull=True
         ).last()
 
         response = {}
@@ -501,3 +503,25 @@ class NotificationAckConfirmView(APIView):
 
         return JsonResponse({"status": "OK"})
 
+
+class UserTaskQueueView(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserTaskQueueSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if self.request.GET.get('user'):
+            user = User.objects.get(pk=self.request.GET.get('user'))
+
+        utq = UserTaskQueue.objects.filter(user=user).order_by('-priority')
+        return utq
+
+
+class UserTaskQueuePositionChangeView(APIView):
+    def post(self, request, pk):
+        utq = UserTaskQueue.objects.get(pk=request.POST.get("user_task_queue_id")).last()
+        task_above_id = request.POST.get("task_above_id")
+        # reorder all usertask queue
+        utq.priority = 999  # TODO: make it work, this is just a mockup
+        utq.save()
+        return JsonResponse({"status": "OK"})

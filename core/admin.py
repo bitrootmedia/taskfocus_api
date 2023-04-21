@@ -11,7 +11,8 @@ from .models import (
     User,
     TaskWorkSession,
     Notification,
-    NotificationAck
+    NotificationAck,
+    UserTaskQueue
 )
 
 admin.site.site_header = "Project management API"
@@ -172,3 +173,9 @@ class NotificationAdmin(admin.ModelAdmin):
 @admin.register(NotificationAck)
 class NotificationAckAdmin(admin.ModelAdmin):
     list_display = ('created_at',)
+
+
+@admin.register(UserTaskQueue)
+class UserTaskQueueAdmin(admin.ModelAdmin):
+    list_display = ('id', )
+

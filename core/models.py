@@ -368,3 +368,18 @@ class NotificationAck(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class UserTaskQueue(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+    )
+    priority = models.IntegerField(default=100, help_text="Higher is more important")
+
+    class Meta:
+        ordering = ["-priority"]
