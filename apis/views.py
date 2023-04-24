@@ -330,9 +330,12 @@ class TaskPositionChangeView(APIView):
     def post(self, request, pk):
         task = Task.objects.get(pk=pk)
         task_above_id = request.POST.get("task_above_id")
+        # TODO: how this can work since there are multiple projects?
 
         task.position = 999  # TODO: make it work, this is just a mockup
         task.save()
+
+        # TODO: create log entry
         return JsonResponse({"test": task_above_id})
 
 
@@ -478,8 +481,8 @@ class UploadView(APIView):
 class DictionaryView(APIView):
     def get(self, request):
         return JsonResponse(
-            {"task_status_choices": Task.StatusChoices.choices},
-            {"task_urgency_level_choices": Task.UrgencyLevelChoices.choices},
+            {"task_status_choices": Task.StatusChoices.choices,
+            "task_urgency_level_choices": Task.UrgencyLevelChoices.choices},
         )
 
 
