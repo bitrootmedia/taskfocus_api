@@ -71,7 +71,7 @@ class TaskListSerializer(serializers.ModelSerializer):
 class TaskReadOnlySerializer(serializers.ModelSerializer):
     owner = UserSerializer()
     responsible = UserSerializer()
-    project = ProjectDetailSerializer()
+    project = ProjectDetailReadOnlySerializer()
 
     class Meta:
         model = Task

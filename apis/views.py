@@ -129,7 +129,7 @@ class TaskList(generics.ListCreateAPIView):
                 | Q(project__permissions__user=self.request.user)
             )
             .distinct()
-            .order_by("-position")
+            .order_by("position")
         )
 
         # TODO: shouldn't this be working by default from filterset_class ??
@@ -328,12 +328,43 @@ class TaskAccessDetail(generics.RetrieveDestroyAPIView):
 
 class TaskPositionChangeView(APIView):
     def post(self, request, pk):
-        task = Task.objects.get(pk=pk)
-        task_above_id = request.POST.get("task_above_id")
-        # TODO: how this can work since there are multiple projects?
+        # This might need rethinking since it requires quite a lot of updates.
+        # Position is absolute within ALL projects so when the system grows each change will take more time
+        # maybe it should work on 'previous/next' task logic - but that makes queries more difficult
+        # what can break here is when reordering positions inside a project how will it relate to all positions
 
-        task.position = 999  # TODO: make it work, this is just a mockup
-        task.save()
+        # current solution takes task_above_id - if it's None it's going to be first ... but now what if
+        # that's inside a project... should I have a separate one for within the project ... it's going to be
+        # quite messy, also how this impacts if other users have other tasks - not visible to the current user
+
+        # I already have a new model - UserTaskQueue which should sort that out per user so this is still confusing
+
+        tasks = Task.objects.filter(is_closed=False).order_by('position')
+        task = Task.objects.get(pk=pk)
+        task_above_id = request.data.get("task_above_id")
+        print(f"Task above id found: {task_above_id}")
+
+        task_above = Task.objects.get(pk=task_above_id) if task_above_id else None
+
+        if not task_above:
+            task.position = 0
+            task.save()
+
+        position_counter = 1
+        for ta in tasks:
+            print(f"{ta.title} | {ta.position} | {ta.id}")
+
+            if ta == task:
+                if not task_above:
+                    continue
+                else:
+                    ta.position = task_above.position + 1
+                    print(f"\t Setting position to one above ")
+            else:
+                position_counter += 2
+                ta.position = position_counter
+                print(f"\t Setting position to {ta.position}")
+            ta.save()
 
         # TODO: create log entry
         return JsonResponse({"test": task_above_id})
