@@ -89,10 +89,14 @@ class ProjectList(generics.ListCreateAPIView):
         return ProjectListSerializer
 
     def get_queryset(self):
+        user = self.request.user
+        if self.request.GET.get('user'):
+            user = User.objects.get(pk=self.request.GET.get('user'))
+
         projects = (
             Project.objects.filter(
-                Q(owner=self.request.user)
-                | Q(permissions__user=self.request.user)
+                Q(owner=user)
+                | Q(permissions__user=user)
             )
             .distinct()
             .order_by("created_at")
@@ -128,18 +132,20 @@ class TaskList(generics.ListCreateAPIView):
             return TaskListSerializer
 
     def get_queryset(self):
+        user = self.request.user
+        if self.request.GET.get('user'):
+            user = User.objects.get(pk=self.request.GET.get('user'))
+
         tasks = (
             Task.objects.filter(
-                Q(owner=self.request.user)
-                | Q(permissions__user=self.request.user)
-                | Q(project__owner=self.request.user)
-                | Q(project__permissions__user=self.request.user)
+                Q(owner=user)
+                | Q(permissions__user=user)
+                | Q(project__owner=user)
+                | Q(project__permissions__user=user)
             )
             .distinct()
             .order_by("position")
         )
-
-        # TODO: shouldn't this be working by default from filterset_class ??
 
         return tasks
 
