@@ -70,6 +70,13 @@ class UserList(generics.ListAPIView):
     queryset = User.objects.all().order_by("username")
 
 
+class UserDetail(generics.RetrieveUpdateAPIView):
+    queryset = User.objects.all()
+
+    def get_serializer_class(self):
+        return UserSerializer
+
+
 class ProjectList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     filter_backends = [DjangoFilterBackend, OrderingFilter]
