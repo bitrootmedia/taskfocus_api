@@ -564,6 +564,42 @@ class UserTaskQueueView(ListAPIView):
         return utq
 
 
+class UserTaskQueueManageView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk):
+        """Return all users that has queue for this task"""
+        task = Task.objects.get(pk=pk)
+        users = [u.user for u in UserTaskQueue.objects.filter(task=task)]
+        serializer = UserSerializer(users, many=True)
+        response = serializer.data
+
+        return JsonResponse({"users": response})
+
+    def post(self, request, pk):
+        # TODO: test, permission check
+        task = Task.objects.get(pk=pk)
+        user = request.user
+        if request.POST.get('user'):
+            user = User.objects.get(pk=request.POST.get('user'))
+
+        UserTaskQueue.objects.get_or_create(task=task, user=user)
+        return JsonResponse({"status": "OK"})
+
+    def delete(self, request, pk):
+        # TODO: test, permission check
+        task = Task.objects.get(pk=pk)
+        user = request.user
+        if request.request.query_params.get('user'):
+            user = User.objects.get(pk=request.request.query_params.get('user'))
+
+        utq = UserTaskQueue.objects.filter(task=task, user=user)
+        if utq.exists():
+            utq.delete()
+
+        return JsonResponse({"status": "OK"})
+
+
 class UserTaskQueuePositionChangeView(APIView):
     def post(self, request, pk):
         utq = UserTaskQueue.objects.get(pk=pk)
