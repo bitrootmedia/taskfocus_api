@@ -32,7 +32,7 @@ urlpatterns = [
         name="task_position_change",
     ),
     path(
-        "user-task-queue-position-change",
+        "user-task-queue-position-change/<pk>",
         views.UserTaskQueuePositionChangeView.as_view(),
         name="user_task_queue_position_change",
     ),

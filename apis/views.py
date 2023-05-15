@@ -553,9 +553,9 @@ class UserTaskQueueView(ListAPIView):
 
 class UserTaskQueuePositionChangeView(APIView):
     def post(self, request, pk):
-        utq = UserTaskQueue.objects.get(pk=request.POST.get("user_task_queue_id")).last()
+        utq = UserTaskQueue.objects.get(pk=pk)
         task_above_id = request.POST.get("task_above_id")
-        # reorder all usertask queue
+        # reorder all user task queue
         utq.priority = 999  # TODO: make it work, this is just a mockup
         utq.save()
         return JsonResponse({"status": "OK"})
