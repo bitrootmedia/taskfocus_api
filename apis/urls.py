@@ -71,5 +71,5 @@ urlpatterns = [
     path("notifications", views.NotificationAckListView.as_view(), name="notifications"),
     path("notification-confirm/<pk>", views.NotificationAckConfirmView.as_view(), name="confirm_notification"),
     path("user-task-queue", views.UserTaskQueueView.as_view(), name="user_task_queue"),
-    path("user-task-queue-manage/<pk>", views.UserTaskQueueManageView.as_view(), name="user_task_queue"),
+    path("user-task-queue-manage/<pk>", views.UserTaskQueueManageView.as_view(), name="user_task_queue_manage"),
 ]

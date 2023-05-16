@@ -590,7 +590,7 @@ class UserTaskQueueManageView(APIView):
         # TODO: test, permission check
         task = Task.objects.get(pk=pk)
         user = request.user
-        if request.request.query_params.get('user'):
+        if request.query_params.get('user'):
             user = User.objects.get(pk=request.request.query_params.get('user'))
 
         utq = UserTaskQueue.objects.filter(task=task, user=user)
