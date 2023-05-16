@@ -1,3 +1,4 @@
+import json
 import pathlib
 import uuid
 from django.http import JsonResponse
@@ -579,9 +580,19 @@ class UserTaskQueueManageView(APIView):
     def post(self, request, pk):
         # TODO: test, permission check
         task = Task.objects.get(pk=pk)
+        body = request.body
         user = request.user
-        if request.POST.get('user'):
-            user = User.objects.get(pk=request.POST.get('user'))
+        request_user = request.POST.get('user')
+
+        if not request_user:
+            try:
+                jdata = json.loads(body)
+                request_user = jdata.get('user')
+            except Exception:
+                pass
+
+        if request_user:
+            user = User.objects.get(pk=request_user)
 
         UserTaskQueue.objects.get_or_create(task=task, user=user)
         return JsonResponse({"status": "OK"})
