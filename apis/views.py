@@ -600,10 +600,19 @@ class UserTaskQueueManageView(APIView):
     def delete(self, request, pk):
         # TODO: test, permission check
         task = Task.objects.get(pk=pk)
+        body = request.body
+        request_user = request.POST.get('user')
         user = request.user
 
-        if request.POST.get('user'):
-            user = User.objects.get(pk=request.POST.get('user'))
+        if not request_user:
+            try:
+                jdata = json.loads(body)
+                request_user = jdata.get('user')
+            except Exception:
+                pass
+
+        if request_user:
+            user = User.objects.get(pk=request_user)
 
         utq = UserTaskQueue.objects.filter(task=task, user=user)
         if utq.exists():
