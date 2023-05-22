@@ -7,7 +7,7 @@ from core.models import (
     Comment,
     Attachment,
     ProjectAccess,
-    TaskAccess,
+    TaskAccess, Reminder,
 )
 
 
@@ -27,6 +27,14 @@ class TaskFilter(filters.FilterSet):
     class Meta:
         model = Task
         fields = ["title", "project", "is_closed"]
+
+
+class ReminderFilter(filters.FilterSet):
+
+    class Meta:
+        model = Reminder
+        fields = ["task"]
+
 
 
 class LogFilter(filters.FilterSet):

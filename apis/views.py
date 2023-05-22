@@ -20,7 +20,7 @@ from .filters import (
     CommentFilter,
     AttachmentFilter,
     ProjectAccessFilter,
-    TaskAccessFilter,
+    TaskAccessFilter, ReminderFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -40,7 +40,7 @@ from .serializers import (
     ProjectAccessDetailSerializer,
     TaskReadOnlySerializer,
     TaskAccessDetailSerializer,
-    TaskAccessSerializer, NotificationAckSerializer, UserTaskQueueSerializer,
+    TaskAccessSerializer, NotificationAckSerializer, UserTaskQueueSerializer, ReminderSerializer,
 )
 
 from core.models import (
@@ -52,7 +52,7 @@ from core.models import (
     ProjectAccess,
     User,
     TaskWorkSession,
-    TaskAccess, NotificationAck, UserTaskQueue,
+    TaskAccess, NotificationAck, UserTaskQueue, Reminder,
 )
 from django.db.models import Q
 from .permissions import (
@@ -647,4 +647,29 @@ class UserTaskQueuePositionChangeView(APIView):
             st.priority = counter
             st.save()
 
+        return JsonResponse({"status": "OK"})
+
+
+class ReminderListView(generics.ListCreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ReminderSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = ReminderFilter
+
+    def get_queryset(self):
+        # user = self.request.user
+        # if self.request.GET.get('user'):
+        #     user = User.objects.get(pk=self.request.GET.get('user'))
+        reminders = Reminder.objects.all()
+        return reminders
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class ReminderCloseView(generics.RetrieveUpdateAPIView):
+    def post(self, request, pk):
+        reminder = Reminder.objects.get(pk=pk)
+        reminder.closed_at = now()
+        reminder.save()
         return JsonResponse({"status": "OK"})

@@ -383,3 +383,28 @@ class UserTaskQueue(models.Model):
 
     class Meta:
         ordering = ["-priority"]
+
+
+class Reminder(models.Model):
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reminders_created"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+    reminder_date = models.DateTimeField()
+    message = models.CharField(max_length=1000, null=True, blank=True)

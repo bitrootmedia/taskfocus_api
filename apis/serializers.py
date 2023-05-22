@@ -8,8 +8,15 @@ from core.models import (
     Attachment,
     ProjectAccess,
     TaskAccess,
-    User, Notification, NotificationAck, UserTaskQueue,
+    User, Notification, NotificationAck, UserTaskQueue, Reminder
 )
+
+
+class ReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reminder
+        fields = ("id", "user", "task", "created_by", "reminder_date", "message")
+        read_only_fields = ("created_by", )
 
 
 class UserSerializer(serializers.ModelSerializer):
