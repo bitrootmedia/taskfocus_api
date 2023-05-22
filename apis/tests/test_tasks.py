@@ -55,6 +55,13 @@ class TasksTests(APITestCase):
             project=cls.project_4,
         )
 
+        cls.task_5 = Task.objects.create(
+            owner=cls.user_3,
+            title="Task 5",
+            description="Changing owner",
+            project=cls.project_4
+        )
+
     def test_task_list_not_logged(self):
         response = self.client.get(reverse("task_list"))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -175,3 +182,20 @@ class TasksTests(APITestCase):
         self.assertEqual(task_db.owner, self.user)
         self.assertEqual(task_db.title, title)
         self.assertEqual(task_db.project, None)
+
+    def test_task_change_owner(self):
+        self.client.force_login(self.user)
+        # r = self.client.put(
+        #     reverse("task_detail", kwargs={"pk": self.task_1.id}),
+        #     {"owner": f"{self.user_2.pk}"},
+        # )
+        # self.assertEqual(r.status_code, 200)
+
+        # r = self.client.get(
+        #     reverse("task_detail", kwargs={"pk": self.task_1.id})
+        # )
+        # self.assertContains(r, "as")
+
+    # TODO: only task owner and project owner can change task owner
+    def test_task_change_owner_not_task_owner(self):
+        ...

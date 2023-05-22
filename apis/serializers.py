@@ -107,7 +107,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "status",
             "project",
             "responsible",
-            "urgency_level"
+            "urgency_level",
             # "owner",
         )
 

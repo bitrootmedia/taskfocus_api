@@ -601,6 +601,7 @@ class UserTaskQueueManageView(APIView):
         # TODO: test, permission check
         task = Task.objects.get(pk=pk)
         body = request.body
+        print(request.body)
         request_user = request.POST.get('user')
         user = request.user
 
@@ -623,9 +624,27 @@ class UserTaskQueueManageView(APIView):
 
 class UserTaskQueuePositionChangeView(APIView):
     def post(self, request, pk):
+        # TODO: permissions + logs
+
         utq = UserTaskQueue.objects.get(pk=pk)
-        task_above_id = request.POST.get("task_above_id")
-        # reorder all user task queue
-        utq.priority = 999  # TODO: make it work, this is just a mockup
-        utq.save()
+        data = json.loads(request.body)
+        user_task_above_id = data.get("task_above_id")
+        sorted_tasks = []
+
+        if not user_task_above_id:
+            sorted_tasks.append(utq)
+
+        user = utq.user
+
+        for ut in UserTaskQueue.objects.filter(user=user).exclude(id=utq.id).order_by('-priority'):
+            sorted_tasks.append(ut)
+            if user_task_above_id == ut.id:
+                sorted_tasks.append(utq)
+
+        counter = len(sorted_tasks)
+        for st in sorted_tasks:
+            counter -= 1
+            st.priority = counter
+            st.save()
+
         return JsonResponse({"status": "OK"})
