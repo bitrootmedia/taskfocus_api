@@ -561,7 +561,7 @@ class UserTaskQueueView(ListAPIView):
         if self.request.GET.get('user'):
             user = User.objects.get(pk=self.request.GET.get('user'))
 
-        utq = UserTaskQueue.objects.filter(user=user).order_by('-priority')
+        utq = UserTaskQueue.objects.filter(user=user).exclude(task__is_closed=True).order_by('-priority')
         return utq
 
 
