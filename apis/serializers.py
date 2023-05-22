@@ -65,6 +65,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "position",
             "responsible",
             "urgency_level",
+            "priority"
         )
 
 
@@ -90,6 +91,7 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "owner",
             "is_closed",
             "urgency_level",
+            "priority"
         )
 
 
@@ -108,6 +110,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "project",
             "responsible",
             "urgency_level",
+            "priority",
             # "owner",
         )
 
