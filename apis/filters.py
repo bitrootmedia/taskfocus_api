@@ -30,7 +30,7 @@ class TaskFilter(filters.FilterSet):
 
 
 class ReminderFilter(filters.FilterSet):
-    closed_at = django_filters.BooleanFilter(lookup_expr='isnull')
+    open_only = django_filters.BooleanFilter(field_name="closed_at", lookup_expr='isnull')
 
     class Meta:
         model = Reminder
