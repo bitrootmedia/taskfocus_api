@@ -403,7 +403,7 @@ class Reminder(models.Model):
         related_name="reminders_created"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    closed_at = models.DateTimeField(null=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
 
     updated_at = models.DateTimeField(auto_now=True)
     reminder_date = models.DateTimeField()

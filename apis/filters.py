@@ -30,11 +30,11 @@ class TaskFilter(filters.FilterSet):
 
 
 class ReminderFilter(filters.FilterSet):
-    closed_at = filters.DateFilter(lookup_expr='isnull')
+    closed_at = django_filters.BooleanFilter(lookup_expr='isnull')
 
     class Meta:
         model = Reminder
-        fields = ["task", "closed_at", "user"]
+        fields = ["task", "user", "closed_at"]
 
 
 class LogFilter(filters.FilterSet):
