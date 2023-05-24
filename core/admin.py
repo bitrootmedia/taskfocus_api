@@ -13,7 +13,8 @@ from .models import (
     Notification,
     NotificationAck,
     UserTaskQueue,
-    Reminder
+    Reminder,
+    TaskChecklistItem
 )
 
 admin.site.site_header = "Project management API"
@@ -183,4 +184,9 @@ class UserTaskQueueAdmin(admin.ModelAdmin):
 
 @admin.register(Reminder)
 class ReminderAdmin(admin.ModelAdmin):
+    list_display = ('id', )
+
+
+@admin.register(TaskChecklistItem)
+class TaskChecklistItemAdmin(admin.ModelAdmin):
     list_display = ('id', )

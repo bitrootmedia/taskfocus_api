@@ -8,14 +8,14 @@ from core.models import (
     Attachment,
     ProjectAccess,
     TaskAccess,
-    User, Notification, NotificationAck, UserTaskQueue, Reminder
+    User, Notification, NotificationAck, UserTaskQueue, Reminder, TaskChecklistItem
 )
 
 
 class ReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reminder
-        fields = ("id", "user", "task", "created_by", "reminder_date", "message")
+        fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
         read_only_fields = ("created_by", )
 
 
@@ -231,3 +231,11 @@ class UserTaskQueueSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserTaskQueue
         fields = ("id", "priority", "task")
+
+
+class TaskChecklistItemSerializer(serializers.ModelSerializer):
+    task = TaskReadOnlySerializer()
+
+    class Meta:
+        model = TaskChecklistItem
+        fields = ("id", "task")

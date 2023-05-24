@@ -64,7 +64,7 @@ class ProjectAccess(models.Model):
 
 class Task(models.Model):
     class StatusChoices(models.TextChoices):
-        TODO = "TODO", "TODO"
+        OPEN = "OPEN", "OPEN"
         IN_PROGRESS = "IN PROGRESS", "IN PROGRESS"
         BLOCKER = "BLOCKER", "BLOCKER"
         TO_VERIFY = "TO VERIFY", "TO VERIFY"
@@ -88,7 +88,7 @@ class Task(models.Model):
         blank=True,
     )
     tag = models.CharField(max_length=150, blank=True)
-    position = models.IntegerField(null=True, blank=True)
+    position = models.IntegerField(default=100, null=True, blank=True)
     parent_task = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,
@@ -408,3 +408,25 @@ class Reminder(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     reminder_date = models.DateTimeField()
     message = models.CharField(max_length=1000, null=True, blank=True)
+
+
+class TaskChecklistItem(models.Model):
+    """Checklist item"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+    )
+    label = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    done_at = models.DateTimeField(null=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )
+    position = models.IntegerField(default=0)
+    done_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="checklistitem_done"
+    )
