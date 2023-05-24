@@ -30,11 +30,11 @@ class TaskFilter(filters.FilterSet):
 
 
 class ReminderFilter(filters.FilterSet):
+    closed_at = filters.DateFilter(lookup_expr='isnull')
 
     class Meta:
         model = Reminder
         fields = ["task", "closed_at", "user"]
-
 
 
 class LogFilter(filters.FilterSet):
