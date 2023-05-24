@@ -33,7 +33,7 @@ class ReminderFilter(filters.FilterSet):
 
     class Meta:
         model = Reminder
-        fields = ["task"]
+        fields = ["task", "closed_at", "user"]
 
 
 
