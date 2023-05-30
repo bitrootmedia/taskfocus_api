@@ -105,6 +105,8 @@ class Task(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)], default=0
     )
     eta_date = models.DateField(null=True, blank=True)
+    estimated_work_hours = models.DecimalField(null=True, blank=True, max_digits=4, decimal_places=1)
+    is_urgent = models.BooleanField(default=False)
     responsible = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

@@ -72,7 +72,9 @@ class TaskListSerializer(serializers.ModelSerializer):
             "position",
             "responsible",
             "urgency_level",
-            "position"
+            "position",
+            "estimated_work_hours",
+            "is_urgent"
         )
 
 
@@ -98,7 +100,9 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "owner",
             "is_closed",
             "urgency_level",
-            "position"
+            "position",
+            "estimated_work_hours",
+            "is_urgent"
         )
 
 
@@ -118,6 +122,8 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "responsible",
             "urgency_level",
             "position",
+            "estimated_work_hours",
+            "is_urgent"
             # "owner",
         )
 
