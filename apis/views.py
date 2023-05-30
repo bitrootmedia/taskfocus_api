@@ -41,6 +41,7 @@ from .serializers import (
     TaskReadOnlySerializer,
     TaskAccessDetailSerializer,
     TaskAccessSerializer, NotificationAckSerializer, UserTaskQueueSerializer, ReminderSerializer,
+    ReminderReadOnlySerializer,
 )
 
 from core.models import (
@@ -655,6 +656,11 @@ class ReminderListView(generics.ListCreateAPIView):
     serializer_class = ReminderSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = ReminderFilter
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return ReminderReadOnlySerializer
+        return ReminderSerializer
 
     def get_queryset(self):
         # user = self.request.user

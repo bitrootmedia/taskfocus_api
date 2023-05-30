@@ -11,14 +11,6 @@ from core.models import (
     User, Notification, NotificationAck, UserTaskQueue, Reminder, TaskChecklistItem
 )
 
-
-class ReminderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Reminder
-        fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
-        read_only_fields = ("created_by", )
-
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -245,3 +237,20 @@ class TaskChecklistItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskChecklistItem
         fields = ("id", "task")
+
+
+class ReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reminder
+        fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
+        read_only_fields = ("created_by", )
+
+
+class ReminderReadOnlySerializer(serializers.ModelSerializer):
+    task = TaskReadOnlySerializer()
+
+    class Meta:
+        model = Reminder
+        fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
+        read_only_fields = ("created_by",)
+
