@@ -673,11 +673,29 @@ class ReminderListView(generics.ListCreateAPIView):
         serializer.save(created_by=self.request.user)
 
 
-class ReminderCloseView(generics.RetrieveUpdateAPIView):
+class ReminderCloseView(APIView):
     def post(self, request, pk):
+        # TODO: permissions
         reminder = Reminder.objects.get(pk=pk)
         reminder.closed_at = now()
         reminder.save()
+        return JsonResponse({"status": "OK"})
+
+
+class ChangeTaskOwnerView(APIView):
+    # This should be done by Task serializer/view but I'm having too much trouble atm for some reason
+    # This should be fixed and changed
+
+    def post(self, request, pk):
+        task = Task.objects.get(pk=pk)
+        if task.owner != request.user:
+            if task.project and task.project.owner != request.user:
+                raise Exception("Only task or project owner can change task owner")
+
+        new_owner_id = request.POST.get("owner")
+        new_owner = User.objects.get(pk=new_owner_id)
+        task.owner = new_owner
+        task.save()
         return JsonResponse({"status": "OK"})
 
 

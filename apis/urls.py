@@ -74,4 +74,5 @@ urlpatterns = [
     path("user-task-queue-manage/<pk>", views.UserTaskQueueManageView.as_view(), name="user_task_queue_manage"),
     path("reminders", views.ReminderListView.as_view(), name="reminder_list"),
     path("reminder-close/<pk>", views.ReminderCloseView.as_view(), name="reminder_close"),
+    path("change-task-owner/<pk>", views.ChangeTaskOwnerView.as_view(), name="task_owner_change"),
 ]
