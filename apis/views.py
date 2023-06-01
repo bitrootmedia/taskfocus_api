@@ -699,6 +699,23 @@ class ChangeTaskOwnerView(APIView):
         return JsonResponse({"status": "OK"})
 
 
+class ChangeProjectOwnerView(APIView):
+    # This should be done by Project serializer/view but I'm having too much trouble atm for some reason
+    # This should be fixed and changed
+
+    def post(self, request, pk):
+        project = Project.objects.get(pk=pk)
+        if project.owner != request.user:
+            raise Exception("Only project owner can change project owner")
+
+        new_owner_id = request.POST.get("owner")
+        new_owner = User.objects.get(pk=new_owner_id)
+        project.owner = new_owner
+        project.save()
+        return JsonResponse({"status": "OK"})
+
+
+
 # TODO:
 # class TaskChecklistItemListView(generics.ListCreateAPIView):
 #     permission_classes = (IsAuthenticated,)

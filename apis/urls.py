@@ -75,4 +75,5 @@ urlpatterns = [
     path("reminders", views.ReminderListView.as_view(), name="reminder_list"),
     path("reminder-close/<pk>", views.ReminderCloseView.as_view(), name="reminder_close"),
     path("change-task-owner/<pk>", views.ChangeTaskOwnerView.as_view(), name="task_owner_change"),
+    path("change-project-owner/<pk>", views.ChangeProjectOwnerView.as_view(), name="project_owner_change"),
 ]
