@@ -69,7 +69,6 @@ class Task(models.Model):
         BLOCKER = "BLOCKER", "BLOCKER"
         TO_VERIFY = "TO VERIFY", "TO VERIFY"
         DONE = "DONE", "DONE"
-        ON_HOLD = "ON_HOLD", "ON_HOLD"
 
     class UrgencyLevelChoices(models.TextChoices):
         CRITICAL = "CRITICAL", "CRITICAL"
@@ -101,6 +100,7 @@ class Task(models.Model):
     )
     is_closed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     progress = models.PositiveIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(100)], default=0
     )

@@ -58,6 +58,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "status",
             "eta_date",
             "created_at",
+            "updated_at",
             "tag",
             "progress",
             "description",
@@ -84,6 +85,7 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "status",
             "eta_date",
             "created_at",
+            "updated_at",
             "tag",
             "progress",
             "description",
@@ -117,7 +119,9 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "position",
             "estimated_work_hours",
             "is_urgent",
-            "owner",
+            # "owner",
+            "created_at",
+            "updated_at"
         )
 
 
