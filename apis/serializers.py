@@ -11,6 +11,7 @@ from core.models import (
     User, Notification, NotificationAck, UserTaskQueue, Reminder, TaskChecklistItem
 )
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -115,8 +116,8 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "urgency_level",
             "position",
             "estimated_work_hours",
-            "is_urgent"
-            # "owner",
+            "is_urgent",
+            "owner",
         )
 
 
