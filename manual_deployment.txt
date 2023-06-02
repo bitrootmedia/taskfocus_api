@@ -1,11 +1,126 @@
-Todo ...
-- config dir , log
-- uwsgi setup
-- nginx setup
-- postgres setup?
-- visudo for service
+# usermod -a -G deploy www-data
 
-apt install zip htop screen git fail2ban nginx python3-pip python3-dev build-essential python3-distutils python3-dev libpq-dev supervisor postgresql postgresql-contrib libpq-dev python3-psycopg2 redis-server openssl libssl-dev libssl-doc python3-certbot-nginx acl
-usermod -a -G deploy www-data
 
+Ubuntu 22.04
+
+apt update
+apt upgrade
+
+apt install zip htop screen git fail2ban nginx python3-pip build-essential python3-distutils python3-dev libpq-dev supervisor libpq-dev python3-psycopg2 redis-server openssl libssl-dev libssl-doc python3-certbot-nginx python3.10-venv
+
+adduser deploy
+usermod -aG sudo deploy
+su - deploy
+
+git clone https://github.com/bitrootmedia/taskfocus_api.git
+
+python3 -m venv taskfocus_api/venv
+source taskfocus_api/venv/bin/activate
+pip install uwsgi
+
+cd taskfocus_api
+pip install -r requirements.txt
+create .env file and edit changes
+
+```
+SECRET_KEY="testing"
+DEBUG=True
+DATABASE_URL=postgresql://tasks_user:@db-postgresql-fra1-0xxxx.ondigitalocean.com:25060/tasks_db?sslmode=require
+CSRF_TRUSTED_ORIGINS="http://localhost:3000,http://localhost:63342,http://localhost:3001"
+DEFAULT_FILE_STORAGE=storages.backends.s3boto3.S3Boto3Storage
+AWS_S3_REGION_NAME=sfo2
+MEDIA_URL="https://lgs.sfo2.digitaloceanspaces.com/pm/"
+AWS_S3_ENDPOINT_URL=https://lgs.sfo2.digitaloceanspaces.com
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_STORAGE_BUCKET_NAME=tasks
+```
+
+./manage.py migrate
+./manage.py createsuperuser
+./manage.py collectstatic
+
+mkdir config
+cd config
+
+TODO: @@@ Continue from here, maybe use supervisor this time to control UWSGI not systemctl?
+
+vim uwsgi.ini
+
+```
+[uwsgi]
+
+base = /home/deploy/partners
+master = true
+virtualenv = /home/deploy/partners/venv
+pythonpath = %(base)
+chdir = %(base)
+module = partners.wsgi:application
+socket = /tmp/partners.sock
+processes = 5
+chown-socket = deploy:www-data
+chmod-socket = 660
+die-on-term = true
+
+logger = file:/home/deploy/log/uwsgi.log
+
+vacuum = true
+buffer-size=65535
+harakiri=15
+max-requests=5000
+```
+
+sudo vim /etc/systemd/system/partners.service
+```
+[Unit]
+Description=uWSGI instance to serve partners project
+After=network.target
+
+[Service]
+User=deploy
+Group=www-data
+WorkingDirectory=/home/deploy/partners
+Environment="PATH=/home/deploy/partners/venv/bin:/usr/bin:/bin"
+ExecStart=/home/deploy/partners/venv/bin/uwsgi --ini /home/deploy/partners/config/uwsgi.ini
+
+[Install]
+WantedBy=multi-user.target
+```
+
+sudo systemctl enable partners.service
+sudo service partners start
+
+vim /home/deploy/partners/config/nginx.ini
+
+```
+upstream partners{
+  server unix:///tmp/partners.sock;
+}
+
+server {
+  listen 80;
+  server_name partners.crowdsteer.com;
+  client_max_body_size 20M;
+
+  error_log /home/deploy/log/nginx.log warn;
+
+  location /static/ {
+    alias /home/deploy/static/;
+  }
+
+  location / {
+    include /etc/nginx/uwsgi_params;
+    uwsgi_pass partners;
+  }
+
+}
+```
+
+sudo ln -s /home/deploy/partners/config/nginx.ini /etc/nginx/sites-enabled/
+sudo service nginx restart
+
+check if running properly in browser
+sudo certbot --nginx -d partners.crowdsteer.com --non-interactive --agree-tos -m admin@crowdsteer.com --redirect
+
+sudo chmod -R 755 /home/deploy
 
