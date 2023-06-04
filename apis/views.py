@@ -174,11 +174,11 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
         task = serializer.save()
 
         if task.responsible != previous_data.responsible and task.responsible \
-                is not None and self.request.user.username != task.responsible:
+                is not None and self.request.user != task.responsible:
             notification = Notification.objects.create(
                 task=task,
                 project=task.project,
-                content=f"{self.request.user.username} has set your as responsible for task [{task.title}]"
+                content=f"You are now responsible for task [{task.title}] (set by {self.request.user.username})"
             )
             NotificationAck.objects.create(
                 notification=notification,
