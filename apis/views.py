@@ -13,6 +13,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from django.core.files.storage import default_storage
 from rest_framework.views import APIView
 
+from core.utils.notifications import create_notification_from_comment
 from .filters import (
     ProjectFilter,
     TaskFilter,
@@ -53,7 +54,7 @@ from core.models import (
     ProjectAccess,
     User,
     TaskWorkSession,
-    TaskAccess, NotificationAck, UserTaskQueue, Reminder,
+    TaskAccess, NotificationAck, UserTaskQueue, Reminder, Notification,
 )
 from django.db.models import Q
 from .permissions import (
@@ -165,6 +166,25 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
             return TaskReadOnlySerializer
         return TaskDetailSerializer
 
+    # TODO: changed responsible user - send him notification
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        previous_data = Task.objects.get(pk=instance.pk)
+        task = serializer.save()
+
+        if task.responsible != previous_data.responsible and task.responsible \
+                is not None and self.request.user.username != task.responsible:
+            notification = Notification.objects.create(
+                task=task,
+                project=task.project,
+                content=f"{self.request.user.username} has set your as responsible for task [{task.title}]"
+            )
+            NotificationAck.objects.create(
+                notification=notification,
+                user=task.responsible
+            )
+
 
 class LogList(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
@@ -214,7 +234,12 @@ class CommentList(generics.ListCreateAPIView):
         return comments
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        comment = serializer.save(author=self.request.user)
+        if comment.task and comment.task.project and not comment.project:
+            comment.project = comment.task.project
+            comment.save()
+
+        create_notification_from_comment(comment)
 
 
 class CommentDetail(generics.RetrieveUpdateAPIView):
@@ -528,7 +553,7 @@ class DictionaryView(APIView):
     def get(self, request):
         return JsonResponse(
             {"task_status_choices": Task.StatusChoices.choices,
-            "task_urgency_level_choices": Task.UrgencyLevelChoices.choices},
+             "task_urgency_level_choices": Task.UrgencyLevelChoices.choices},
         )
 
 
@@ -715,8 +740,6 @@ class ChangeProjectOwnerView(APIView):
         project.owner = new_owner
         project.save()
         return JsonResponse({"status": "OK"})
-
-
 
 # TODO:
 # class TaskChecklistItemListView(generics.ListCreateAPIView):

@@ -10,7 +10,6 @@ class User(AbstractUser):
 
     image = models.ImageField(upload_to="user_avatar", blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
-    nametag = models.CharField(max_length=20, unique=True, null=True)
 
 
 class Project(models.Model):
@@ -343,6 +342,9 @@ class Notification(models.Model):
         null=True,
         blank=True,
     )
+
+    def __str__(self):
+        return f"{self.content[:50]}"
 
 
 class NotificationAck(models.Model):
