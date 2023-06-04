@@ -42,21 +42,21 @@ AWS_STORAGE_BUCKET_NAME=tasks
 
 mkdir config
 cd config
+mkdir /home/deploy/log
 
-TODO: @@@ Continue from here, maybe use supervisor this time to control UWSGI not systemctl?
 
 vim uwsgi.ini
 
 ```
 [uwsgi]
 
-base = /home/deploy/partners
+base = /home/taskfocus_api
 master = true
-virtualenv = /home/deploy/partners/venv
+virtualenv = /home/taskfocus_api/venv
 pythonpath = %(base)
 chdir = %(base)
-module = partners.wsgi:application
-socket = /tmp/partners.sock
+module = pma.wsgi:application
+socket = /tmp/taskfocus_api.sock
 processes = 5
 chown-socket = deploy:www-data
 chmod-socket = 660
@@ -70,57 +70,95 @@ harakiri=15
 max-requests=5000
 ```
 
-sudo vim /etc/systemd/system/partners.service
+TODO: @@@ Continue from here, maybe use supervisor this time to control UWSGI not systemctl?
+
+sudo vim /etc/supervisor/conf.d/uwsgi.conf
 ```
-[Unit]
-Description=uWSGI instance to serve partners project
-After=network.target
-
-[Service]
-User=deploy
-Group=www-data
-WorkingDirectory=/home/deploy/partners
-Environment="PATH=/home/deploy/partners/venv/bin:/usr/bin:/bin"
-ExecStart=/home/deploy/partners/venv/bin/uwsgi --ini /home/deploy/partners/config/uwsgi.ini
-
-[Install]
-WantedBy=multi-user.target
+[program:uwsgi]
+user = root
+command=/home/deploy/taskfocus_api/venv/bin/uwsgi --ini /home/deploy/taskfocus_api/config/uwsgi.ini
+autostart=true
+autorestart=true
+stderr_logfile = /home/deploy/log/uwsgi_err.log
+stdout_logfile = /home/deploy/log/uwsgi_out.log
+stopsignal=INT
 ```
 
-sudo systemctl enable partners.service
-sudo service partners start
+sudo supervisorctl reread
+sudo supervisorctl reload
+sudo supervisorctl status
 
-vim /home/deploy/partners/config/nginx.ini
+
+vim /home/deploy/taskfocus_api/config/nginx.ini
+
+i.e. tasks-api.domain.com
 
 ```
-upstream partners{
-  server unix:///tmp/partners.sock;
+upstream taskfocus_api{
+  server unix:///tmp/taskfocus_api.sock;
 }
 
 server {
   listen 80;
-  server_name partners.crowdsteer.com;
+  server_name <domain>;
   client_max_body_size 20M;
 
   error_log /home/deploy/log/nginx.log warn;
 
   location /static/ {
-    alias /home/deploy/static/;
+    alias /home/deploy/taskfocus_api/staticfiles/;
   }
 
   location / {
     include /etc/nginx/uwsgi_params;
-    uwsgi_pass partners;
+    uwsgi_pass taskfocus_api;
   }
 
 }
 ```
 
-sudo ln -s /home/deploy/partners/config/nginx.ini /etc/nginx/sites-enabled/
+sudo ln -s /home/deploy/taskfocus_api/config/nginx.ini /etc/nginx/sites-enabled/
 sudo service nginx restart
 
-check if running properly in browser
-sudo certbot --nginx -d partners.crowdsteer.com --non-interactive --agree-tos -m admin@crowdsteer.com --redirect
+check if running properly in browser ...
+sudo certbot --nginx -d domain --non-interactive --agree-tos -m admin@domain --redirect
 
-sudo chmod -R 755 /home/deploy
+
+WEB part: i.e. tasks.domain.com
+(move this to web app )
+
+cd /home/deploy
+
+git clone https://github.com/bitrootmedia/taskfocus_web.git
+
+curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+(exit terminal and reenter)
+
+nvm install 16.14.0
+npm install
+
+vim .env
+```
+VITE_BASE_API_URL="https://tasks-api.domain.com/api"
+VITE_PROJECT_NAME=Task Focus
+VITE_DEFAULT_PAGE_SIZE=100
+```
+
+npm run build
+
+sudo vim /etc/nginx/sites-enabled/app.ini
+
+server {
+  server_name <domain>;
+  client_max_body_size 20M;
+
+  error_log /home/deploy/log/web_app_nginx.log warn;
+
+  location / {
+    alias /home/deploy/taskfocus_web/dist/;
+  }
+
+    listen 80;
+}
+
 

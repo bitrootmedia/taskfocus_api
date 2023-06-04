@@ -692,7 +692,8 @@ class ChangeTaskOwnerView(APIView):
             if task.project and task.project.owner != request.user:
                 raise Exception("Only task or project owner can change task owner")
 
-        new_owner_id = request.POST.get("owner")
+        new_owner_id = request.data.get("owner")
+
         new_owner = User.objects.get(pk=new_owner_id)
         task.owner = new_owner
         task.save()
@@ -705,10 +706,11 @@ class ChangeProjectOwnerView(APIView):
 
     def post(self, request, pk):
         project = Project.objects.get(pk=pk)
+
         if project.owner != request.user:
             raise Exception("Only project owner can change project owner")
 
-        new_owner_id = request.POST.get("owner")
+        new_owner_id = request.data.get("owner")
         new_owner = User.objects.get(pk=new_owner_id)
         project.owner = new_owner
         project.save()

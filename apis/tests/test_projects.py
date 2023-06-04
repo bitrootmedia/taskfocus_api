@@ -125,4 +125,11 @@ class ProjectTests(APITestCase):
         )
         self.assertEqual(s.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    def test_change_project_owner(self):
+        self.client.force_login(self.user)
+        s = self.client.post(reverse("project_owner_change", kwargs={"pk": self.project.pk}),
+                             data={"owner": str(self.user_3.id)})
+
+        self.assertEqual(s.status_code, status.HTTP_200_OK)
+
     # TODO: test create project
