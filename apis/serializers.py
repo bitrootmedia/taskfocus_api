@@ -10,6 +10,7 @@ from core.models import (
     TaskAccess,
     User, Notification, NotificationAck, UserTaskQueue, Reminder, TaskChecklistItem
 )
+from core.utils.permissions import user_can_see_task, user_can_see_project
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -43,10 +44,19 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
 class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
     owner = UserSerializer()
+    title = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = ("id", "title", "description", "background_image", "owner")
+
+    def get_title(self, instance):
+        request = self.context.get('request')
+        user = request.user
+        if user_can_see_project(user, instance):
+            return instance.title
+        else:
+            return "*" * 5
 
 
 class TaskListSerializer(serializers.ModelSerializer):
@@ -76,6 +86,7 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
     owner = UserSerializer()
     responsible = UserSerializer()
     project = ProjectDetailReadOnlySerializer()
+    title = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -99,6 +110,14 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "estimated_work_hours",
             "is_urgent"
         )
+
+    def get_title(self, instance):
+        request = self.context.get('request')
+        user = request.user
+        if user_can_see_task(user, instance):
+            return instance.title
+        else:
+            return "*" * 5
 
 
 class TaskDetailSerializer(serializers.ModelSerializer):
@@ -248,7 +267,7 @@ class ReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reminder
         fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
-        read_only_fields = ("created_by", )
+        read_only_fields = ("created_by",)
 
 
 class ReminderReadOnlySerializer(serializers.ModelSerializer):
@@ -258,4 +277,3 @@ class ReminderReadOnlySerializer(serializers.ModelSerializer):
         model = Reminder
         fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
         read_only_fields = ("created_by",)
-
