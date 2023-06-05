@@ -194,17 +194,8 @@ class LogList(generics.ListAPIView):
     search_fields = ["message"]
 
     def get_queryset(self):
-        tasks = (
-            Log.objects.filter(
-                Q(user=self.request.user)
-                | Q(project__owner=self.request.user)
-                | Q(project__permissions__user=self.request.user)
-            )
-            .distinct()
-            .order_by("created_at")
-        )
-        return tasks
 
+        return None
 
 class CommentList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
@@ -692,10 +683,9 @@ class ReminderListView(generics.ListCreateAPIView):
         return ReminderSerializer
 
     def get_queryset(self):
-        # user = self.request.user
-        # if self.request.GET.get('user'):
-        #     user = User.objects.get(pk=self.request.GET.get('user'))
-        reminders = Reminder.objects.all()
+        reminders = Reminder.objects.filter(
+            user=self.request.user
+        ).exclude(closed_at__isnull=False)
         return reminders
 
     def perform_create(self, serializer):

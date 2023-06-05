@@ -39,3 +39,13 @@ ReDoc:
 
 Swagger:
 `/api/schema/swagger-ui/`
+
+
+User config field:
+
+```
+{
+  "limit_queue_view": ["username1", "username2"],
+  "extra_menu_links": true 
+}
+```

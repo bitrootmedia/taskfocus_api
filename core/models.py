@@ -10,6 +10,7 @@ class User(AbstractUser):
 
     image = models.ImageField(upload_to="user_avatar", blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
+    config = models.JSONField(default=dict, blank=True)
 
 
 class Project(models.Model):

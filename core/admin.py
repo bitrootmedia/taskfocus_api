@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
+
 from .models import (
     Attachment,
     Comment,
@@ -18,7 +20,23 @@ from .models import (
 )
 
 admin.site.site_header = "Project management API"
-admin.site.register(User, UserAdmin)
+# admin.site.register(User, UserAdmin)
+admin.site.unregister(Group)
+
+@admin.register(User)
+class UserAdmin(UserAdmin):
+    model = User
+    fieldsets = (
+        *UserAdmin.fieldsets,
+        (
+            'Custom fields',
+            {
+                'fields': (
+                    'config',
+                )
+            }
+        )
+    )
 
 
 @admin.register(Attachment)

@@ -16,7 +16,7 @@ from core.utils.permissions import user_can_see_task, user_can_see_project
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "first_name", "last_name")
+        fields = ("id", "username", "first_name", "last_name", "config")
 
 
 class ProjectListSerializer(serializers.ModelSerializer):
