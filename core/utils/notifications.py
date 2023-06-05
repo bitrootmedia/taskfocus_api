@@ -5,10 +5,12 @@ def extract_users_from_text(text):
     """Used to extract unique usernames from text"""
     all_users = User.objects.all()
 
+    valid_ends = ["", ".", ",", "|", "'", '"', ';', "]", "-", ":", "?", ">", "+"]
     users_found = set()
     for u in all_users:
-        if f'@{u.username} '.casefold() in text.casefold():
-            users_found.add(u)
+        for ve in valid_ends:
+            if f'@{u.username}{ve}'.casefold() in text.casefold():
+                users_found.add(u)
 
     return users_found
 
@@ -19,7 +21,7 @@ def create_notification_from_comment(comment):
 
     notify_users = set()
 
-    if '@task ' in comment.content:
+    if '@task' in comment.content:
         if comment.task:
             for ta in TaskAccess.objects.filter(task=comment.task):
                 notify_users.add(ta.user)
@@ -27,7 +29,7 @@ def create_notification_from_comment(comment):
                 notify_users.add(comment.task.owner)
 
     project = None
-    if '@project ' in comment.content:
+    if '@project' in comment.content:
         if comment.project:
             project = comment.project
         if not project and comment.task and comment.task.project:

@@ -438,9 +438,15 @@ class TaskCloseView(APIView):
         if task.owner != request.user:
             raise Exception("Only task owner can close the task")
 
-        # TODO: log
-        # TODO: closing date or log is enough?
-        # TODO - make use of request.POST.get('closing_message') - store it somewhere maybe just log or better in task
+        Log.objects.create(task=task, user=self.request.user, message="Task closed")
+        if request.data.get('closing_message'):
+            comment = Comment.objects.create(
+                task=task,
+                author=self.request.user,
+                content=request.data.get('closing_message')
+            )
+            create_notification_from_comment(comment)
+
         task.is_closed = True
         task.archived_at = now()  # TODO: think if I need this? or rename
         task.save()
@@ -456,9 +462,7 @@ class TaskUnCloseView(APIView):
         if task.owner != request.user:
             raise Exception("Only task owner can close the task")
 
-        # TODO: log
-        # TODO: closing date or log is enough?
-        # TODO - make use of request.POST.get('closing_message') - store it somewhere maybe just log or better in task
+        Log.objects.create(task=task, user=self.request.user, message="Task unclosed")
         task.is_closed = False
         task.archived_at = None
         task.save()
