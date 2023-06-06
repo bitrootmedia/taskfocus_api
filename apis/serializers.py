@@ -52,11 +52,14 @@ class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
 
     def get_title(self, instance):
         request = self.context.get('request')
-        user = request.user
-        if user_can_see_project(user, instance):
-            return instance.title
+        if request:
+            user = request.user
+            if user_can_see_project(user, instance):
+                return instance.title
+            else:
+                return "*" * 5
         else:
-            return "*" * 5
+            return instance.title
 
 
 class TaskListSerializer(serializers.ModelSerializer):
@@ -113,12 +116,14 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
 
     def get_title(self, instance):
         request = self.context.get('request')
-        user = request.user
-        if user_can_see_task(user, instance):
-            return instance.title
+        if request:
+            user = request.user
+            if user_can_see_task(user, instance):
+                return instance.title
+            else:
+                return "*" * 5
         else:
-            return "*" * 5
-
+            return instance.title
 
 class TaskDetailSerializer(serializers.ModelSerializer):
     class Meta:
