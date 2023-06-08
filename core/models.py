@@ -436,3 +436,20 @@ class TaskChecklistItem(models.Model):
         on_delete=models.CASCADE,
         related_name="checklistitem_done"
     )
+
+
+class TaskUserNote(models.Model):
+    """Private notes per task"""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )

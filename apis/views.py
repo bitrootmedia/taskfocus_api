@@ -478,15 +478,15 @@ class TaskStopWorkView(APIView):
 
 class CurrentTaskView(APIView):
     def get(self, request):
-        # returns task with project - there should be only one allowed
         user = request.user
-        # TODO: think on some permissions
         if request.GET.get('user'):
             user = User.objects.get(pk=request.GET.get('user'))
 
         task_work_session = TaskWorkSession.objects.filter(
             user=user, stopped_at__isnull=True
         ).last()
+
+        # TODO: mask name if user has no access
 
         response = {}
         if task_work_session:
