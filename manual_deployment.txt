@@ -1,12 +1,9 @@
-# usermod -a -G deploy www-data
-
-
 Ubuntu 22.04
 
 apt update
 apt upgrade
 
-apt install zip htop screen git fail2ban nginx python3-pip build-essential python3-distutils python3-dev libpq-dev supervisor libpq-dev python3-psycopg2 redis-server openssl libssl-dev libssl-doc python3-certbot-nginx python3.10-venv
+apt install zip htop screen git fail2ban nginx python3-pip build-essential python3-distutils python3-dev libpq-dev supervisor libpq-dev python3-psycopg2 openssl libssl-dev libssl-doc python3-certbot-nginx python3.10-venv
 
 adduser deploy
 usermod -aG sudo deploy
@@ -21,11 +18,23 @@ pip install uwsgi
 
 cd taskfocus_api
 pip install -r requirements.txt
+
+
+If needed create local database, but better use managed one.
+
+```
+sudo apt install postgresql postgresql-contrib
+sudo -i -u postgres
+psql
+CREATE DATABASE tasksdb;
+CREATE USER tasksuser WITH ENCRYPTED PASSWORD '...';
+```
+
 create .env file and edit changes
 
 ```
 SECRET_KEY="testing"
-DEBUG=True
+DEBUG=False
 DATABASE_URL=postgresql://tasks_user:@db-postgresql-fra1-0xxxx.ondigitalocean.com:25060/tasks_db?sslmode=require
 CORS_ALLOWED_ORIGINS="https://webappdomain"
 DEFAULT_FILE_STORAGE=storages.backends.s3boto3.S3Boto3Storage
@@ -162,6 +171,8 @@ server {
 
     listen 80;
 }
+
+sudo service nginx restart
 
 sudo certbot --nginx -d <domain> --non-interactive --agree-tos -m admin@<domain> --redirect
 
