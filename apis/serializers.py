@@ -249,7 +249,7 @@ class NotificationAckSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NotificationAck
-        fields = ("id", "notification", "created_at")
+        fields = ("id", "notification", "created_at", "status")
 
 
 class UserTaskQueueSerializer(serializers.ModelSerializer):

@@ -21,7 +21,7 @@ from .filters import (
     CommentFilter,
     AttachmentFilter,
     ProjectAccessFilter,
-    TaskAccessFilter, ReminderFilter,
+    TaskAccessFilter, ReminderFilter, NotificationAckFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -555,10 +555,11 @@ class DictionaryView(APIView):
 class NotificationAckListView(ListAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = NotificationAckSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = NotificationAckFilter
 
     def get_queryset(self):
-        acks = NotificationAck.objects.filter(user=self.request.user,
-                                              status=NotificationAck.Status.UNREAD)
+        acks = NotificationAck.objects.filter(user=self.request.user)
         return acks
 
 
