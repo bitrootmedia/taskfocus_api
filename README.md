@@ -7,26 +7,36 @@ The goal is to make a simple but flexible project/task management app.
 ## Requirements 
 Python 3.9+
 
+
 ## Local development setup
+Run the following command to create the venv, taskfocus is the name of the venv. 
 
-`python -m venv venv`
-`source venv/bin/activate`
+`python -m venv taskfocus`
+`source venv/bin/activate` or `\venv\taskfocus\Scripts\activate.ps1` (Windows)
 
-TODO: how to use pre-commit etc 
+Navigate to your project, copied from github and run to install dependencies.
+
+`pip install -r requirements.txt`
+
 
 ## .env file 
-Create .env file in root directory 
+Copy .env.base to .env and replace the values where needed.
 
-For development use this should be enough:
-`
-SECRET_KEY="testing"
-DEBUG=True
-`
-(TODO - add .env sample)
+
+## setup Database and superuser
+
+Run `./manage.py migrate` followed by `./manage.py createsuperuser` to create an admin account.
+
 
 ## Test
 
 `./manage.py test`
+
+
+## Run server
+
+Finally, run `./manage.py runserver` to start your server. 
+Keep the shell open and navigate to http://127.0.0.1:8000 in your browser to see the outcome.
 
 
 ## API Docs 
@@ -49,3 +59,6 @@ User config field:
   "extra_menu_links": true 
 }
 ```
+
+
+TODO: how to use pre-commit etc 
