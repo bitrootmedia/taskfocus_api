@@ -197,6 +197,7 @@ class LogList(generics.ListAPIView):
 
         return None
 
+
 class CommentList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = CommentListSerializer
@@ -217,8 +218,7 @@ class CommentList(generics.ListCreateAPIView):
                 | Q(project__owner=self.request.user)
                 | Q(project__permissions__user=self.request.user)
                 | Q(task__permissions__user=self.request.user)
-                | Q(task__project__owner=self.request.user)
-                | Q(task__project__permissions__user=self.request.user)
+                | Q(task__owner=self.request.user)
             )
             .distinct()
             .order_by("-created_at")
@@ -253,9 +253,8 @@ class AttachmentList(generics.ListCreateAPIView):
                 Q(owner=self.request.user)
                 | Q(project__owner=self.request.user)
                 | Q(project__permissions__user=self.request.user)
+                | Q(task__owner=self.request.user)
                 | Q(task__permissions__user=self.request.user)
-                | Q(task__project__owner=self.request.user)
-                | Q(task__project__permissions__user=self.request.user)
             )
             .distinct()
             .order_by("created_at")
