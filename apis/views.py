@@ -177,13 +177,21 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
         instance = self.get_object()
         previous_data = Task.objects.get(pk=instance.pk)
         task = serializer.save()
-        Log.objects.create(task=task, user=self.request.user, message=f"Task updated by {self.request.user.username}")
 
-        if task.project != previous_data.project:
-            Log.objects.create(task=task, user=self.request.user, message=f"Task project changed to {task.project}") 
+        fields_to_check = [
+            "project",
+            "status",
+            "eta_date",
+            "estimated_work_hours",
+            "progress"
+        ]
 
-        if task.responsible != previous_data.responsible:
-            Log.objects.create(task=task, user=self.request.user, message=f"Responsible person changed to {task.responsible}") 
+        for field in fields_to_check:
+            
+            new_value = getattr(task, field)
+            old_value = getattr(previous_data, field)
+            if new_value != old_value:
+                Log.objects.create(task=task, user=self.request.user, message=f"Task updated by {self.request.user.username}. {field} changed from {old_value} to {new_value}") 
 
         if task.responsible != previous_data.responsible and task.responsible \
                 is not None and self.request.user != task.responsible:
@@ -192,6 +200,7 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
                 project=task.project,
                 content=f"You are now responsible for task [{task.title}] (set by {self.request.user.username})"
             )
+            Log.objects.create(task=task, user=self.request.user, message=f"Responsible person changed to {task.responsible}") 
             NotificationAck.objects.create(
                 notification=notification,
                 user=task.responsible
