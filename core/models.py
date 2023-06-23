@@ -180,9 +180,9 @@ class Attachment(models.Model):
         null=True,
         blank=True,
     )
-    file_path = models.FileField(upload_to="attachments")
+    file_path = models.FileField(upload_to="attachments", max_length=4000)
     thumbnail_path = models.ImageField(
-        upload_to="attachment_thumbnails", blank=True
+        upload_to="attachment_thumbnails", blank=True, max_length=4000
     )
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="owned_attachments"
