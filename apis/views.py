@@ -3,6 +3,7 @@ import pathlib
 import uuid
 from django.http import JsonResponse
 from django.utils.text import slugify
+from django.conf import settings
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
@@ -546,11 +547,13 @@ class UploadView(APIView):
             short_uid = uuid.uuid4()
             storage_path = f"{day}/{short_uid}_{slug}{file_extension}"
             default_storage.save(storage_path, file)
+
+            if (filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
+                thumbnail_path = storage_path  # TODO: create thumbnail if it's an image, this should probably be done in celery task ...
+            else:
+                thumbnail_path = None
+
             # file_url = default_storage.url(file_name)
-
-            # TODO: create thumbnail if it's an image, use some defaults if it's pdf,csv etc
-            #   todo- this should probably be done in celery task ...
-
             # TODO: I can create some demo assets to use and put to static or cdn or sth
 
             att = Attachment.objects.create(
@@ -559,7 +562,7 @@ class UploadView(APIView):
                 file_path=storage_path,
                 owner=request.user,
                 title=slug,
-                thumbnail_path=storage_path,  # TODO make this thumbnail
+                thumbnail_path=thumbnail_path,  # TODO make this thumbnail
             )
 
             serializer = AttachmentListSerializer(att)
