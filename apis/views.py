@@ -1,6 +1,7 @@
 import json
 import pathlib
 import uuid
+import mimetypes
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.conf import settings
@@ -547,8 +548,8 @@ class UploadView(APIView):
             short_uid = uuid.uuid4()
             storage_path = f"{day}/{short_uid}_{slug}{file_extension}"
             default_storage.save(storage_path, file)
-
-            if (filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
+            mt = mimetypes.guess_type(storage_path)
+            if 'image/' in mt[0]:
                 thumbnail_path = storage_path  # TODO: create thumbnail if it's an image, this should probably be done in celery task ...
             else:
                 thumbnail_path = None
