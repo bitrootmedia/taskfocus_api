@@ -183,7 +183,8 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
             "status",
             "eta_date",
             "estimated_work_hours",
-            "progress"
+            "progress",
+            "urgent"
         ]
 
         for field in fields_to_check:
