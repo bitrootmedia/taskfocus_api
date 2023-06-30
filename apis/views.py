@@ -20,6 +20,7 @@ from .filters import (
     LogFilter,
     CommentFilter,
     AttachmentFilter,
+    TaskSessionFilter,
     ProjectAccessFilter,
     TaskAccessFilter, ReminderFilter, NotificationAckFilter,
 )
@@ -32,6 +33,7 @@ from .serializers import (
     TaskDetailSerializer,
     LogListSerializer,
     CommentListSerializer,
+    TaskSessionListSerializer,
     CommentListReadOnlySerializer,
     CommentDetailSerializer,
     AttachmentListSerializer,
@@ -217,6 +219,26 @@ class LogList(generics.ListAPIView):
     def get_queryset(self):
 
         return None
+    
+
+class TaskSessionList(generics.ListCreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskSessionListSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_class = TaskSessionFilter
+    search_fields = ["title"]
+
+    def get_queryset(self):
+        work_sessions = (
+            TaskWorkSession.objects.filter(
+                Q(user=self.request.user)
+                | Q(task__owner=self.request.user)
+                | Q(task__permissions__user=self.request.user)
+            )
+            .distinct()
+            .order_by("started_at")
+        )
+        return work_sessions
 
 
 class CommentList(generics.ListCreateAPIView):

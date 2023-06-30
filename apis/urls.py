@@ -57,6 +57,7 @@ urlpatterns = [
     ),
     path("logs", views.LogList.as_view(), name="log_list"),
     path("comments", views.CommentList.as_view(), name="comment_list"),
+    path("task-sessions", views.TaskSessionList.as_view(), name="task_sessions_list"),
     path("comment/<pk>", views.CommentDetail.as_view(), name="comment_detail"),
     path(
         "attachments", views.AttachmentList.as_view(), name="attachment_list"
