@@ -8,6 +8,7 @@ from core.models import (
     Attachment,
     ProjectAccess,
     TaskAccess,
+    TaskWorkSession,
     User, Notification, NotificationAck, UserTaskQueue, Reminder, TaskChecklistItem
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
@@ -179,6 +180,23 @@ class CommentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ("id", "content", "task_id", "project_id")
+
+
+class TaskSessionListSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    task = TaskReadOnlySerializer()
+
+    class Meta:
+        model = TaskWorkSession
+        fields = (
+            "id",
+            "started_at",
+            "stopped_at",
+            "total_time",
+            "user",
+            "message",
+            "task",
+        )
 
 
 class AttachmentListSerializer(serializers.ModelSerializer):

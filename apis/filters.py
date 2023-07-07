@@ -8,6 +8,7 @@ from core.models import (
     Attachment,
     ProjectAccess,
     TaskAccess, Reminder, NotificationAck,
+    TaskWorkSession,
 )
 
 
@@ -61,6 +62,11 @@ class AttachmentFilter(filters.FilterSet):
     class Meta:
         model = Attachment
         fields = ["project", "task"]
+
+class TaskSessionFilter(filters.FilterSet):
+    class Meta:
+        model = TaskWorkSession
+        fields = ["task"]
 
 
 class ProjectAccessFilter(filters.FilterSet):
