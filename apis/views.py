@@ -41,6 +41,7 @@ from .serializers import (
     ProjectAccessSerializer,
     UserSerializer,
     ProjectAccessDetailSerializer,
+    TaskSessionDetailSerializer,
     TaskReadOnlySerializer,
     TaskAccessDetailSerializer,
     TaskAccessSerializer, NotificationAckSerializer, UserTaskQueueSerializer, ReminderSerializer,
@@ -220,6 +221,17 @@ class LogList(generics.ListAPIView):
 
         return None
     
+
+class TaskSessionDetail(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    queryset = TaskWorkSession.objects.all()
+
+    def get_serializer_class(self):
+        return TaskSessionDetailSerializer
+    
+    def perform_update(self, serializer):
+        serializer.save()
+
 
 class TaskSessionList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)

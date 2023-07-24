@@ -182,6 +182,19 @@ class CommentDetailSerializer(serializers.ModelSerializer):
         fields = ("id", "content", "task_id", "project_id")
 
 
+class TaskSessionDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskWorkSession
+        fields = (
+            "id",
+            "started_at",
+            "stopped_at",
+            "total_time",
+            "user",
+            "message",
+            "task",)
+
+
 class TaskSessionListSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     task = TaskReadOnlySerializer()
