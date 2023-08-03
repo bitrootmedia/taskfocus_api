@@ -15,6 +15,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from django.core.files.storage import default_storage
 from rest_framework.views import APIView
 
+from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
 from .filters import (
     ProjectFilter,
@@ -133,6 +134,7 @@ class ProjectDetail(generics.RetrieveUpdateAPIView):
         project = serializer.save()
         Log.objects.create(project=project, user=self.request.user, message="Project updated")
 
+
 class TaskList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = TaskListSerializer
@@ -164,7 +166,13 @@ class TaskList(generics.ListCreateAPIView):
         return tasks
 
     def perform_create(self, serializer):
-        task = serializer.save(owner=self.request.user)
+        task = serializer.save(owner=self.request.user, responsible=self.request.user)
+        hashtags = extract_hashtags(task.title)
+        if hashtags:
+            task.tag = ",".join(hashtags)
+            task.save()
+
+        UserTaskQueue.objects.create(user=task.owner, task=task)
         Log.objects.create(task=task, user=self.request.user, message="Task created")
 
 
