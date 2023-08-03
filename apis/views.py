@@ -103,7 +103,7 @@ class ProjectList(generics.ListCreateAPIView):
         projects = (
             Project.objects.filter(
                 Q(owner=user)
-                | Q(permissions__user=user)
+                | Q(project__permissions__user=user)
             )
             .distinct()
             .order_by("created_at")
