@@ -100,7 +100,6 @@ class ProjectList(generics.ListCreateAPIView):
         request_user = self.request.user
         user = self.request.user
 
-        # TODO: why not just by filters?
         if self.request.GET.get('user'):
             user = User.objects.get(pk=self.request.GET.get('user'))
 
@@ -112,7 +111,6 @@ class ProjectList(generics.ListCreateAPIView):
             .distinct()
             .order_by("created_at")
         )
-
         return projects
 
     def perform_create(self, serializer):

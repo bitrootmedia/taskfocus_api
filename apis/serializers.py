@@ -31,6 +31,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
 
 class ProjectListReadOnlySerializer(serializers.ModelSerializer):
     owner = UserSerializer()
+    title = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -46,7 +47,6 @@ class ProjectListReadOnlySerializer(serializers.ModelSerializer):
                 return "*" * 5
         else:
             return instance.title
-
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
