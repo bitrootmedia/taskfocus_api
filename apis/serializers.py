@@ -36,6 +36,17 @@ class ProjectListReadOnlySerializer(serializers.ModelSerializer):
         model = Project
         fields = ("id", "title", "owner")
 
+    def get_title(self, instance):
+        request = self.context.get('request')
+        if request:
+            user = request.user
+            if user_can_see_project(user, instance):
+                return instance.title
+            else:
+                return "*" * 5
+        else:
+            return instance.title
+
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
