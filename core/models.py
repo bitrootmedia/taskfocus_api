@@ -5,12 +5,21 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
+class Team(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=150, unique=True)
+
+    def __str__(self):
+        return f"{self.name}"
+
+
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     image = models.ImageField(upload_to="user_avatar", blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
     config = models.JSONField(default=dict, blank=True)
+    teams = models.ManyToManyField(Team)
 
 
 class Project(models.Model):

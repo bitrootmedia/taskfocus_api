@@ -59,7 +59,7 @@ from core.models import (
     ProjectAccess,
     User,
     TaskWorkSession,
-    TaskAccess, NotificationAck, UserTaskQueue, Reminder, Notification,
+    TaskAccess, NotificationAck, UserTaskQueue, Reminder, Notification, Team,
 )
 from django.db.models import Q
 from .permissions import (
@@ -75,7 +75,12 @@ from .permissions import (
 class UserList(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
-    queryset = User.objects.all().order_by("username")
+
+    def get_queryset(self):
+        user_teams = Team.objects.filter(user=self.request.user)
+        users = User.objects.filter(teams__in=user_teams).distinct()
+
+        return users
 
 
 class UserDetail(generics.RetrieveUpdateAPIView):
