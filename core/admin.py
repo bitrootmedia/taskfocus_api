@@ -16,12 +16,14 @@ from .models import (
     NotificationAck,
     UserTaskQueue,
     Reminder,
-    TaskChecklistItem
+    TaskChecklistItem,
+    Team
 )
 
 admin.site.site_header = "Project management API"
 # admin.site.register(User, UserAdmin)
 admin.site.unregister(Group)
+
 
 @admin.register(User)
 class UserAdmin(UserAdmin):
@@ -33,6 +35,7 @@ class UserAdmin(UserAdmin):
             {
                 'fields': (
                     'config',
+                    'teams'
                 )
             }
         )
@@ -197,14 +200,24 @@ class NotificationAckAdmin(admin.ModelAdmin):
 
 @admin.register(UserTaskQueue)
 class UserTaskQueueAdmin(admin.ModelAdmin):
-    list_display = ('id', )
+    list_display = ('id',)
 
 
 @admin.register(Reminder)
 class ReminderAdmin(admin.ModelAdmin):
-    list_display = ('id', )
+    list_display = ('id',)
 
 
 @admin.register(TaskChecklistItem)
 class TaskChecklistItemAdmin(admin.ModelAdmin):
-    list_display = ('id', )
+    list_display = ('id',)
+
+
+class UserInline(admin.TabularInline):
+    model = User.teams.through
+
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = ('name', )
+    inlines = [UserInline]

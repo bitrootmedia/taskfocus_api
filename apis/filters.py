@@ -7,7 +7,9 @@ from core.models import (
     Comment,
     Attachment,
     ProjectAccess,
-    TaskAccess, Reminder, NotificationAck,
+    TaskAccess,
+    Reminder,
+    NotificationAck,
     TaskWorkSession,
 )
 
@@ -31,7 +33,9 @@ class TaskFilter(filters.FilterSet):
 
 
 class ReminderFilter(filters.FilterSet):
-    open_only = django_filters.BooleanFilter(field_name="closed_at", lookup_expr='isnull')
+    open_only = django_filters.BooleanFilter(
+        field_name="closed_at", lookup_expr="isnull"
+    )
 
     class Meta:
         model = Reminder
@@ -62,6 +66,7 @@ class AttachmentFilter(filters.FilterSet):
     class Meta:
         model = Attachment
         fields = ["project", "task"]
+
 
 class TaskSessionFilter(filters.FilterSet):
     class Meta:

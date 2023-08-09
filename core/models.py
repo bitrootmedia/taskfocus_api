@@ -5,12 +5,21 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
+class Team(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=150, unique=True)
+
+    def __str__(self):
+        return f"{self.name}"
+
+
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     image = models.ImageField(upload_to="user_avatar", blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
     config = models.JSONField(default=dict, blank=True)
+    teams = models.ManyToManyField(Team)
 
 
 class Project(models.Model):
@@ -26,6 +35,8 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
     archived_at = models.DateTimeField(null=True, blank=True)
+    progress = models.IntegerField(default=0)
+    tag = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -70,6 +81,8 @@ class Task(models.Model):
         BLOCKER = "BLOCKER", "BLOCKER"
         TO_VERIFY = "TO VERIFY", "TO VERIFY"
         DONE = "DONE", "DONE"
+        ON_HOLD = "ON HOLD", "ON HOLD"
+        IDEA = "IDEA", "IDEA"
 
     class UrgencyLevelChoices(models.TextChoices):
         CRITICAL = "CRITICAL", "CRITICAL"

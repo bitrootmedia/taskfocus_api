@@ -9,9 +9,16 @@ from core.models import (
     ProjectAccess,
     TaskAccess,
     TaskWorkSession,
-    User, Notification, NotificationAck, UserTaskQueue, Reminder, TaskChecklistItem
+    User,
+    Notification,
+    NotificationAck,
+    UserTaskQueue,
+    Reminder,
+    TaskChecklistItem,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
+
+masked_string = "*" * 5
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,18 +30,27 @@ class UserSerializer(serializers.ModelSerializer):
 class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = (
-            "id",
-            "title",
-        )
+        fields = ("id", "title", "progress", "tag")
 
 
 class ProjectListReadOnlySerializer(serializers.ModelSerializer):
     owner = UserSerializer()
+    title = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ("id", "title", "owner")
+        fields = ("id", "title", "owner", "progress", "tag")
+
+    def get_title(self, instance):
+        request = self.context.get("request")
+        if request:
+            user = request.user
+            if user_can_see_project(user, instance):
+                return instance.title
+            else:
+                return masked_string
+        else:
+            return instance.title
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
@@ -52,13 +68,13 @@ class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
         fields = ("id", "title", "description", "background_image", "owner")
 
     def get_title(self, instance):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if request:
             user = request.user
             if user_can_see_project(user, instance):
                 return instance.title
             else:
-                return "*" * 5
+                return masked_string
         else:
             return instance.title
 
@@ -82,7 +98,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "urgency_level",
             "position",
             "estimated_work_hours",
-            "is_urgent"
+            "is_urgent",
         )
 
 
@@ -112,19 +128,20 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "urgency_level",
             "position",
             "estimated_work_hours",
-            "is_urgent"
+            "is_urgent",
         )
 
     def get_title(self, instance):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if request:
             user = request.user
             if user_can_see_task(user, instance):
                 return instance.title
             else:
-                return "*" * 5
+                return masked_string
         else:
             return instance.title
+
 
 class TaskDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -146,7 +163,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "is_urgent",
             # "owner",
             "created_at",
-            "updated_at"
+            "updated_at",
         )
 
 
@@ -302,7 +319,15 @@ class TaskChecklistItemSerializer(serializers.ModelSerializer):
 class ReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reminder
-        fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
+        fields = (
+            "id",
+            "user",
+            "task",
+            "created_by",
+            "reminder_date",
+            "message",
+            "closed_at",
+        )
         read_only_fields = ("created_by",)
 
 
@@ -311,5 +336,13 @@ class ReminderReadOnlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Reminder
-        fields = ("id", "user", "task", "created_by", "reminder_date", "message", "closed_at")
+        fields = (
+            "id",
+            "user",
+            "task",
+            "created_by",
+            "reminder_date",
+            "message",
+            "closed_at",
+        )
         read_only_fields = ("created_by",)

@@ -1,8 +1,10 @@
 import json
 import pathlib
 import uuid
+import mimetypes
 from django.http import JsonResponse
 from django.utils.text import slugify
+from django.conf import settings
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
@@ -13,6 +15,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from django.core.files.storage import default_storage
 from rest_framework.views import APIView
 
+from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
 from .filters import (
     ProjectFilter,
@@ -22,7 +25,9 @@ from .filters import (
     AttachmentFilter,
     TaskSessionFilter,
     ProjectAccessFilter,
-    TaskAccessFilter, ReminderFilter, NotificationAckFilter,
+    TaskAccessFilter,
+    ReminderFilter,
+    NotificationAckFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -44,7 +49,10 @@ from .serializers import (
     TaskSessionDetailSerializer,
     TaskReadOnlySerializer,
     TaskAccessDetailSerializer,
-    TaskAccessSerializer, NotificationAckSerializer, UserTaskQueueSerializer, ReminderSerializer,
+    TaskAccessSerializer,
+    NotificationAckSerializer,
+    UserTaskQueueSerializer,
+    ReminderSerializer,
     ReminderReadOnlySerializer,
 )
 
@@ -57,7 +65,12 @@ from core.models import (
     ProjectAccess,
     User,
     TaskWorkSession,
-    TaskAccess, NotificationAck, UserTaskQueue, Reminder, Notification,
+    TaskAccess,
+    NotificationAck,
+    UserTaskQueue,
+    Reminder,
+    Notification,
+    Team,
 )
 from django.db.models import Q
 from .permissions import (
@@ -73,7 +86,12 @@ from .permissions import (
 class UserList(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
-    queryset = User.objects.all().order_by("username")
+
+    def get_queryset(self):
+        user_teams = Team.objects.filter(user=self.request.user)
+        users = User.objects.filter(teams__in=user_teams).distinct()
+
+        return users
 
 
 class UserDetail(generics.RetrieveUpdateAPIView):
@@ -95,24 +113,24 @@ class ProjectList(generics.ListCreateAPIView):
         return ProjectListSerializer
 
     def get_queryset(self):
+        request_user = self.request.user
         user = self.request.user
-        if self.request.GET.get('user'):
-            user = User.objects.get(pk=self.request.GET.get('user'))
+
+        if self.request.GET.get("user"):
+            user = User.objects.get(pk=self.request.GET.get("user"))
 
         projects = (
-            Project.objects.filter(
-                Q(owner=user)
-                | Q(permissions__user=user)
-            )
+            Project.objects.filter(Q(owner=user) | Q(permissions__user=user))
             .distinct()
             .order_by("created_at")
         )
-
         return projects
 
     def perform_create(self, serializer):
         project = serializer.save(owner=self.request.user)
-        Log.objects.create(project=project, user=self.request.user, message="Project created")
+        Log.objects.create(
+            project=project, user=self.request.user, message="Project created"
+        )
 
 
 class ProjectDetail(generics.RetrieveUpdateAPIView):
@@ -124,10 +142,13 @@ class ProjectDetail(generics.RetrieveUpdateAPIView):
             return ProjectDetailReadOnlySerializer
 
         return ProjectDetailSerializer
-    
+
     def perform_update(self, serializer):
         project = serializer.save()
-        Log.objects.create(project=project, user=self.request.user, message="Project updated")
+        Log.objects.create(
+            project=project, user=self.request.user, message="Project updated"
+        )
+
 
 class TaskList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
@@ -143,8 +164,8 @@ class TaskList(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if self.request.GET.get('user'):
-            user = User.objects.get(pk=self.request.GET.get('user'))
+        if self.request.GET.get("user"):
+            user = User.objects.get(pk=self.request.GET.get("user"))
 
         tasks = (
             Task.objects.filter(
@@ -160,8 +181,18 @@ class TaskList(generics.ListCreateAPIView):
         return tasks
 
     def perform_create(self, serializer):
-        task = serializer.save(owner=self.request.user)
-        Log.objects.create(task=task, user=self.request.user, message="Task created")
+        task = serializer.save(
+            owner=self.request.user, responsible=self.request.user
+        )
+        hashtags = extract_hashtags(task.title)
+        if hashtags:
+            task.tag = ",".join(hashtags)
+            task.save()
+
+        UserTaskQueue.objects.create(user=task.owner, task=task)
+        Log.objects.create(
+            task=task, user=self.request.user, message="Task created"
+        )
 
 
 class TaskDetail(generics.RetrieveUpdateAPIView):
@@ -186,27 +217,37 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
             "status",
             "eta_date",
             "estimated_work_hours",
-            "progress"
+            "progress",
+            "is_urgent",
         ]
 
         for field in fields_to_check:
-            
             new_value = getattr(task, field)
             old_value = getattr(previous_data, field)
             if new_value != old_value:
-                Log.objects.create(task=task, user=self.request.user, message=f"Task updated by {self.request.user.username}. {field} changed from {old_value} to {new_value}") 
+                Log.objects.create(
+                    task=task,
+                    user=self.request.user,
+                    message=f"Task updated by {self.request.user.username}. {field} changed from {old_value} to {new_value}",
+                )
 
-        if task.responsible != previous_data.responsible and task.responsible \
-                is not None and self.request.user != task.responsible:
+        if (
+            task.responsible != previous_data.responsible
+            and task.responsible is not None
+            and self.request.user != task.responsible
+        ):
             notification = Notification.objects.create(
                 task=task,
                 project=task.project,
-                content=f"You are now responsible for task [{task.title}] (set by {self.request.user.username})"
+                content=f"You are now responsible for task [{task.title}] (set by {self.request.user.username})",
             )
-            Log.objects.create(task=task, user=self.request.user, message=f"Responsible person changed to {task.responsible}") 
+            Log.objects.create(
+                task=task,
+                user=self.request.user,
+                message=f"Responsible person changed to {task.responsible}",
+            )
             NotificationAck.objects.create(
-                notification=notification,
-                user=task.responsible
+                notification=notification, user=task.responsible
             )
 
 
@@ -218,9 +259,14 @@ class LogList(generics.ListAPIView):
     search_fields = ["message"]
 
     def get_queryset(self):
+        return Log.objects.filter(
+            Q(user=self.request.user)
+            | Q(task__owner=self.request.user)
+            | Q(task__permissions__user=self.request.user)
+            | Q(project__owner=self.request.user)
+            | Q(project__permissions__user=self.request.user)
+        )
 
-        return None
-    
 
 class TaskSessionDetail(generics.RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
@@ -318,7 +364,12 @@ class AttachmentList(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         attachment = serializer.save(owner=self.request.user)
-        Log.objects.create(task=attachment.task, user=self.request.user, message=f"New attachment ({attachment.name}) to the task by {attachment.user}") 
+        Log.objects.create(
+            task=attachment.task,
+            user=self.request.user,
+            message=f"New attachment ({attachment.name}) to the task by {attachment.user}",
+        )
+
 
 class AttachmentDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = AttachmentDetailSerializer
@@ -392,10 +443,14 @@ class TaskAccessList(generics.ListCreateAPIView):
         if self.request.user != serializer.validated_data["task"].owner:
             raise PermissionDenied()
         task_access = serializer.save()
-        Log.objects.create(task=task_access.task, user=self.request.user, message=f"New user assigned to the task: {task_access.user}") 
+        Log.objects.create(
+            task=task_access.task,
+            user=self.request.user,
+            message=f"New user assigned to the task: {task_access.user}",
+        )
 
+        # TODO: fix this - /api/schema is killed here
 
-    # TODO: fix this - /api/schema is killed here
     # def get_permissions(self):
     #     if self.request.method != "GET":
     #         project = Project.objects.filter(
@@ -414,7 +469,11 @@ class TaskAccessDetail(generics.RetrieveDestroyAPIView):
     queryset = TaskAccess.objects.all()
 
     def perform_destroy(self, instance):
-        Log.objects.create(task=instance.task, user=self.request.user, message=f"User unassigned from the task: {instance.user}") 
+        Log.objects.create(
+            task=instance.task,
+            user=self.request.user,
+            message=f"User unassigned from the task: {instance.user}",
+        )
         instance.delete()
 
     # TODO: be sure users see what they see
@@ -433,12 +492,14 @@ class TaskPositionChangeView(APIView):
 
         # I already have a new model - UserTaskQueue which should sort that out per user so this is still confusing
 
-        tasks = Task.objects.filter(is_closed=False).order_by('position')
+        tasks = Task.objects.filter(is_closed=False).order_by("position")
         task = Task.objects.get(pk=pk)
         task_above_id = request.data.get("task_above_id")
         print(f"Task above id found: {task_above_id}")
 
-        task_above = Task.objects.get(pk=task_above_id) if task_above_id else None
+        task_above = (
+            Task.objects.get(pk=task_above_id) if task_above_id else None
+        )
 
         if not task_above:
             task.position = 0
@@ -479,7 +540,11 @@ class TaskStartWorkView(APIView):
             task=task, user=request.user, started_at=now()
         )
 
-        Log.objects.create(task=task, user=request.user, message=f"User {request.user} started working on this task.")
+        Log.objects.create(
+            task=task,
+            user=request.user,
+            message=f"User {request.user} started working on this task.",
+        )
 
         return JsonResponse(
             {"id": f"{twa.id}", "status": "OK", "message": "Testing message"}
@@ -494,12 +559,14 @@ class TaskCloseView(APIView):
         if task.owner != request.user:
             raise Exception("Only task owner can close the task")
 
-        Log.objects.create(task=task, user=self.request.user, message="Task closed")
-        if request.data.get('closing_message'):
+        Log.objects.create(
+            task=task, user=self.request.user, message="Task closed"
+        )
+        if request.data.get("closing_message"):
             comment = Comment.objects.create(
                 task=task,
                 author=self.request.user,
-                content=request.data.get('closing_message')
+                content=request.data.get("closing_message"),
             )
             create_notification_from_comment(comment)
 
@@ -518,7 +585,9 @@ class TaskUnCloseView(APIView):
         if task.owner != request.user:
             raise Exception("Only task owner can close the task")
 
-        Log.objects.create(task=task, user=self.request.user, message="Task unclosed")
+        Log.objects.create(
+            task=task, user=self.request.user, message="Task unclosed"
+        )
         task.is_closed = False
         task.archived_at = None
         task.save()
@@ -536,7 +605,11 @@ class TaskStopWorkView(APIView):
             user=request.user, task=task, stopped_at__isnull=True
         ).update(stopped_at=now())
 
-        Log.objects.create(task=task, user=request.user, message=f"User {request.user} stopped working on this task.")
+        Log.objects.create(
+            task=task,
+            user=request.user,
+            message=f"User {request.user} stopped working on this task.",
+        )
 
         return JsonResponse(
             {"id": "1", "status": "OK", "message": "Testing Stop Message"}
@@ -546,8 +619,8 @@ class TaskStopWorkView(APIView):
 class CurrentTaskView(APIView):
     def get(self, request):
         user = request.user
-        if request.GET.get('user'):
-            user = User.objects.get(pk=request.GET.get('user'))
+        if request.GET.get("user"):
+            user = User.objects.get(pk=request.GET.get("user"))
 
         task_work_session = TaskWorkSession.objects.filter(
             user=user, stopped_at__isnull=True
@@ -589,11 +662,13 @@ class UploadView(APIView):
             short_uid = uuid.uuid4()
             storage_path = f"{day}/{short_uid}_{slug}{file_extension}"
             default_storage.save(storage_path, file)
+            mt = mimetypes.guess_type(storage_path)
+            if "image/" in mt[0]:
+                thumbnail_path = storage_path  # TODO: create thumbnail if it's an image, this should probably be done in celery task ...
+            else:
+                thumbnail_path = None
+
             # file_url = default_storage.url(file_name)
-
-            # TODO: create thumbnail if it's an image, use some defaults if it's pdf,csv etc
-            #   todo- this should probably be done in celery task ...
-
             # TODO: I can create some demo assets to use and put to static or cdn or sth
 
             att = Attachment.objects.create(
@@ -602,7 +677,7 @@ class UploadView(APIView):
                 file_path=storage_path,
                 owner=request.user,
                 title=slug,
-                thumbnail_path=storage_path,  # TODO make this thumbnail
+                thumbnail_path=thumbnail_path,  # TODO make this thumbnail
             )
 
             serializer = AttachmentListSerializer(att)
@@ -614,8 +689,10 @@ class UploadView(APIView):
 class DictionaryView(APIView):
     def get(self, request):
         return JsonResponse(
-            {"task_status_choices": Task.StatusChoices.choices,
-             "task_urgency_level_choices": Task.UrgencyLevelChoices.choices},
+            {
+                "task_status_choices": Task.StatusChoices.choices,
+                "task_urgency_level_choices": Task.UrgencyLevelChoices.choices,
+            },
         )
 
 
@@ -632,7 +709,9 @@ class NotificationAckListView(ListAPIView):
 
 class NotificationAckConfirmView(APIView):
     def post(self, request, pk):
-        na = NotificationAck.objects.filter(pk=pk, user=self.request.user).first()
+        na = NotificationAck.objects.filter(
+            pk=pk, user=self.request.user
+        ).first()
         if not na:
             return JsonResponse({"status": "OK"})
         na.status = NotificationAck.Status.READ
@@ -647,10 +726,14 @@ class UserTaskQueueView(ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if self.request.GET.get('user'):
-            user = User.objects.get(pk=self.request.GET.get('user'))
+        if self.request.GET.get("user"):
+            user = User.objects.get(pk=self.request.GET.get("user"))
 
-        utq = UserTaskQueue.objects.filter(user=user).exclude(task__is_closed=True).order_by('-priority')
+        utq = (
+            UserTaskQueue.objects.filter(user=user)
+            .exclude(task__is_closed=True)
+            .order_by("-priority")
+        )
         return utq
 
 
@@ -671,19 +754,21 @@ class UserTaskQueueManageView(APIView):
         task = Task.objects.get(pk=pk)
         body = request.body
         user = request.user
-        request_user = request.POST.get('user')
+        request_user = request.POST.get("user")
 
         if not request_user:
             try:
                 jdata = json.loads(body)
-                request_user = jdata.get('user')
+                request_user = jdata.get("user")
             except Exception:
                 pass
 
         if request_user:
             user = User.objects.get(pk=request_user)
 
-        Log.objects.create(task=task, user=self.request.user, message=f"Task added to queue") 
+        Log.objects.create(
+            task=task, user=self.request.user, message=f"Task added to queue"
+        )
 
         UserTaskQueue.objects.get_or_create(task=task, user=user)
         return JsonResponse({"status": "OK"})
@@ -693,13 +778,13 @@ class UserTaskQueueManageView(APIView):
         task = Task.objects.get(pk=pk)
         body = request.body
         print(request.body)
-        request_user = request.POST.get('user')
+        request_user = request.POST.get("user")
         user = request.user
 
         if not request_user:
             try:
                 jdata = json.loads(body)
-                request_user = jdata.get('user')
+                request_user = jdata.get("user")
             except Exception:
                 pass
 
@@ -710,7 +795,11 @@ class UserTaskQueueManageView(APIView):
         if utq.exists():
             utq.delete()
 
-        Log.objects.create(task=task, user=self.request.user, message=f"Task removed from queue") 
+        Log.objects.create(
+            task=task,
+            user=self.request.user,
+            message=f"Task removed from queue",
+        )
 
         return JsonResponse({"status": "OK"})
 
@@ -729,7 +818,11 @@ class UserTaskQueuePositionChangeView(APIView):
 
         user = utq.user
 
-        for ut in UserTaskQueue.objects.filter(user=user).exclude(id=utq.id).order_by('-priority'):
+        for ut in (
+            UserTaskQueue.objects.filter(user=user)
+            .exclude(id=utq.id)
+            .order_by("-priority")
+        ):
             sorted_tasks.append(ut)
             if user_task_above_id == ut.id:
                 sorted_tasks.append(utq)
@@ -740,7 +833,11 @@ class UserTaskQueuePositionChangeView(APIView):
             st.priority = counter
             st.save()
 
-            Log.objects.create(task=st.task, user=self.request.user, message=f"Task priority changed to {counter}") 
+            Log.objects.create(
+                task=st.task,
+                user=self.request.user,
+                message=f"Task priority changed to {counter}",
+            )
 
         return JsonResponse({"status": "OK"})
 
@@ -757,14 +854,18 @@ class ReminderListView(generics.ListCreateAPIView):
         return ReminderSerializer
 
     def get_queryset(self):
-        reminders = Reminder.objects.filter(
-            user=self.request.user
-        ).exclude(closed_at__isnull=False)
+        reminders = Reminder.objects.filter(user=self.request.user).exclude(
+            closed_at__isnull=False
+        )
         return reminders
 
     def perform_create(self, serializer):
         reminder = serializer.save(created_by=self.request.user)
-        Log.objects.create(task=reminder.task, user=self.request.user, message=f"Reminder created for {self.request.user} on {reminder.reminder_date}") 
+        Log.objects.create(
+            task=reminder.task,
+            user=self.request.user,
+            message=f"Reminder created for {self.request.user} on {reminder.reminder_date}",
+        )
 
 
 class ReminderCloseView(APIView):
@@ -773,7 +874,11 @@ class ReminderCloseView(APIView):
         reminder = Reminder.objects.get(pk=pk)
         reminder.closed_at = now()
         reminder.save()
-        Log.objects.create(task=reminder.task, user=self.request.user, message=f"Reminder closed for {self.request.user}") 
+        Log.objects.create(
+            task=reminder.task,
+            user=self.request.user,
+            message=f"Reminder closed for {self.request.user}",
+        )
         return JsonResponse({"status": "OK"})
 
 
@@ -785,14 +890,18 @@ class ChangeTaskOwnerView(APIView):
         task = Task.objects.get(pk=pk)
         if task.owner != request.user:
             if task.project and task.project.owner != request.user:
-                raise Exception("Only task or project owner can change task owner")
+                raise Exception(
+                    "Only task or project owner can change task owner"
+                )
 
         new_owner_id = request.data.get("owner")
 
         new_owner = User.objects.get(pk=new_owner_id)
         task.owner = new_owner
         task.save()
-        Log.objects.create(task=task, user=request.user, message="Owner of the task changed")
+        Log.objects.create(
+            task=task, user=request.user, message="Owner of the task changed"
+        )
         return JsonResponse({"status": "OK"})
 
 
@@ -810,8 +919,13 @@ class ChangeProjectOwnerView(APIView):
         new_owner = User.objects.get(pk=new_owner_id)
         project.owner = new_owner
         project.save()
-        Log.objects.create(project=project, user=request.user, message="Owner of the project changed")
+        Log.objects.create(
+            project=project,
+            user=request.user,
+            message="Owner of the project changed",
+        )
         return JsonResponse({"status": "OK"})
+
 
 # TODO:
 # class TaskChecklistItemListView(generics.ListCreateAPIView):

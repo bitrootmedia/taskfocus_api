@@ -51,11 +51,12 @@ Swagger:
 `/api/schema/swagger-ui/`
 
 
-User config field:
+## User config
+
+We can pass some extra values to frontend via user config field in user model
 
 ```
 {
-  "limit_queue_view": ["username1", "username2"],
   "extra_menu_links": true 
 }
 ```

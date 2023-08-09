@@ -18,5 +18,5 @@ class DictionaryTests(APITestCase):
         response = self.client.get(reverse("dictionary_view"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertTrue(response.json().get('task_status_choices'))
-        self.assertTrue(response.json().get('task_urgency_level_choices'))
+        self.assertTrue(response.json().get("task_status_choices"))
+        self.assertTrue(response.json().get("task_urgency_level_choices"))
