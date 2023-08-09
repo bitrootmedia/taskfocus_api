@@ -35,6 +35,8 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
     archived_at = models.DateTimeField(null=True, blank=True)
+    progress = models.IntegerField(default=0)
+    tag = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -79,6 +81,8 @@ class Task(models.Model):
         BLOCKER = "BLOCKER", "BLOCKER"
         TO_VERIFY = "TO VERIFY", "TO VERIFY"
         DONE = "DONE", "DONE"
+        ON_HOLD = "ON HOLD", "ON HOLD"
+        IDEA = "IDEA", "IDEA"
 
     class UrgencyLevelChoices(models.TextChoices):
         CRITICAL = "CRITICAL", "CRITICAL"

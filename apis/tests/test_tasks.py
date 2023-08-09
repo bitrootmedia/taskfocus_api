@@ -59,7 +59,7 @@ class TasksTests(APITestCase):
             owner=cls.user_3,
             title="Task 5",
             description="Changing owner",
-            project=cls.project_4
+            project=cls.project_4,
         )
 
     def test_task_list_not_logged(self):

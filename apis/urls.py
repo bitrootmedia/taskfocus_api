@@ -57,7 +57,11 @@ urlpatterns = [
     ),
     path("logs", views.LogList.as_view(), name="log_list"),
     path("comments", views.CommentList.as_view(), name="comment_list"),
-    path("task-sessions", views.TaskSessionList.as_view(), name="task_sessions_list"),
+    path(
+        "task-sessions",
+        views.TaskSessionList.as_view(),
+        name="task_sessions_list",
+    ),
     path("comment/<pk>", views.CommentDetail.as_view(), name="comment_detail"),
     path(
         "attachments", views.AttachmentList.as_view(), name="attachment_list"
@@ -69,12 +73,40 @@ urlpatterns = [
     ),
     path("dictionary", views.DictionaryView.as_view(), name="dictionary_view"),
     path("current-task", views.CurrentTaskView.as_view(), name="current_task"),
-    path("notifications", views.NotificationAckListView.as_view(), name="notifications"),
-    path("notification-confirm/<pk>", views.NotificationAckConfirmView.as_view(), name="confirm_notification"),
-    path("user-task-queue", views.UserTaskQueueView.as_view(), name="user_task_queue"),
-    path("user-task-queue-manage/<pk>", views.UserTaskQueueManageView.as_view(), name="user_task_queue_manage"),
+    path(
+        "notifications",
+        views.NotificationAckListView.as_view(),
+        name="notifications",
+    ),
+    path(
+        "notification-confirm/<pk>",
+        views.NotificationAckConfirmView.as_view(),
+        name="confirm_notification",
+    ),
+    path(
+        "user-task-queue",
+        views.UserTaskQueueView.as_view(),
+        name="user_task_queue",
+    ),
+    path(
+        "user-task-queue-manage/<pk>",
+        views.UserTaskQueueManageView.as_view(),
+        name="user_task_queue_manage",
+    ),
     path("reminders", views.ReminderListView.as_view(), name="reminder_list"),
-    path("reminder-close/<pk>", views.ReminderCloseView.as_view(), name="reminder_close"),
-    path("change-task-owner/<pk>", views.ChangeTaskOwnerView.as_view(), name="task_owner_change"),
-    path("change-project-owner/<pk>", views.ChangeProjectOwnerView.as_view(), name="project_owner_change"),
+    path(
+        "reminder-close/<pk>",
+        views.ReminderCloseView.as_view(),
+        name="reminder_close",
+    ),
+    path(
+        "change-task-owner/<pk>",
+        views.ChangeTaskOwnerView.as_view(),
+        name="task_owner_change",
+    ),
+    path(
+        "change-project-owner/<pk>",
+        views.ChangeProjectOwnerView.as_view(),
+        name="project_owner_change",
+    ),
 ]
