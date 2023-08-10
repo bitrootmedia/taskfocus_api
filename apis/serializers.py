@@ -56,7 +56,7 @@ class ProjectListReadOnlySerializer(serializers.ModelSerializer):
 class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = ("id", "title", "description", "background_image")
+        fields = ("id", "title", "description", "background_image", "progress", "tag")
 
 
 class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
@@ -65,7 +65,7 @@ class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ("id", "title", "description", "background_image", "owner")
+        fields = ("id", "title", "description", "background_image", "owner", "progress", "tag")
 
     def get_title(self, instance):
         request = self.context.get("request")
