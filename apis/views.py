@@ -46,6 +46,7 @@ from .serializers import (
     ProjectAccessSerializer,
     UserSerializer,
     ProjectAccessDetailSerializer,
+    TaskSessionDetailSerializer,
     TaskReadOnlySerializer,
     TaskAccessDetailSerializer,
     TaskAccessSerializer,
@@ -265,6 +266,17 @@ class LogList(generics.ListAPIView):
             | Q(project__owner=self.request.user)
             | Q(project__permissions__user=self.request.user)
         )
+
+
+class TaskSessionDetail(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    queryset = TaskWorkSession.objects.all()
+
+    def get_serializer_class(self):
+        return TaskSessionDetailSerializer
+    
+    def perform_update(self, serializer):
+        serializer.save()
 
 
 class TaskSessionList(generics.ListCreateAPIView):
