@@ -190,7 +190,23 @@ class TaskList(generics.ListCreateAPIView):
             task.tag = ",".join(hashtags)
             task.save()
 
-        UserTaskQueue.objects.create(user=task.owner, task=task)
+        add_to_user_queue = self.request.data.get('add_to_user_queue', False)
+
+        if add_to_user_queue:
+            queue_position = self.request.data.get('queue_position', "top")
+            priority = 100
+            if queue_position == "top":
+                utq = UserTaskQueue.objects.filter(user=self.request.user).order_by('-priority').first()
+                if utq:
+                    priority = utq.priority + 10
+
+            if queue_position == "bottom":
+                utq = UserTaskQueue.objects.filter(user=self.request.user).order_by('priority').first()
+                if utq:
+                    priority = utq.priority - 10
+
+            UserTaskQueue.objects.create(user=self.request.user, task=task, priority=priority)
+
         Log.objects.create(
             task=task, user=self.request.user, message="Task created"
         )
