@@ -332,6 +332,15 @@ class TaskWorkSession(models.Model):
         blank=True,
     )
 
+    def save(self, *args, **kwargs):
+        if self.stopped_at and self.stopped_at < self.started_at:
+            raise Exception("Stopped at cannot be before started at")
+
+        if self.stopped_at and self.started_at:
+            self.total_time = (self.stopped_at - self.started_at).total_seconds()
+
+        super().save(*args, **kwargs)
+
 
 class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
