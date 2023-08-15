@@ -37,8 +37,8 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
-    archived_at = models.DateTimeField(null=True, blank=True)
     progress = models.IntegerField(default=0)
+    is_closed = models.BooleanField(default=False)
     tag = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):

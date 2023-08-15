@@ -105,14 +105,12 @@ class ProjectAdmin(admin.ModelAdmin):
         "owner",
         "last_updated",
         "created_at",
-        "archived_at",
     )
     list_filter = (
         "title",
         "owner",
         "last_updated",
         "created_at",
-        "archived_at",
     )
 
 

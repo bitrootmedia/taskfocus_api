@@ -30,7 +30,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = ("id", "title", "progress", "tag")
+        fields = ("id", "title", "progress", "tag", "is_closed")
 
 
 class ProjectListReadOnlySerializer(serializers.ModelSerializer):
@@ -39,7 +39,7 @@ class ProjectListReadOnlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ("id", "title", "owner", "progress", "tag")
+        fields = ("id", "title", "owner", "progress", "tag", "is_closed")
 
     def get_title(self, instance):
         request = self.context.get("request")
