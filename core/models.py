@@ -337,7 +337,9 @@ class TaskWorkSession(models.Model):
             raise Exception("Stopped at cannot be before started at")
 
         if self.stopped_at and self.started_at:
-            self.total_time = (self.stopped_at - self.started_at).total_seconds()
+            self.total_time = (
+                self.stopped_at - self.started_at
+            ).total_seconds()
 
         super().save(*args, **kwargs)
 
