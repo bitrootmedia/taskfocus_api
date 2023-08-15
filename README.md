@@ -51,15 +51,4 @@ Swagger:
 `/api/schema/swagger-ui/`
 
 
-## User config
-
-We can pass some extra values to frontend via user config field in user model
-
-```
-{
-  "extra_menu_links": true 
-}
-```
-
-
-TODO: how to use pre-commit etc 
+TODO: pre-commit, flake 
