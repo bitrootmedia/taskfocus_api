@@ -17,7 +17,7 @@ from .models import (
     UserTaskQueue,
     Reminder,
     TaskChecklistItem,
-    Team
+    Team,
 )
 
 admin.site.site_header = "Project management API"
@@ -30,15 +30,7 @@ class UserAdmin(UserAdmin):
     model = User
     fieldsets = (
         *UserAdmin.fieldsets,
-        (
-            'Custom fields',
-            {
-                'fields': (
-                    'config',
-                    'teams'
-                )
-            }
-        )
+        ("Custom fields", {"fields": ("config", "teams")}),
     )
 
 
@@ -190,27 +182,27 @@ class TaskWorkSessionAdmin(admin.ModelAdmin):
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ('created_at',)
+    list_display = ("created_at",)
 
 
 @admin.register(NotificationAck)
 class NotificationAckAdmin(admin.ModelAdmin):
-    list_display = ('created_at',)
+    list_display = ("created_at",)
 
 
 @admin.register(UserTaskQueue)
 class UserTaskQueueAdmin(admin.ModelAdmin):
-    list_display = ('id',)
+    list_display = ("id",)
 
 
 @admin.register(Reminder)
 class ReminderAdmin(admin.ModelAdmin):
-    list_display = ('id',)
+    list_display = ("id",)
 
 
 @admin.register(TaskChecklistItem)
 class TaskChecklistItemAdmin(admin.ModelAdmin):
-    list_display = ('id',)
+    list_display = ("id",)
 
 
 class UserInline(admin.TabularInline):
@@ -219,5 +211,5 @@ class UserInline(admin.TabularInline):
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('name', )
+    list_display = ("name",)
     inlines = [UserInline]

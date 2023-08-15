@@ -6,26 +6,50 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0013_notification_tag'),
+        ("core", "0013_notification_tag"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='notificationack',
-            options={'ordering': ['-created_at']},
+            name="notificationack",
+            options={"ordering": ["-created_at"]},
         ),
         migrations.CreateModel(
-            name='UserTaskQueue',
+            name="UserTaskQueue",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('priority', models.IntegerField(default=100, help_text='Higher is more important')),
-                ('task', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.task')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "priority",
+                    models.IntegerField(
+                        default=100, help_text="Higher is more important"
+                    ),
+                ),
+                (
+                    "task",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="core.task",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-priority'],
+                "ordering": ["-priority"],
             },
         ),
     ]

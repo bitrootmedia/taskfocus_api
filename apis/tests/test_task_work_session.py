@@ -1,7 +1,9 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Task
+
+from apis.views import TaskSessionDetail
+from core.models import Project, User, ProjectAccess, Task, TaskWorkSession
 
 
 class TasksSessionTests(APITestCase):
@@ -70,3 +72,25 @@ class TasksSessionTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # self.assertEqual(response.json().get("message"), "Testing Stop Message")
+
+    def test_update_task_session(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("task_start_work", kwargs={"pk": self.task_1.id})
+        )
+        response = self.client.post(
+            reverse("task_stop_work", kwargs={"pk": self.task_1.id})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task_work_session_id = response.json().get("id")
+        new_stopped_at = "2024-01-01 00:00:00"
+        self.client.patch(
+            reverse(
+                "task_sessions_detail", kwargs={"pk": task_work_session_id}
+            ),
+            data={"stopped_at": new_stopped_at},
+        )
+        tsd = TaskWorkSession.objects.get(pk=task_work_session_id)
+        self.assertEqual(
+            tsd.stopped_at.strftime("%Y-%m-%d %H:%M:%S"), new_stopped_at
+        )

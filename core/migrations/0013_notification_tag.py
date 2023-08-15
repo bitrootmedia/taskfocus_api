@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0012_notification_notificationack'),
+        ("core", "0012_notification_notificationack"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='notification',
-            name='tag',
+            model_name="notification",
+            name="tag",
             field=models.CharField(blank=True, max_length=1000, null=True),
         ),
     ]

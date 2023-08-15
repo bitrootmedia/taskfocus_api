@@ -56,7 +56,14 @@ class ProjectListReadOnlySerializer(serializers.ModelSerializer):
 class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = ("id", "title", "description", "background_image", "progress", "tag")
+        fields = (
+            "id",
+            "title",
+            "description",
+            "background_image",
+            "progress",
+            "tag",
+        )
 
 
 class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
@@ -65,7 +72,15 @@ class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ("id", "title", "description", "background_image", "owner", "progress", "tag")
+        fields = (
+            "id",
+            "title",
+            "description",
+            "background_image",
+            "owner",
+            "progress",
+            "tag",
+        )
 
     def get_title(self, instance):
         request = self.context.get("request")
@@ -209,7 +224,8 @@ class TaskSessionDetailSerializer(serializers.ModelSerializer):
             "total_time",
             "user",
             "message",
-            "task",)
+            "task",
+        )
 
 
 class TaskSessionListSerializer(serializers.ModelSerializer):

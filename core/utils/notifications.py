@@ -1,15 +1,35 @@
-from core.models import User, TaskAccess, ProjectAccess, Notification, NotificationAck
+from core.models import (
+    User,
+    TaskAccess,
+    ProjectAccess,
+    Notification,
+    NotificationAck,
+)
 
 
 def extract_users_from_text(text):
     """Used to extract unique usernames from text"""
     all_users = User.objects.all()
 
-    valid_ends = ["", ".", ",", "|", "'", '"', ';', "]", "-", ":", "?", ">", "+"]
+    valid_ends = [
+        "",
+        ".",
+        ",",
+        "|",
+        "'",
+        '"',
+        ";",
+        "]",
+        "-",
+        ":",
+        "?",
+        ">",
+        "+",
+    ]
     users_found = set()
     for u in all_users:
         for ve in valid_ends:
-            if f'@{u.username}{ve}'.casefold() in text.casefold():
+            if f"@{u.username}{ve}".casefold() in text.casefold():
                 users_found.add(u)
 
     return users_found
@@ -21,7 +41,7 @@ def create_notification_from_comment(comment):
 
     notify_users = set()
 
-    if '@task' in comment.content:
+    if "@task" in comment.content:
         if comment.task:
             for ta in TaskAccess.objects.filter(task=comment.task):
                 notify_users.add(ta.user)
@@ -29,7 +49,7 @@ def create_notification_from_comment(comment):
                 notify_users.add(comment.task.owner)
 
     project = None
-    if '@project' in comment.content:
+    if "@project" in comment.content:
         if comment.project:
             project = comment.project
         if not project and comment.task and comment.task.project:
@@ -53,14 +73,11 @@ def create_notification_from_comment(comment):
         comment=comment,
         task=comment.task,
         project=project,
-        content=f"New comment: {snippet}"
+        content=f"New comment: {snippet}",
     )
 
     for nu in notify_users:
         if nu == comment.author:
             continue
 
-        NotificationAck.objects.create(
-            user=nu,
-            notification=notification
-        )
+        NotificationAck.objects.create(user=nu, notification=notification)

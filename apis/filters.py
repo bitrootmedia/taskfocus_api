@@ -29,8 +29,18 @@ class TaskFilter(filters.FilterSet):
 
     class Meta:
         model = Task
-        fields = ["title", "project", "is_closed", "is_urgent", "responsible", "status",
-                  "owner", "created_at", "updated_at", "tag"]
+        fields = [
+            "title",
+            "project",
+            "is_closed",
+            "is_urgent",
+            "responsible",
+            "status",
+            "owner",
+            "created_at",
+            "updated_at",
+            "tag",
+        ]
 
 
 class ReminderFilter(filters.FilterSet):

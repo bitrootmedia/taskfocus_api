@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0020_remove_user_nametag'),
+        ("core", "0020_remove_user_nametag"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='config',
+            model_name="user",
+            name="config",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

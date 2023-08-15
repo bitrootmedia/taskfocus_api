@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0018_task_updated_at_alter_task_status'),
+        ("core", "0018_task_updated_at_alter_task_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='nametag',
+            model_name="user",
+            name="nametag",
             field=models.CharField(max_length=20, null=True, unique=True),
         ),
     ]

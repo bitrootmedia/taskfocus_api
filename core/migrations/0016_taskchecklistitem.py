@@ -7,23 +7,49 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0015_reminder'),
+        ("core", "0015_reminder"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TaskChecklistItem',
+            name="TaskChecklistItem",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('label', models.CharField(max_length=1000)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('done_at', models.DateTimeField(null=True)),
-                ('position', models.IntegerField(default=0)),
-                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('done_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='checklistitem_done', to=settings.AUTH_USER_MODEL)),
-                ('task', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.task')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("label", models.CharField(max_length=1000)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("done_at", models.DateTimeField(null=True)),
+                ("position", models.IntegerField(default=0)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "done_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="checklistitem_done",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "task",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="core.task",
+                    ),
+                ),
             ],
         ),
     ]

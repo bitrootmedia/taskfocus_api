@@ -12,7 +12,9 @@ def user_can_see_task(user, task):
         return True
 
     if task.project:
-        if ProjectAccess.objects.filter(user=user, project=task.project).exists():
+        if ProjectAccess.objects.filter(
+            user=user, project=task.project
+        ).exists():
             return True
 
     return False

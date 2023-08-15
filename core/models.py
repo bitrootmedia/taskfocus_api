@@ -21,6 +21,9 @@ class User(AbstractUser):
     config = models.JSONField(default=dict, blank=True)
     teams = models.ManyToManyField(Team)
 
+    class Meta:
+        ordering = ["username"]
+
 
 class Project(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -119,7 +122,9 @@ class Task(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)], default=0
     )
     eta_date = models.DateField(null=True, blank=True)
-    estimated_work_hours = models.DecimalField(null=True, blank=True, max_digits=4, decimal_places=1)
+    estimated_work_hours = models.DecimalField(
+        null=True, blank=True, max_digits=4, decimal_places=1
+    )
     is_urgent = models.BooleanField(default=False)
     responsible = models.ForeignKey(
         User,
@@ -157,7 +162,6 @@ class TaskAccess(models.Model):
     )
 
     class Meta:
-
         constraints = [
             models.UniqueConstraint(
                 fields=["task", "user"],
@@ -398,14 +402,15 @@ class UserTaskQueue(models.Model):
         Task,
         on_delete=models.CASCADE,
     )
-    priority = models.IntegerField(default=100, help_text="Higher is more important")
+    priority = models.IntegerField(
+        default=100, help_text="Higher is more important"
+    )
 
     class Meta:
         ordering = ["-priority"]
 
 
 class Reminder(models.Model):
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     user = models.ForeignKey(
@@ -417,9 +422,7 @@ class Reminder(models.Model):
         on_delete=models.CASCADE,
     )
     created_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="reminders_created"
+        User, on_delete=models.CASCADE, related_name="reminders_created"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
@@ -428,9 +431,13 @@ class Reminder(models.Model):
     reminder_date = models.DateTimeField()
     message = models.CharField(max_length=1000, null=True, blank=True)
 
+    class Meta:
+        ordering = ["reminder_date"]
+
 
 class TaskChecklistItem(models.Model):
     """Checklist item"""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     task = models.ForeignKey(
         Task,
@@ -445,9 +452,7 @@ class TaskChecklistItem(models.Model):
     )
     position = models.IntegerField(default=0)
     done_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="checklistitem_done"
+        User, on_delete=models.CASCADE, related_name="checklistitem_done"
     )
 
 

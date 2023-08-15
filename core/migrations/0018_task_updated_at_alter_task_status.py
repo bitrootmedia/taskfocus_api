@@ -4,20 +4,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0017_task_estimated_work_hours_task_is_urgent_and_more'),
+        ("core", "0017_task_estimated_work_hours_task_is_urgent_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='task',
-            name='updated_at',
+            model_name="task",
+            name="updated_at",
             field=models.DateTimeField(auto_now=True),
         ),
         migrations.AlterField(
-            model_name='task',
-            name='status',
-            field=models.CharField(blank=True, choices=[('OPEN', 'OPEN'), ('IN PROGRESS', 'IN PROGRESS'), ('BLOCKER', 'BLOCKER'), ('TO VERIFY', 'TO VERIFY'), ('DONE', 'DONE')], max_length=150, null=True),
+            model_name="task",
+            name="status",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("OPEN", "OPEN"),
+                    ("IN PROGRESS", "IN PROGRESS"),
+                    ("BLOCKER", "BLOCKER"),
+                    ("TO VERIFY", "TO VERIFY"),
+                    ("DONE", "DONE"),
+                ],
+                max_length=150,
+                null=True,
+            ),
         ),
     ]

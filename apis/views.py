@@ -190,22 +190,32 @@ class TaskList(generics.ListCreateAPIView):
             task.tag = ",".join(hashtags)
             task.save()
 
-        add_to_user_queue = self.request.data.get('add_to_user_queue', False)
+        add_to_user_queue = self.request.data.get("add_to_user_queue", False)
 
         if add_to_user_queue:
-            queue_position = self.request.data.get('queue_position', "top")
+            queue_position = self.request.data.get("queue_position", "top")
             priority = 100
             if queue_position == "top":
-                utq = UserTaskQueue.objects.filter(user=self.request.user).order_by('-priority').first()
+                utq = (
+                    UserTaskQueue.objects.filter(user=self.request.user)
+                    .order_by("-priority")
+                    .first()
+                )
                 if utq:
                     priority = utq.priority + 10
 
             if queue_position == "bottom":
-                utq = UserTaskQueue.objects.filter(user=self.request.user).order_by('priority').first()
+                utq = (
+                    UserTaskQueue.objects.filter(user=self.request.user)
+                    .order_by("priority")
+                    .first()
+                )
                 if utq:
                     priority = utq.priority - 10
 
-            UserTaskQueue.objects.create(user=self.request.user, task=task, priority=priority)
+            UserTaskQueue.objects.create(
+                user=self.request.user, task=task, priority=priority
+            )
 
         Log.objects.create(
             task=task, user=self.request.user, message="Task created"
@@ -291,7 +301,7 @@ class TaskSessionDetail(generics.RetrieveUpdateAPIView):
 
     def get_serializer_class(self):
         return TaskSessionDetailSerializer
-    
+
     def perform_update(self, serializer):
         serializer.save()
 
@@ -563,9 +573,7 @@ class TaskStartWorkView(APIView):
             message=f"User {request.user} started working on this task.",
         )
 
-        return JsonResponse(
-            {"id": f"{twa.id}", "status": "OK", "message": "Testing message"}
-        )
+        return JsonResponse({"id": f"{twa.id}", "status": "OK", "message": ""})
 
 
 class TaskCloseView(APIView):
@@ -615,22 +623,29 @@ class TaskUnCloseView(APIView):
 class TaskStopWorkView(APIView):
     def post(self, request, pk):
         # TODO: permissions check, add log
-
         task = Task.objects.get(pk=pk)
-
-        TaskWorkSession.objects.filter(
+        tws = TaskWorkSession.objects.filter(
             user=request.user, task=task, stopped_at__isnull=True
-        ).update(stopped_at=now())
+        ).first()
+        if tws:
+            tws.stopped_at = now()
+            tws.save()
 
-        Log.objects.create(
-            task=task,
-            user=request.user,
-            message=f"User {request.user} stopped working on this task.",
-        )
+            Log.objects.create(
+                task=task,
+                user=request.user,
+                message=f"User {request.user} stopped working on this task.",
+            )
 
-        return JsonResponse(
-            {"id": "1", "status": "OK", "message": "Testing Stop Message"}
-        )
+            return JsonResponse({"id": tws.id, "status": "OK", "message": ""})
+        else:
+            return JsonResponse(
+                {
+                    "id": 0,
+                    "status": "ERROR",
+                    "message": "This session is already stopped",
+                }
+            )
 
 
 class CurrentTaskView(APIView):

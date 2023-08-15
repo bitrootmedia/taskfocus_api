@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("core", "0002_remove_team_members_remove_team_owner_and_more"),
     ]

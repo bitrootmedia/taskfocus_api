@@ -4,20 +4,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0022_taskusernote'),
+        ("core", "0022_taskusernote"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='attachment',
-            name='file_path',
-            field=models.FileField(max_length=4000, upload_to='attachments'),
+            model_name="attachment",
+            name="file_path",
+            field=models.FileField(max_length=4000, upload_to="attachments"),
         ),
         migrations.AlterField(
-            model_name='attachment',
-            name='thumbnail_path',
-            field=models.ImageField(blank=True, max_length=4000, upload_to='attachment_thumbnails'),
+            model_name="attachment",
+            name="thumbnail_path",
+            field=models.ImageField(
+                blank=True, max_length=4000, upload_to="attachment_thumbnails"
+            ),
         ),
     ]

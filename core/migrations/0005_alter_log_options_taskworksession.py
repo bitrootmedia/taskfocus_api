@@ -7,7 +7,6 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("core", "0004_alter_task_eta_date_delete_projectattribute"),
     ]
