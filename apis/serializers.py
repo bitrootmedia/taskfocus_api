@@ -63,6 +63,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             "background_image",
             "progress",
             "tag",
+            "is_closed"
         )
 
 
@@ -80,6 +81,7 @@ class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
             "owner",
             "progress",
             "tag",
+            "is_closed"
         )
 
     def get_title(self, instance):
