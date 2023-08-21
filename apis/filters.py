@@ -26,6 +26,7 @@ class ProjectFilter(filters.FilterSet):
 
 class TaskFilter(filters.FilterSet):
     title = django_filters.CharFilter(lookup_expr="icontains")
+    project__title = django_filters.CharFilter(lookup_expr="icontains")
     created_at = filters.DateFromToRangeFilter()
 
     class Meta:
@@ -33,6 +34,7 @@ class TaskFilter(filters.FilterSet):
         fields = [
             "title",
             "project",
+            "project__title",
             "is_closed",
             "is_urgent",
             "responsible",
