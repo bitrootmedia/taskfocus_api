@@ -26,6 +26,7 @@ class ProjectFilter(filters.FilterSet):
 
 class TaskFilter(filters.FilterSet):
     title = django_filters.CharFilter(lookup_expr="icontains")
+    created_at = filters.DateFromToRangeFilter()
 
     class Meta:
         model = Task
