@@ -559,9 +559,11 @@ class TaskStartWorkView(APIView):
 
         task = Task.objects.get(pk=pk)
 
-        TaskWorkSession.objects.filter(
+        for tws in TaskWorkSession.objects.filter(
             user=request.user, stopped_at__isnull=True
-        ).update(stopped_at=now())
+        ):
+            tws.stopped_at = now()
+            tws.save()
 
         twa = TaskWorkSession.objects.create(
             task=task, user=request.user, started_at=now()
