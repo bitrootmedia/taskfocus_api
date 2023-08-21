@@ -82,7 +82,7 @@ class AttachmentFilter(filters.FilterSet):
 class TaskSessionFilter(filters.FilterSet):
     class Meta:
         model = TaskWorkSession
-        fields = ["task"]
+        fields = ["task", "user"]
 
 
 class ProjectAccessFilter(filters.FilterSet):
