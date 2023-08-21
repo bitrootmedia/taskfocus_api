@@ -130,3 +130,10 @@ AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default="")
 AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="")
 AWS_QUERYSTRING_AUTH = False
 AWS_DEFAULT_ACL = "public-read"
+
+EMAIL_HOST = env('EMAIL_HOST', default="")
+EMAIL_PORT = env('EMAIL_PORT', default="")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL=env('DEFAULT_FROM_EMAIL', default="")
+WEB_APP_URL=env('WEB_APP_URL', default="https://SETMEUP.com")

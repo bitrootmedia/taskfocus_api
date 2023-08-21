@@ -3,6 +3,10 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from core.utils.notify import notify_user
+from django.conf import settings
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Team(models.Model):
@@ -402,6 +406,14 @@ class NotificationAck(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.created_at:
+            title = "You've got new notification"
+            message = f"{settings.WEB_APP_URL}/dashboard/notifications/?id={self.notification.id}"
+
+            notify_user(self.user, title, message)
+        super().save(*args, **kwargs)
 
 
 class UserTaskQueue(models.Model):

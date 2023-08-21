@@ -4,7 +4,6 @@ import uuid
 import mimetypes
 from django.http import JsonResponse
 from django.utils.text import slugify
-from django.conf import settings
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
@@ -14,7 +13,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import OrderingFilter, SearchFilter
 from django.core.files.storage import default_storage
 from rest_framework.views import APIView
-
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
 from .filters import (

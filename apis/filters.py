@@ -59,7 +59,7 @@ class ReminderFilter(filters.FilterSet):
 class NotificationAckFilter(filters.FilterSet):
     class Meta:
         model = NotificationAck
-        fields = ["status"]
+        fields = ["status", "id"]
 
 
 class LogFilter(filters.FilterSet):
