@@ -73,7 +73,7 @@ class TasksSessionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # self.assertEqual(response.json().get("message"), "Testing Stop Message")
 
-    def test_update_task_session(self):
+    def test_update_task_session_stopped_at(self):
         self.client.force_login(self.user)
         response = self.client.post(
             reverse("task_start_work", kwargs={"pk": self.task_1.id})
@@ -93,4 +93,27 @@ class TasksSessionTests(APITestCase):
         tsd = TaskWorkSession.objects.get(pk=task_work_session_id)
         self.assertEqual(
             tsd.stopped_at.strftime("%Y-%m-%d %H:%M:%S"), new_stopped_at
+        )
+
+    def test_update_task_session_started_at(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("task_start_work", kwargs={"pk": self.task_1.id})
+        )
+        response = self.client.post(
+            reverse("task_stop_work", kwargs={"pk": self.task_1.id})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task_work_session_id = response.json().get("id")
+
+        new_started_at = "2023-01-01 00:00:00"
+        self.client.patch(
+            reverse(
+                "task_sessions_detail", kwargs={"pk": task_work_session_id}
+            ),
+            data={"started_at": new_started_at},
+        )
+        tsd = TaskWorkSession.objects.get(pk=task_work_session_id)
+        self.assertEqual(
+            tsd.started_at.strftime("%Y-%m-%d %H:%M:%S"), new_started_at
         )

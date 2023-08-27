@@ -7,6 +7,7 @@ from core.utils.notify import notify_user
 from django.conf import settings
 import logging
 logger = logging.getLogger(__name__)
+from django.utils.timezone import now
 
 
 class Team(models.Model):
@@ -320,7 +321,7 @@ class Log(models.Model):
 class TaskWorkSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    started_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
     stopped_at = models.DateTimeField(null=True, blank=True)
 
     total_time = models.IntegerField(default=0)
@@ -337,6 +338,9 @@ class TaskWorkSession(models.Model):
     )
 
     def save(self, *args, **kwargs):
+        if not self.started_at:
+            self.started_at = now()
+
         if self.stopped_at and self.stopped_at < self.started_at:
             raise Exception("Stopped at cannot be before started at")
 

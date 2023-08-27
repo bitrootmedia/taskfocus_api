@@ -230,8 +230,6 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
             return TaskReadOnlySerializer
         return TaskDetailSerializer
 
-    # TODO: changed responsible user - send him notification
-
     def perform_update(self, serializer):
         instance = self.get_object()
         previous_data = Task.objects.get(pk=instance.pk)
@@ -257,9 +255,9 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
                 )
 
         if (
-            task.responsible != previous_data.responsible
-            and task.responsible is not None
-            and self.request.user != task.responsible
+                task.responsible != previous_data.responsible
+                and task.responsible is not None
+                and self.request.user != task.responsible
         ):
             notification = Notification.objects.create(
                 task=task,
@@ -295,13 +293,34 @@ class LogList(generics.ListAPIView):
 
 class TaskSessionDetail(generics.RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
-    queryset = TaskWorkSession.objects.all()
 
     def get_serializer_class(self):
         return TaskSessionDetailSerializer
 
+    def get_queryset(self):
+        queryset = TaskWorkSession.objects.filter(user=self.request.user)
+        return queryset
+
     def perform_update(self, serializer):
-        serializer.save()
+        instance = self.get_object()
+        previous_data = TaskWorkSession.objects.get(pk=instance.pk)
+        tws = serializer.save()
+
+        fields_to_check = [
+            "started_at",
+            "stopped_at",
+        ]
+
+        for field in fields_to_check:
+            new_value = getattr(tws, field)
+            old_value = getattr(previous_data, field)
+            if new_value != old_value:
+                Log.objects.create(
+                    task=instance.task,
+                    user=self.request.user,
+                    message=f"TaskWorkSession updated by {self.request.user.username}. "
+                            f"{field} changed from {old_value} to {new_value}",
+                )
 
 
 class TaskSessionList(generics.ListCreateAPIView):
@@ -558,7 +577,7 @@ class TaskStartWorkView(APIView):
         task = Task.objects.get(pk=pk)
 
         for tws in TaskWorkSession.objects.filter(
-            user=request.user, stopped_at__isnull=True
+                user=request.user, stopped_at__isnull=True
         ):
             tws.stopped_at = now()
             tws.save()
@@ -851,9 +870,9 @@ class UserTaskQueuePositionChangeView(APIView):
         user = utq.user
 
         for ut in (
-            UserTaskQueue.objects.filter(user=user)
-            .exclude(id=utq.id)
-            .order_by("-priority")
+                UserTaskQueue.objects.filter(user=user)
+                        .exclude(id=utq.id)
+                        .order_by("-priority")
         ):
             sorted_tasks.append(ut)
             if user_task_above_id == ut.id:
@@ -957,7 +976,6 @@ class ChangeProjectOwnerView(APIView):
             message="Owner of the project changed",
         )
         return JsonResponse({"status": "OK"})
-
 
 # TODO:
 # class TaskChecklistItemListView(generics.ListCreateAPIView):
