@@ -30,7 +30,7 @@ class UserAdmin(UserAdmin):
     model = User
     fieldsets = (
         *UserAdmin.fieldsets,
-        ("Custom fields", {"fields": ("config", "teams")}),
+        ("Custom fields", {"fields": ("config", "teams", "notifier_username")}),
     )
 
 

@@ -22,6 +22,7 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     image = models.ImageField(upload_to="user_avatar", blank=True)
+    pushover_user = models.CharField(max_length=100, null=True, blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
     config = models.JSONField(default=dict, blank=True)
     teams = models.ManyToManyField(Team)
@@ -413,10 +414,7 @@ class NotificationAck(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.created_at:
-            title = "You've got new notification"
-            message = f"{settings.WEB_APP_URL}/dashboard/notifications/?id={self.notification.id}"
-
-            notify_user(self.user, title, message)
+            notify_user(self.user, self.notification)
         super().save(*args, **kwargs)
 
 
