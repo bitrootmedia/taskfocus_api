@@ -5,7 +5,10 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def notify_user(user, message, title="You've got a new notification"):
+def notify_user(user, notification, message=None, title="You've got a new notification"):
+    if notification:
+        message = f"{settings.WEB_APP_URL}/dashboard/notifications/?id={notification.id}"
+
     # this should go to celery
     if user.email:
         send_mail(
