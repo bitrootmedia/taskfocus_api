@@ -215,6 +215,8 @@ class TaskList(generics.ListCreateAPIView):
                 user=self.request.user, task=task, priority=priority
             )
 
+        TaskAccess.objects.create(task=task, user=self.request.user)
+
         Log.objects.create(
             task=task, user=self.request.user, message="Task created"
         )
