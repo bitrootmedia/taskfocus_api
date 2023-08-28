@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from core.utils.notify import notify_user
-from django.conf import settings
 import logging
 logger = logging.getLogger(__name__)
 from django.utils.timezone import now
@@ -414,7 +413,11 @@ class NotificationAck(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.created_at:
-            notify_user(self.user, self.notification)
+            try:
+                notify_user(self.user, self.notification)
+            except Exception as ex:
+                logger.exception(f"{ex}")
+
         super().save(*args, **kwargs)
 
 
