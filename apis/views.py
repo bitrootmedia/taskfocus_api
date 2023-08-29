@@ -1,5 +1,6 @@
 import json
 import pathlib
+import time
 import uuid
 import mimetypes
 from django.http import JsonResponse
@@ -261,16 +262,22 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
                 and task.responsible is not None
                 and self.request.user != task.responsible
         ):
-            notification = Notification.objects.create(
-                task=task,
-                project=task.project,
-                content=f"You are now responsible for task [{task.title}] (set by {self.request.user.username})",
-            )
             Log.objects.create(
                 task=task,
                 user=self.request.user,
                 message=f"Responsible person changed to {task.responsible}",
             )
+
+            utq = UserTaskQueue.objects.filter(user=task.responsible, task=task)
+            if not utq:
+                UserTaskQueue.objects.create(user=task.responsible, task=task, priority=int(time.time()))
+
+            notification = Notification.objects.create(
+                task=task,
+                project=task.project,
+                content=f"You are now responsible for task [{task.title}] (set by {self.request.user.username})",
+            )
+
             NotificationAck.objects.create(
                 notification=notification, user=task.responsible
             )
