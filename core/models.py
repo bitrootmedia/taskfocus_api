@@ -22,6 +22,7 @@ class User(AbstractUser):
 
     image = models.ImageField(upload_to="user_avatar", blank=True)
     pushover_user = models.CharField(max_length=100, null=True, blank=True)
+    notifier_user = models.CharField(max_length=100, null=True, blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
     config = models.JSONField(default=dict, blank=True)
     teams = models.ManyToManyField(Team)

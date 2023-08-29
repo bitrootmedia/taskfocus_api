@@ -30,3 +30,30 @@ def notify_user(user, notification, message=None, title="You've got a new notifi
             logger.debug(rx.text)
         except Exception as ex:
             logger.exception(f"{ex}")
+
+    if user.notifier_user and settings.NOTIFIER_URL and settings.NOTIFIER_TOKEN:
+        url = f"{settings.NOTIFIER_URL}/api/messages/"
+        tag = f"ayeaye:notification-{user.username}"
+
+        payload = {
+            "tag": tag,
+            "title": title,
+            "content": message,
+            "level": "HIGH",
+        }
+
+        try:
+            requests.post(
+                url,
+                json=payload,
+                auth=(
+                    "",
+                    settings.NOTIFIER_TOKEN,
+                ),
+                timeout=(
+                    settings.REQUESTS_CONNECT_TIMEOUT,
+                    settings.REQUESTS_READ_TIMEOUT,
+                ),
+            )
+        except Exception as exc:
+            logger.exception(f"Call with payload {payload} to {url} timed out.")

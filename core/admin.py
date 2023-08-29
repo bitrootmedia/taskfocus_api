@@ -30,7 +30,7 @@ class UserAdmin(UserAdmin):
     model = User
     fieldsets = (
         *UserAdmin.fieldsets,
-        ("Custom fields", {"fields": ("config", "teams", "pushover_user")}),
+        ("Custom fields", {"fields": ("config", "teams", "pushover_user", "notifier_user")}),
     )
 
 
