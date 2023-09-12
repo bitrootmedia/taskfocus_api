@@ -75,6 +75,8 @@ class CommentAdmin(admin.ModelAdmin):
         "archived_at",
     )
 
+    search_fields = ("content", )
+
 
 @admin.register(Log)
 class LogAdmin(admin.ModelAdmin):
