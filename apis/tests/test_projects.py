@@ -21,11 +21,13 @@ class ProjectTests(APITestCase):
             title="Testing Project 2",
             owner=cls.user_2,
             description="Description of project 2",
+            is_closed=True,
         )
         cls.project_3 = Project.objects.create(
             title="Testing Project 3",
             owner=cls.user_3,
             description="Description of project 3",
+            is_closed=True
         )
 
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
@@ -138,7 +140,7 @@ class ProjectTests(APITestCase):
     def test_api_project_list_filter_closed(self):
         self.client.force_login(self.user)
         response = self.client.get(
-            reverse("project_list") + "?is_closed=true"
+            reverse("project_list") + "?show_closed=False"
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, self.project)
