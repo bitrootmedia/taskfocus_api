@@ -16,11 +16,14 @@ from core.models import (
 
 class ProjectFilter(filters.FilterSet):
     title = django_filters.CharFilter(lookup_expr="icontains")
+    show_closed = django_filters.BooleanFilter(
+        field_name="is_closed"
+    )
 
     class Meta:
         model = Project
         fields = [
-            "title",
+            "title", "show_closed"
         ]
 
 

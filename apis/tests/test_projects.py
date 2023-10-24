@@ -134,4 +134,14 @@ class ProjectTests(APITestCase):
 
         self.assertEqual(s.status_code, status.HTTP_200_OK)
 
-    # TODO: test create project
+    
+    def test_api_project_list_filter_closed(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("project_list") + "?is_closed=true"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, self.project)
+        self.assertNotContains(response, self.project_2)
+        self.assertNotContains(response, self.project_3)
+        self.assertEqual(json.loads(response.content).get("count"), 1)
