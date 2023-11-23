@@ -63,7 +63,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             "background_image",
             "progress",
             "tag",
-            "is_closed"
+            "is_closed",
         )
 
 
@@ -81,7 +81,7 @@ class ProjectDetailReadOnlySerializer(serializers.ModelSerializer):
             "owner",
             "progress",
             "tag",
-            "is_closed"
+            "is_closed",
         )
 
     def get_title(self, instance):
@@ -137,6 +137,7 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "tag",
             "progress",
             "description",
+            "blocks",
             "project",
             "position",
             "responsible",
@@ -167,6 +168,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
+            "blocks",
             "tag",
             "position",
             "progress",

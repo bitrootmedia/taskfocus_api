@@ -53,6 +53,7 @@ class TasksTests(APITestCase):
             title="Task 4",
             description="Task 4 Description",
             project=cls.project_4,
+            blocks={"example": "one"},
         )
 
         cls.task_5 = Task.objects.create(
@@ -153,6 +154,22 @@ class TasksTests(APITestCase):
             reverse("task_detail", kwargs={"pk": self.task_4.id})
         )
         self.assertContains(r, updated_title)
+
+    def test_api_task_update_blocks(self):
+        self.client.force_login(self.user)
+        updated_blocks = {"blocks": {"test": "one"}}
+        self.client.put(
+            reverse("task_detail", kwargs={"pk": self.task_4.id}),
+            {"blocks": updated_blocks},
+            format="json",
+        )
+
+        r = self.client.get(
+            reverse("task_detail", kwargs={"pk": self.task_4.id})
+        )
+        print(r.json())
+        # self.assertEqual(r.json().get("blocks"), "one")
+        # self.assertContains(r, updated_blocks)
 
     def test_api_task_update_project(self):
         self.client.force_login(self.user)

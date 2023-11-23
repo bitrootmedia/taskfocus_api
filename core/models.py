@@ -5,6 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from core.utils.notify import notify_user
 import logging
+
 logger = logging.getLogger(__name__)
 from django.utils.timezone import now
 
@@ -102,6 +103,7 @@ class Task(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
+    blocks = models.JSONField(default=dict)
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
