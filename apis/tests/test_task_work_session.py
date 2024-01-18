@@ -83,7 +83,7 @@ class TasksSessionTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task_work_session_id = response.json().get("id")
-        new_stopped_at = "2024-01-01 00:00:00"
+        new_stopped_at = "2028-01-01 00:00:00"
         self.client.patch(
             reverse(
                 "task_sessions_detail", kwargs={"pk": task_work_session_id}
