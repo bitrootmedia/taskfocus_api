@@ -128,7 +128,8 @@ class Command(BaseCommand):
             message_content_html,
             None,
             [options['recipient'], ],
-            fail_silently=False
+            fail_silently=False,
+            html_message=message_content_html
         )
         
         logger.debug(message_content_html)
