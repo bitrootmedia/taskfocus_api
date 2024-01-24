@@ -1,8 +1,6 @@
-import datetime
-from django import template
+from time import gmtime, strftime
 
-from time import gmtime
-from time import strftime
+from django import template
 
 register = template.Library()
 
