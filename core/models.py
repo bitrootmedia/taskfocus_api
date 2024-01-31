@@ -281,6 +281,23 @@ class Comment(models.Model):
             )
 
 
+class PrivateNote(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="private_notes",
+    )
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name="piravte_notes"
+    )
+    note = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class Log(models.Model):
     class ActionType(models.TextChoices):
         CREATED = "CREATED", "Created"
