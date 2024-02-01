@@ -9,6 +9,7 @@ class PrivateNoteTests(APITestCase):
     def setUpTestData(cls):
         cls.user = User.objects.create(username="user1")
         cls.user_2 = User.objects.create(username="user2")
+        cls.user_3 = User.objects.create(username="user3")
 
         cls.project = Project.objects.create(
             title="Testing Project 1 XXX",
@@ -22,6 +23,7 @@ class PrivateNoteTests(APITestCase):
         )
         
         ProjectAccess.objects.create(project=cls.project, user=cls.user_2)
+        ProjectAccess.objects.create(project=cls.project, user=cls.user_3)
 
         cls.task_1_project_1_user_1 = Task.objects.create(
             project=cls.project, owner=cls.user, title="Task 1"
@@ -66,6 +68,14 @@ class PrivateNoteTests(APITestCase):
 
         self.assertNotIn(self.note_3_task_1_user_1.id.__str__(), result_ids)
 
+    def test_private_note_list_no_notes(self):
+        self.client.force_login(self.user_3)
+        response = self.client.get(
+            reverse("private_note_list") + f"?task={self.task_1_project_1_user_1.id}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json().get("results"), [])
+        
     def test_private_note_task_filter(self):
         self.client.force_login(self.user_2)
         response = self.client.get(
@@ -96,6 +106,16 @@ class PrivateNoteTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
+    def test_create_private_note_no_note(self):
+        self.client.force_login(self.user_2)
+        response = self.client.post(
+            reverse("private_note_list"),
+            {
+                "task": f"{self.task_1_project_1_user_1.id}",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
     def test_edit_own_pirvate_note(self):
         self.client.force_login(self.user_2)
         updated_note = "this is edited note"
@@ -109,6 +129,16 @@ class PrivateNoteTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         private_note = PrivateNote.objects.get(id=self.note_1_task_1_user2.id)
         self.assertEqual(updated_note, private_note.note)
+    
+    def test_edit_own_pirvate_note_no_note(self):
+        self.client.force_login(self.user_2)
+        response = self.client.put(
+            reverse(
+                "private_note_detail",
+                kwargs={"pk": self.note_1_task_1_user2.id}
+            ),
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
     def test_edit_sombodies_else_note(self):
         self.client.force_login(self.user)
