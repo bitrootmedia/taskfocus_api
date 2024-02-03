@@ -893,12 +893,6 @@ class UserTaskQueuePositionChangeView(APIView):
             st.priority = counter
             st.save()
 
-            Log.objects.create(
-                task=st.task,
-                user=self.request.user,
-                message=f"Task priority changed to {counter}",
-            )
-
         return JsonResponse({"status": "OK"})
 
 
