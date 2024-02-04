@@ -27,6 +27,7 @@ from .filters import (
     TaskAccessFilter,
     ReminderFilter,
     NotificationAckFilter,
+    PrivateNoteFilter
 )
 from .serializers import (
     ProjectListSerializer,
@@ -53,6 +54,8 @@ from .serializers import (
     UserTaskQueueSerializer,
     ReminderSerializer,
     ReminderReadOnlySerializer,
+    PrivateNoteListSerializer,
+    PrivateNoteDetailSerializer
 )
 
 from core.models import (
@@ -70,6 +73,7 @@ from core.models import (
     Reminder,
     Notification,
     Team,
+    PrivateNote,
 )
 from django.db.models import Q
 from .permissions import (
@@ -79,6 +83,7 @@ from .permissions import (
     IsOwnerOrReadOnly,
     IsProjectOwner,
     IsTaskOwner,
+    IsPrivateNoteOwner,
 )
 
 
@@ -392,6 +397,29 @@ class CommentDetail(generics.RetrieveUpdateAPIView):
     serializer_class = CommentDetailSerializer
     permission_classes = (IsAuthorOrReadOnly,)
     queryset = Comment.objects.all()
+
+
+class PrivateNoteList(generics.ListCreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PrivateNoteListSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_class = PrivateNoteFilter
+    
+    def get_queryset(self):
+        notes = PrivateNote.objects.filter(user=self.request.user)
+        return notes
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)  # is this redundant?
+
+
+class PrivateNoteDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes= (IsPrivateNoteOwner,)
+    serializer_class = PrivateNoteDetailSerializer
+
+    def get_queryset(self):
+        queryset = PrivateNote.objects.filter(user=self.request.user)
+        return queryset
 
 
 class AttachmentList(generics.ListCreateAPIView):

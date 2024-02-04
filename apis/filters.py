@@ -11,6 +11,7 @@ from core.models import (
     Reminder,
     NotificationAck,
     TaskWorkSession,
+    PrivateNote
 )
 
 
@@ -77,6 +78,12 @@ class CommentFilter(filters.FilterSet):
     class Meta:
         model = Comment
         fields = ["project", "content", "task"]
+
+
+class PrivateNoteFilter(filters.FilterSet):
+    class Meta:
+        model = PrivateNote
+        fields = ["user", "task"]
 
 
 class AttachmentFilter(filters.FilterSet):

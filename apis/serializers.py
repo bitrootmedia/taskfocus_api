@@ -15,6 +15,7 @@ from core.models import (
     UserTaskQueue,
     Reminder,
     TaskChecklistItem,
+    PrivateNote,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
 
@@ -216,6 +217,18 @@ class CommentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ("id", "content", "task_id", "project_id")
+
+
+class PrivateNoteListSerializer(serializers.ModelSerializer):   
+    class Meta:
+        model = PrivateNote
+        fields = ("id", "note", "task", "created_at", "updated_at")
+
+
+class PrivateNoteDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrivateNote
+        fields = ("id", "note", "task_id")
 
 
 class TaskSessionDetailSerializer(serializers.ModelSerializer):
