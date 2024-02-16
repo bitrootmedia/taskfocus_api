@@ -116,6 +116,10 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
+REST_AUTH_SERIALIZERS = {
+        'PASSWORD_RESET_SERIALIZER': "apis.auth_serializers.CustomPasswordResetSerializer",
+}
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Project Management API",
     "DESCRIPTION": "PM",
