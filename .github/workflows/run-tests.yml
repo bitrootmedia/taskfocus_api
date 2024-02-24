@@ -5,19 +5,19 @@ jobs:
     name: Install requirements and execute tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      with:
-        submodules: recursive
+    - uses: actions/checkout@v3
+    with:
+      submodules: recursive
 
-      - uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+    - uses: actions/setup-python@v4
+    with:
+      python-version: '3.10'
 
-      - name: Install requirements
-        run: pip install -r requirements.txt
+    - name: Install requirements
+      run: pip install -r requirements.txt
 
-      - name: Run migrations
-      run: python manage.py migrate
+    - name: Run migrations
+    run: python manage.py migrate
 
-      - name: Run tests
-        run: python manage.py test
+    - name: Run tests
+      run: python manage.py test
