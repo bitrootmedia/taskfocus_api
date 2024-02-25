@@ -1,0 +1,64 @@
+name: Build and deploy django api to stage
+
+on:
+  push:
+    branches: [ stage ]
+ 
+
+jobs:
+  execute_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Run migrations
+        run: python manage.py migrate
+
+      - name: Run tests
+        run: python manage.py test
+
+  django-deploy:
+    needs: ["execute_tests"]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install requirements
+      run: pip install -r requirements.txt
+
+    - name: Deploy to server
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        password: ${{ secrets.STAGE_PASSWORD }}
+        port: ${{ secrets.STAGE_PORT }}
+        source: "/"
+        target: "/home/deploy/test_dir"
+        strip_components: 1
+
+    - name: restart services
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        password: ${{ secrets.STAGE_PASSWORD }}
+        port: ${{ secrets.STAGE_PORT }}
+        script: |
+          sudo supervisorctl reload
+          sudo service nginx restart
