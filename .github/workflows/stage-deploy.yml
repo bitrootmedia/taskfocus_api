@@ -47,7 +47,7 @@ jobs:
         username: karol
         password: Content123321
         port: 22
-        source: "/*"
+        source: "/taskfocus_api"
         target: "/home/deploy/test_dir"
         # strip_components: 1
 
