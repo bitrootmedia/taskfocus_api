@@ -44,21 +44,10 @@ jobs:
       uses: appleboy/scp-action@master
       with:   
         host: ${{ secrets.STAGE_HOST }}
-        username:  ${{ secrets.STAGE_USERNAME }}
-        password: ${{ secrets.STAGE_PASSWORD }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        key: ${{ secrets.STAGE_KEY }}
         port: ${{ secrets.STAGE_PORT }}
         overwrite: true
         source: "./*"
         target: "/home/deploy/taskfocus_api"
-        # strip_components: 1
 
-    - name: Restart services
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.STAGE_HOST }}
-        username: ${{ secrets.STAGE_USERNAME }}
-        password: ${{ secrets.STAGE_PASSWORD }}
-        port: ${{ secrets.STAGE_PORT }}
-        script: |
-          echo "${{ secrets.STAGE_PASSWORD }}" | sudo -S sudo supervisorctl reload
-          echo "${{ secrets.STAGE_PASSWORD }}" | sudo -S service nginx restart
