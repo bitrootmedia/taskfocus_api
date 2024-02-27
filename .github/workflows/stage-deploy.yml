@@ -47,8 +47,8 @@ jobs:
         username: karol
         password: Content123321
         port: 22
-        source: "./"
-        target: "/home/deploy/test_dir"
+        source: "./*"
+        target: "/home/karol/test_dir"
         # strip_components: 1
 
     - name: Restart services
