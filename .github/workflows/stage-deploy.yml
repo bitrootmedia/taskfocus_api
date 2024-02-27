@@ -5,7 +5,7 @@ on:
     branches: [ stage ]
  
 jobs:
-  execute_tests:
+  test_before_deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,7 +26,7 @@ jobs:
         run: python manage.py test
 
   django-deploy:
-    needs: ["execute_tests"]
+    needs: ["test_before_deploy"]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -43,21 +43,22 @@ jobs:
     - name: Deploy to server
       uses: appleboy/scp-action@master
       with:   
-        host: stage-api.ayeayecaptain.io
-        username: karol
-        password: Content123321
-        port: 22
+        host: ${{ secrets.STAGE_HOST }}
+        username:  ${{ secrets.STAGE_USERNAME }}
+        password: ${{ secrets.STAGE_PASSWORD }}
+        port: ${{ secrets.STAGE_PORT }}
+        overwrite: true
         source: "./*"
-        target: "/home/karol/test_dir"
+        target: "/home/deploy/taskfocus_api"
         # strip_components: 1
 
     - name: Restart services
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: stage-api.ayeayecaptain.io
-        username: karol
-        password: Content123321
-        port: 22
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        password: ${{ secrets.STAGE_PASSWORD }}
+        port: ${{ secrets.STAGE_PORT }}
         script: |
-          echo "Content123321" | sudo -S sudo supervisorctl reload
-          echo "Content123321" | sudo -S service nginx restart
+          echo "${{ secrets.STAGE_PASSWORD }}" | sudo -S sudo supervisorctl reload
+          echo "${{ secrets.STAGE_PASSWORD }}" | sudo -S service nginx restart
