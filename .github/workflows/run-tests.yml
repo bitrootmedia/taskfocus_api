@@ -1,6 +1,9 @@
 name: Run tests
 
-on: push
+on:
+  push:
+    branches-ignore:
+      - 'stage'  # already has tests in deploy workflow
 
 jobs:
   execute_tests:
