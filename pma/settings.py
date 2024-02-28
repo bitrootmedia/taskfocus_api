@@ -118,6 +118,7 @@ REST_FRAMEWORK = {
 
 REST_AUTH_SERIALIZERS = {
         'PASSWORD_RESET_SERIALIZER': "apis.auth_serializers.CustomPasswordResetSerializer",
+        "LOGIN_SERIALIZER": "rest_framework.authtoken.serializers.AuthTokenSerializer"
 }
 
 SPECTACULAR_SETTINGS = {
