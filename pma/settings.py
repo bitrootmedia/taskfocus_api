@@ -116,7 +116,6 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
-REST_SESSION_LOGIN = False
 REST_AUTH_SERIALIZERS = {
         'PASSWORD_RESET_SERIALIZER': "apis.auth_serializers.CustomPasswordResetSerializer",
 }
