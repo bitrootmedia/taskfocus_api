@@ -44,9 +44,9 @@ CORS_ALLOWED_ORIGINS = env(
     default="http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000",
 ).split(",")
 
-CSRF_TRUSTED_ORIGINS = env(
-    "CSRF_TRUSTED_ORIGINS", default="http://localhost:3000,http://127.0.0.1:3000"
-).split(",")
+# CSRF_TRUSTED_ORIGINS = env(
+#     "CSRF_TRUSTED_ORIGINS", default="http://localhost:3000,http://127.0.0.1:3000"
+# ).split(",")
 
 ROOT_URLCONF = "pma.urls"
 
@@ -118,7 +118,6 @@ REST_FRAMEWORK = {
 
 REST_AUTH_SERIALIZERS = {
         'PASSWORD_RESET_SERIALIZER': "apis.auth_serializers.CustomPasswordResetSerializer",
-        "LOGIN_SERIALIZER": "rest_framework.authtoken.serializers.AuthTokenSerializer"
 }
 
 SPECTACULAR_SETTINGS = {
