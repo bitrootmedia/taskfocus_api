@@ -1008,6 +1008,11 @@ class ChangeProjectOwnerView(APIView):
         )
         return JsonResponse({"status": "OK"})
 
+
+class TestCIReloadView(APIView):
+    def get(self, request):
+        return JsonResponse({"value": "test"})
+
 # TODO:
 # class TaskChecklistItemListView(generics.ListCreateAPIView):
 #     permission_classes = (IsAuthenticated,)
