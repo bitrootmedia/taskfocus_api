@@ -1011,7 +1011,7 @@ class ChangeProjectOwnerView(APIView):
 
 class TestCIReloadView(APIView):
     def get(self, request):
-        return JsonResponse({"value": "test"})
+        return JsonResponse({"value": "test-after-reload"})
 
 # TODO:
 # class TaskChecklistItemListView(generics.ListCreateAPIView):
