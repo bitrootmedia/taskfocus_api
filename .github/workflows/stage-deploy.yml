@@ -50,4 +50,15 @@ jobs:
         overwrite: true
         source: "./*"
         target: "/home/deploy/taskfocus_api"
+    
+    - name: Restart supervisor
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        key: ${{ secrets.STAGE_KEY }}
+        port: ${{ secrets.STAGE_PORT }}
+        # User needs NOPASSWORD supervisorctl in sudoers for that to work
+        script: sudo supervisorctl reload  
+
 
