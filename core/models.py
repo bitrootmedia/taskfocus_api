@@ -1,10 +1,15 @@
+import datetime
+import logging
 import uuid
+
+import pytz
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.dates import WEEKDAYS
+
 from core.utils.notify import notify_user
-import logging
 
 logger = logging.getLogger(__name__)
 from django.utils.timezone import now
@@ -289,9 +294,9 @@ class PrivateNote(models.Model):
         related_name="private_notes",
     )
     user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name="piravte_notes"
+        User,
+        on_delete=models.CASCADE,
+        related_name="private_notes"
     )
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -366,7 +371,7 @@ class TaskWorkSession(models.Model):
 
         if self.stopped_at and self.started_at:
             self.total_time = (
-                self.stopped_at - self.started_at
+                    self.stopped_at - self.started_at
             ).total_seconds()
 
         super().save(*args, **kwargs)
@@ -519,3 +524,74 @@ class TaskUserNote(models.Model):
         User,
         on_delete=models.CASCADE,
     )
+
+
+class UserReportsSchedule(models.Model):
+    TIMEZONES = tuple(zip(pytz.all_timezones, pytz.all_timezones))
+
+    AVAILABLE_WEEKDAYS = ((k, v) for k, v in WEEKDAYS.items())
+
+    # 00:00, 00:30, 01:00, 01:30, ... etc.
+    AVAILABLE_TIMES = (
+        f"{hour:0>2}:{minutes:0>2}" for hour in range(24) for minutes in (0, 30)
+    )
+    AVAILABLE_TIMES_CHOICES = ((x, x) for x in AVAILABLE_TIMES)
+
+    DEFAULT_TIME = datetime.time(18, 00).strftime("%H:%M")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="reports_schedule"
+    )
+    timezone = models.CharField(
+        max_length=32,
+        choices=TIMEZONES,
+        default="Europe/London",
+        null=True,
+        blank=False,
+    )
+
+    daily_enabled = models.BooleanField(default=True)
+    daily_time = models.CharField(
+        null=True,
+        blank=True,
+        max_length=5,
+        choices=AVAILABLE_TIMES_CHOICES,
+        default=DEFAULT_TIME,
+    )
+
+    weekly_enabled = models.BooleanField(default=True)
+    weekly_day = models.PositiveSmallIntegerField(
+        null=True, blank=True, choices=AVAILABLE_WEEKDAYS, default=4  # Friday
+    )
+    weekly_time = models.CharField(
+        null=True,
+        blank=True,
+        max_length=5,
+        choices=AVAILABLE_TIMES_CHOICES,
+        default=DEFAULT_TIME,
+    )
+
+    monthly_enabled = models.BooleanField(default=True)
+    monthly_day = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+        default=1,
+    )
+    monthly_time = models.CharField(
+        null=True,
+        blank=True,
+        max_length=5,
+        choices=AVAILABLE_TIMES_CHOICES,
+        default=DEFAULT_TIME,
+    )
+
+    @staticmethod
+    def utc_time_str_from_time_and_date_with_tz(time_str, pytz_timezone, conversion_date=None):
+        conversion_date = conversion_date.strftime("%Y-%m-%d")
+        time = datetime.datetime.strptime(conversion_date + " " + time_str, "%Y-%m-%d %H:%M")
+        local_time = pytz_timezone.localize(time)
+        local_time_utc = local_time.astimezone(pytz.UTC)
+
+        return local_time_utc.strftime("%H:%M")
