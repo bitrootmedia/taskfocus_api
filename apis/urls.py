@@ -116,5 +116,10 @@ urlpatterns = [
         views.ChangeProjectOwnerView.as_view(),
         name="project_owner_change",
     ),
+    path(
+        "user-reports-schedule",
+        views.UserReportsScheduleView.as_view(),
+        name="user_reports_schedule"
+    ),
     path("ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"),
 ]
