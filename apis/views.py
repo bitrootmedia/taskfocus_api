@@ -55,7 +55,8 @@ from .serializers import (
     ReminderSerializer,
     ReminderReadOnlySerializer,
     PrivateNoteListSerializer,
-    PrivateNoteDetailSerializer
+    PrivateNoteDetailSerializer,
+    UserReportsScheduleSerializer
 )
 
 from core.models import (
@@ -73,7 +74,7 @@ from core.models import (
     Reminder,
     Notification,
     Team,
-    PrivateNote,
+    PrivateNote, UserReportsSchedule,
 )
 from django.db.models import Q
 from .permissions import (
@@ -404,7 +405,7 @@ class PrivateNoteList(generics.ListCreateAPIView):
     serializer_class = PrivateNoteListSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_class = PrivateNoteFilter
-    
+
     def get_queryset(self):
         notes = PrivateNote.objects.filter(user=self.request.user)
         return notes
@@ -414,7 +415,7 @@ class PrivateNoteList(generics.ListCreateAPIView):
 
 
 class PrivateNoteDetail(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes= (IsPrivateNoteOwner,)
+    permission_classes = (IsPrivateNoteOwner,)
     serializer_class = PrivateNoteDetailSerializer
 
     def get_queryset(self):
@@ -1007,6 +1008,16 @@ class ChangeProjectOwnerView(APIView):
             message="Owner of the project changed",
         )
         return JsonResponse({"status": "OK"})
+
+
+class UserReportsScheduleView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserReportsScheduleSerializer
+
+    def get_object(self):
+        # User can only ever have one schedule
+        schedule, _ = UserReportsSchedule.objects.get_or_create(user=self.request.user)
+        return schedule
 
 
 class TestCIReloadView(APIView):
