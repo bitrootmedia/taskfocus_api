@@ -16,6 +16,7 @@ from core.models import (
     Reminder,
     TaskChecklistItem,
     PrivateNote,
+    UserReportsSchedule,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
 
@@ -219,7 +220,7 @@ class CommentDetailSerializer(serializers.ModelSerializer):
         fields = ("id", "content", "task_id", "project_id")
 
 
-class PrivateNoteListSerializer(serializers.ModelSerializer):   
+class PrivateNoteListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PrivateNote
         fields = ("id", "note", "task", "created_at", "updated_at")
@@ -379,3 +380,32 @@ class ReminderReadOnlySerializer(serializers.ModelSerializer):
             "closed_at",
         )
         read_only_fields = ("created_by",)
+
+
+class UserReportsScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserReportsSchedule
+        fields = (
+            "id",
+            "timezone",
+            "daily_enabled",
+            "daily_time",
+            "weekly_enabled",
+            "weekly_time",
+            "weekly_day",
+            "monthly_enabled",
+            "monthly_time",
+            "monthly_day"
+        )
+
+    def validate(self, data):
+        if data["daily_enabled"] and not data["daily_time"]:
+            raise serializers.ValidationError("Please provide time for daily reports")
+
+        if data["weekly_enabled"] and not all([data["weekly_time"], data["weekly_day"]]):
+            raise serializers.ValidationError("Please provide day and time for weekly reports")
+
+        if data["monthly_enabled"] and not all([data["monthly_time"], data["monthly_day"]]):
+            raise serializers.ValidationError("Please provide day and time for monthly reports")
+
+        return data
