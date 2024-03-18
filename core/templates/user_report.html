@@ -1,15 +1,15 @@
 {% load time_from_seconds %}
 
 Activity report for user: {{ user.username }} on dates {{ start_date|date:"Y-m-d" }} - {{ end_date|date:"Y-m-d" }}<br>
-Total time logged: {{ total_time_sum|time_from_seconds }}<br>
+Total time logged: {{ total_time_sum|time_from_seconds_filter }}<br>
 <br>
 {% for entry_date, date_data in sessions_by_day.items %}
 {{entry_date|date:"Y-m-d"}}<br>
 {% for entry in date_data.entries %}
-{% if entry.project_name %}{{ entry.project_name }}:{% endif %}{{entry.task_name}} - {{ entry.total_time|time_from_seconds }}<br>
+{% if entry.project_name %}{{ entry.project_name }}:{% endif %}{{entry.task_name}} - {{ entry.total_time|time_from_seconds_filter }}<br>
 {% endfor %}
 <br>
-Day total: {{ date_data.total|time_from_seconds }}<br>
+Day total: {{ date_data.total|time_from_seconds_filter }}<br>
 {% if not forloop.last %}
 <hr>
 {% endif %}
