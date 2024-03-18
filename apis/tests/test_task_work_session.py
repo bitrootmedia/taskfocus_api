@@ -1,9 +1,11 @@
+import datetime
+
+from dateutil.relativedelta import relativedelta
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apis.views import TaskSessionDetail
-from core.models import Project, User, ProjectAccess, Task, TaskWorkSession
+from core.models import Project, ProjectAccess, Task, TaskWorkSession, User
 
 
 class TasksSessionTests(APITestCase):
@@ -117,3 +119,19 @@ class TasksSessionTests(APITestCase):
         self.assertEqual(
             tsd.started_at.strftime("%Y-%m-%d %H:%M:%S"), new_started_at
         )
+
+    def test_task_total_time(self):
+        self.client.force_login(self.user)
+        now = datetime.datetime.now()
+        TaskWorkSession.objects.create(
+            started_at=now - relativedelta(hours=1, minutes=30),
+            stopped_at=now,
+            user=self.user,
+            task_id=self.task_1.id
+        )
+        response = self.client.get(
+            reverse("task_total_time", kwargs={"pk": self.task_1.id})
+        )
+        resp_data = response.json()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp_data["total_time"], {"hours": "01", "minutes": "30"})
