@@ -44,7 +44,7 @@ from .serializers import (
     AttachmentListSerializer,
     AttachmentDetailSerializer,
     ProjectAccessSerializer,
-    UserSerializer,
+    TaskTotalTimeReadOnlySerializer, UserSerializer,
     ProjectAccessDetailSerializer,
     TaskSessionDetailSerializer,
     TaskReadOnlySerializer,
@@ -286,6 +286,12 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
             NotificationAck.objects.create(
                 notification=notification, user=task.responsible
             )
+
+
+class TaskTotalTime(generics.RetrieveAPIView):
+    permission_classes = (HasTaskAccess,)
+    serializer_class = TaskTotalTimeReadOnlySerializer
+    queryset = Task.objects.all()
 
 
 class LogList(generics.ListAPIView):
