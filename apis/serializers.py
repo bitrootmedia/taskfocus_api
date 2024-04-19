@@ -197,7 +197,11 @@ class TaskTotalTimeReadOnlySerializer(serializers.ModelSerializer):
         fields = ("id", "total_time")
 
     def get_total_time(self, instance: Task):
-        total_seconds = instance.task_work.aggregate(time_sum=Sum("total_time")).get("time_sum", 0)
+        total_seconds = instance.task_work.aggregate(
+            time_sum=Sum("total_time")
+        ).get("time_sum", 0)
+        if not total_seconds:
+            total_seconds = 0
         hours, minutes, _ = time_from_seconds(total_seconds)
         return {"hours": f"{hours:02}", "minutes": f"{minutes:02}"}
 
