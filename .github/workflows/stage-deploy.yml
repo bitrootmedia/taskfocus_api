@@ -1,0 +1,64 @@
+name: Build and deploy django api to stage
+
+on:
+  push:
+    branches: [ stage ]
+ 
+jobs:
+  test_before_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Run migrations
+        run: python manage.py migrate
+
+      - name: Run tests
+        run: python manage.py test
+
+  django-deploy:
+    needs: ["test_before_deploy"]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install requirements
+      run: pip install -r requirements.txt
+
+    - name: Deploy to server
+      uses: appleboy/scp-action@master
+      with:   
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        key: ${{ secrets.STAGE_KEY }}
+        port: ${{ secrets.STAGE_PORT }}
+        overwrite: true
+        source: "./*"
+        target: "/home/deploy/taskfocus_api"
+    
+    - name: Restart supervisor
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        key: ${{ secrets.STAGE_KEY }}
+        port: ${{ secrets.STAGE_PORT }}
+        # User needs NOPASSWORD supervisorctl in sudoers for that to work
+        script: sudo supervisorctl reload  
+
+

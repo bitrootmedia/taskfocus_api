@@ -45,7 +45,7 @@ CORS_ALLOWED_ORIGINS = env(
 ).split(",")
 
 # CSRF_TRUSTED_ORIGINS = env(
-#     "CSRF_TRUSTED_ORIGINS", default="http://localhost:3000"
+#     "CSRF_TRUSTED_ORIGINS", default="http://localhost:3000,http://127.0.0.1:3000"
 # ).split(",")
 
 ROOT_URLCONF = "pma.urls"

@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from rest_framework import serializers
 
 from core.models import (
@@ -18,6 +19,7 @@ from core.models import (
     PrivateNote,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
+from core.utils.time_from_seconds import time_from_seconds
 
 masked_string = "*" * 5
 
@@ -187,6 +189,23 @@ class TaskDetailSerializer(serializers.ModelSerializer):
         )
 
 
+class TaskTotalTimeReadOnlySerializer(serializers.ModelSerializer):
+    total_time = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Task
+        fields = ("id", "total_time")
+
+    def get_total_time(self, instance: Task):
+        total_seconds = instance.task_work.aggregate(
+            time_sum=Sum("total_time")
+        ).get("time_sum", 0)
+        if not total_seconds:
+            total_seconds = 0
+        hours, minutes, _ = time_from_seconds(total_seconds)
+        return {"hours": f"{hours:02}", "minutes": f"{minutes:02}"}
+
+
 class LogListSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     task = TaskReadOnlySerializer()
@@ -219,7 +238,7 @@ class CommentDetailSerializer(serializers.ModelSerializer):
         fields = ("id", "content", "task_id", "project_id")
 
 
-class PrivateNoteListSerializer(serializers.ModelSerializer):   
+class PrivateNoteListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PrivateNote
         fields = ("id", "note", "task", "created_at", "updated_at")
