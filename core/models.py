@@ -5,9 +5,9 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from core.utils.notify import notify_user
 import logging
+from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
-from django.utils.timezone import now
 
 
 class Team(models.Model):
@@ -95,10 +95,10 @@ class Task(models.Model):
         IDEA = "IDEA", "IDEA"
 
     class UrgencyLevelChoices(models.TextChoices):
-        CRITICAL = "CRITICAL", "CRITICAL"
-        MAJOR = "MAJOR", "MAJOR"
-        MEDIUM = "MEDIUM", "MEDIUM"
-        MINOR = "MINOR", "MINOR"
+        TODAY = "TODAY", "TODAY"
+        TOMORROW = "TOMORROW", "TOMORROW"
+        IN_3_DAYS = "IN 3 DAYS", "IN 3 DAYS"
+        WEEK_PLUS = "WEEK_PLUS", "WEEK PLUS"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=150)
@@ -289,9 +289,7 @@ class PrivateNote(models.Model):
         related_name="private_notes",
     )
     user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name="piravte_notes"
+        User, on_delete=models.CASCADE, related_name="piravte_notes"
     )
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
