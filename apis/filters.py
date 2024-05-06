@@ -1,4 +1,5 @@
 import django_filters
+from django.db.models import Q
 from django_filters import rest_framework as filters
 from core.models import (
     Project,
@@ -11,27 +12,24 @@ from core.models import (
     Reminder,
     NotificationAck,
     TaskWorkSession,
-    PrivateNote
+    PrivateNote,
 )
 
 
 class ProjectFilter(filters.FilterSet):
     title = django_filters.CharFilter(lookup_expr="icontains")
-    show_closed = django_filters.BooleanFilter(
-        field_name="is_closed"
-    )
+    show_closed = django_filters.BooleanFilter(field_name="is_closed")
 
     class Meta:
         model = Project
-        fields = [
-            "title", "show_closed"
-        ]
+        fields = ["title", "show_closed"]
 
 
 class TaskFilter(filters.FilterSet):
     title = django_filters.CharFilter(lookup_expr="icontains")
     project__title = django_filters.CharFilter(lookup_expr="icontains")
     created_at = filters.DateFromToRangeFilter()
+    query = filters.CharFilter(method="filter_by_all_fields")
 
     class Meta:
         model = Task
@@ -47,7 +45,16 @@ class TaskFilter(filters.FilterSet):
             "created_at",
             "updated_at",
             "tag",
+            "query",
         ]
+
+    def filter_by_all_fields(self, queryset, name, value):
+        return queryset.filter(
+            Q(title__icontains=value)
+            | Q(description__icontains=value)
+            | Q(tag__icontains=value)
+            | Q(blocks__icontains=value)
+        )
 
 
 class ReminderFilter(filters.FilterSet):

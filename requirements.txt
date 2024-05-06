@@ -11,3 +11,4 @@ boto3==1.26.100
 django-storages==1.13.2
 psycopg2==2.9.6
 requests==2.31.0
+pusher==3.3.2

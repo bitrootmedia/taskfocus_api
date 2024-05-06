@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0032_task_blocks'),
+        ("core", "0032_task_blocks"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='task',
-            name='blocks',
+            model_name="task",
+            name="blocks",
             field=models.JSONField(default=dict),
         ),
     ]

@@ -27,7 +27,7 @@ from .filters import (
     TaskAccessFilter,
     ReminderFilter,
     NotificationAckFilter,
-    PrivateNoteFilter
+    PrivateNoteFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -44,7 +44,8 @@ from .serializers import (
     AttachmentListSerializer,
     AttachmentDetailSerializer,
     ProjectAccessSerializer,
-    TaskTotalTimeReadOnlySerializer, UserSerializer,
+    TaskTotalTimeReadOnlySerializer,
+    UserSerializer,
     ProjectAccessDetailSerializer,
     TaskSessionDetailSerializer,
     TaskReadOnlySerializer,
@@ -55,7 +56,7 @@ from .serializers import (
     ReminderSerializer,
     ReminderReadOnlySerializer,
     PrivateNoteListSerializer,
-    PrivateNoteDetailSerializer
+    PrivateNoteDetailSerializer,
 )
 
 from core.models import (
@@ -118,7 +119,6 @@ class ProjectList(generics.ListCreateAPIView):
         return ProjectListSerializer
 
     def get_queryset(self):
-        request_user = self.request.user
         user = self.request.user
 
         if self.request.GET.get("user"):
@@ -259,13 +259,14 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
                 Log.objects.create(
                     task=task,
                     user=self.request.user,
-                    message=f"Task updated by {self.request.user.username}. {field} changed from {old_value} to {new_value}",
+                    message=f"Task updated by {self.request.user.username}. "
+                    f"{field} changed from {old_value} to {new_value}",
                 )
 
         if (
-                task.responsible != previous_data.responsible
-                and task.responsible is not None
-                and self.request.user != task.responsible
+            task.responsible != previous_data.responsible
+            and task.responsible is not None
+            and self.request.user != task.responsible
         ):
             Log.objects.create(
                 task=task,
@@ -273,9 +274,13 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
                 message=f"Responsible person changed to {task.responsible}",
             )
 
-            utq = UserTaskQueue.objects.filter(user=task.responsible, task=task)
+            utq = UserTaskQueue.objects.filter(
+                user=task.responsible, task=task
+            )
             if not utq:
-                UserTaskQueue.objects.create(user=task.responsible, task=task, priority=int(time.time()))
+                UserTaskQueue.objects.create(
+                    user=task.responsible, task=task, priority=int(time.time())
+                )
 
             notification = Notification.objects.create(
                 task=task,
@@ -339,7 +344,7 @@ class TaskSessionDetail(generics.RetrieveUpdateAPIView):
                     task=instance.task,
                     user=self.request.user,
                     message=f"TaskWorkSession updated by {self.request.user.username}. "
-                            f"{field} changed from {old_value} to {new_value}",
+                    f"{field} changed from {old_value} to {new_value}",
                 )
 
 
@@ -410,7 +415,7 @@ class PrivateNoteList(generics.ListCreateAPIView):
     serializer_class = PrivateNoteListSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_class = PrivateNoteFilter
-    
+
     def get_queryset(self):
         notes = PrivateNote.objects.filter(user=self.request.user)
         return notes
@@ -420,7 +425,7 @@ class PrivateNoteList(generics.ListCreateAPIView):
 
 
 class PrivateNoteDetail(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes= (IsPrivateNoteOwner,)
+    permission_classes = (IsPrivateNoteOwner,)
     serializer_class = PrivateNoteDetailSerializer
 
     def get_queryset(self):
@@ -601,7 +606,7 @@ class TaskPositionChangeView(APIView):
                     continue
                 else:
                     ta.position = task_above.position + 1
-                    print(f"\t Setting position to one above ")
+                    print("\t Setting position to one above ")
             else:
                 position_counter += 2
                 ta.position = position_counter
@@ -620,7 +625,7 @@ class TaskStartWorkView(APIView):
         task = Task.objects.get(pk=pk)
 
         for tws in TaskWorkSession.objects.filter(
-                user=request.user, stopped_at__isnull=True
+            user=request.user, stopped_at__isnull=True
         ):
             tws.stopped_at = now()
             tws.save()
@@ -758,7 +763,8 @@ class UploadView(APIView):
             default_storage.save(storage_path, file)
             mt = mimetypes.guess_type(storage_path)
             if "image/" in mt[0]:
-                thumbnail_path = storage_path  # TODO: create thumbnail if it's an image, this should probably be done in celery task ...
+                thumbnail_path = storage_path
+                # TODO: create thumbnail if it's an image, this should probably be done in celery task ...
             else:
                 thumbnail_path = None
 
@@ -861,7 +867,7 @@ class UserTaskQueueManageView(APIView):
             user = User.objects.get(pk=request_user)
 
         Log.objects.create(
-            task=task, user=self.request.user, message=f"Task added to queue"
+            task=task, user=self.request.user, message="Task added to queue"
         )
 
         UserTaskQueue.objects.get_or_create(task=task, user=user)
@@ -892,7 +898,7 @@ class UserTaskQueueManageView(APIView):
         Log.objects.create(
             task=task,
             user=self.request.user,
-            message=f"Task removed from queue",
+            message="Task removed from queue",
         )
 
         return JsonResponse({"status": "OK"})
@@ -913,9 +919,9 @@ class UserTaskQueuePositionChangeView(APIView):
         user = utq.user
 
         for ut in (
-                UserTaskQueue.objects.filter(user=user)
-                        .exclude(id=utq.id)
-                        .order_by("-priority")
+            UserTaskQueue.objects.filter(user=user)
+            .exclude(id=utq.id)
+            .order_by("-priority")
         ):
             sorted_tasks.append(ut)
             if user_task_above_id == ut.id:
@@ -1018,6 +1024,7 @@ class ChangeProjectOwnerView(APIView):
 class TestCIReloadView(APIView):
     def get(self, request):
         return JsonResponse({"value": "test-after-reload"})
+
 
 # TODO:
 # class TaskChecklistItemListView(generics.ListCreateAPIView):

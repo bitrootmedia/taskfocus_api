@@ -2,10 +2,13 @@ from django.core.mail import send_mail
 import logging
 import requests
 from django.conf import settings
+
 logger = logging.getLogger(__name__)
 
 
-def notify_user(user, notification, message=None, title="You've got a new notification"):
+def notify_user(
+    user, notification, message=None, title="You've got a new notification"
+):
     if notification:
         message = f"{settings.WEB_APP_URL}/dashboard/notifications/?id={notification.id}"
 
@@ -21,17 +24,25 @@ def notify_user(user, notification, message=None, title="You've got a new notifi
 
     if user.pushover_user:
         try:
-            rx = requests.post("https://api.pushover.net/1/messages.json", data={
-                'token': settings.PUSHOVER_TOKEN,
-                'user': user.pushover_user,
-                'title': title,
-                'message': message
-            }, timeout=(3, 3))
+            rx = requests.post(
+                "https://api.pushover.net/1/messages.json",
+                data={
+                    "token": settings.PUSHOVER_TOKEN,
+                    "user": user.pushover_user,
+                    "title": title,
+                    "message": message,
+                },
+                timeout=(3, 3),
+            )
             logger.debug(rx.text)
         except Exception as ex:
             logger.exception(f"{ex}")
 
-    if user.notifier_user and settings.NOTIFIER_URL and settings.NOTIFIER_TOKEN:
+    if (
+        user.notifier_user
+        and settings.NOTIFIER_URL
+        and settings.NOTIFIER_TOKEN
+    ):
         url = f"{settings.NOTIFIER_URL}/api/messages/"
         tag = f"ayeaye:notification-{user.username}"
 
@@ -56,4 +67,6 @@ def notify_user(user, notification, message=None, title="You've got a new notifi
                 ),
             )
         except Exception as exc:
-            logger.exception(f"Call with payload {payload} to {url} timed out.")
+            logger.exception(
+                f"Call with payload {payload} to {url} timed out. {exc}"
+            )

@@ -73,8 +73,16 @@ urlpatterns = [
         name="task_sessions_detail",
     ),
     path("comment/<pk>", views.CommentDetail.as_view(), name="comment_detail"),
-    path("private-notes", views.PrivateNoteList.as_view(), name="private_note_list"),
-    path("private-note/<pk>", views.PrivateNoteDetail.as_view(), name="private_note_detail"),
+    path(
+        "private-notes",
+        views.PrivateNoteList.as_view(),
+        name="private_note_list",
+    ),
+    path(
+        "private-note/<pk>",
+        views.PrivateNoteDetail.as_view(),
+        name="private_note_detail",
+    ),
     path(
         "attachments", views.AttachmentList.as_view(), name="attachment_list"
     ),
@@ -121,5 +129,7 @@ urlpatterns = [
         views.ChangeProjectOwnerView.as_view(),
         name="project_owner_change",
     ),
-    path("ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"),
+    path(
+        "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
+    ),
 ]
