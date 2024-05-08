@@ -27,7 +27,7 @@ class ProjectTests(APITestCase):
             title="Testing Project 3",
             owner=cls.user_3,
             description="Description of project 3",
-            is_closed=True
+            is_closed=True,
         )
 
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
@@ -136,7 +136,6 @@ class ProjectTests(APITestCase):
 
         self.assertEqual(s.status_code, status.HTTP_200_OK)
 
-    
     def test_api_project_list_filter_closed(self):
         self.client.force_login(self.user)
         response = self.client.get(

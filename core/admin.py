@@ -20,7 +20,7 @@ from .models import (
     Team,
 )
 
-admin.site.site_header = "Project management API"
+admin.site.site_header = "AyeAyeCaptain API"
 # admin.site.register(User, UserAdmin)
 admin.site.unregister(Group)
 
@@ -30,7 +30,10 @@ class UserAdmin(UserAdmin):
     model = User
     fieldsets = (
         *UserAdmin.fieldsets,
-        ("Custom fields", {"fields": ("config", "teams", "pushover_user", "notifier_user")}),
+        (
+            "Custom fields",
+            {"fields": ("config", "teams", "pushover_user", "notifier_user")},
+        ),
     )
 
 
@@ -75,7 +78,7 @@ class CommentAdmin(admin.ModelAdmin):
         "archived_at",
     )
 
-    search_fields = ("content", )
+    search_fields = ("content",)
 
 
 @admin.register(Log)
@@ -128,6 +131,11 @@ class ProjectAccessAdmin(admin.ModelAdmin):
     )
 
 
+class TaskAccessInline(admin.TabularInline):
+    model = TaskAccess
+    extra = 1
+
+
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = (
@@ -142,22 +150,18 @@ class TaskAdmin(admin.ModelAdmin):
         "responsible",
         "status",
         "created_at",
-        "archived_at",
     )
     list_filter = (
-        "title",
         "project",
         "tag",
-        "parent_task",
         "owner",
         "is_closed",
-        "progress",
-        "eta_date",
         "responsible",
         "status",
-        "created_at",
-        "archived_at",
     )
+
+    inlines = [TaskAccessInline]
+    search_fields = ("title",)
 
 
 @admin.register(TaskAccess)

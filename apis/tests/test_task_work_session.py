@@ -127,11 +127,13 @@ class TasksSessionTests(APITestCase):
             started_at=now - relativedelta(hours=1, minutes=30),
             stopped_at=now,
             user=self.user,
-            task_id=self.task_1.id
+            task_id=self.task_1.id,
         )
         response = self.client.get(
             reverse("task_total_time", kwargs={"pk": self.task_1.id})
         )
         resp_data = response.json()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp_data["total_time"], {"hours": "01", "minutes": "30"})
+        self.assertEqual(
+            resp_data["total_time"], {"hours": "01", "minutes": "30"}
+        )

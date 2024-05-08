@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0031_user_notifier_user'),
+        ("core", "0031_user_notifier_user"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='task',
-            name='blocks',
+            model_name="task",
+            name="blocks",
             field=models.JSONField(blank=True, null=True),
         ),
     ]

@@ -3,11 +3,13 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+import pusher
 from core.utils.notify import notify_user
 import logging
+from django.utils.timezone import now
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
-from django.utils.timezone import now
 
 
 class Team(models.Model):
@@ -95,10 +97,10 @@ class Task(models.Model):
         IDEA = "IDEA", "IDEA"
 
     class UrgencyLevelChoices(models.TextChoices):
-        CRITICAL = "CRITICAL", "CRITICAL"
-        MAJOR = "MAJOR", "MAJOR"
-        MEDIUM = "MEDIUM", "MEDIUM"
-        MINOR = "MINOR", "MINOR"
+        TODAY = "TODAY", "TODAY"
+        TOMORROW = "TOMORROW", "TOMORROW"
+        IN_3_DAYS = "IN 3 DAYS", "IN 3 DAYS"
+        WEEK_PLUS = "WEEK_PLUS", "WEEK PLUS"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=150)
@@ -280,6 +282,34 @@ class Comment(models.Model):
                 "Only Task field or Project field can have a value."
             )
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.task and settings.PUSHER_APP_SECRET:
+            try:
+                channel = f"{self.task.id}"
+                pusher_client = pusher.Pusher(
+                    app_id=settings.PUSHER_APP_ID,
+                    key=settings.PUSHER_APP_KEY,
+                    secret=settings.PUSHER_APP_SECRET,
+                    host=settings.PUSHER_HOST,
+                )
+                data = {
+                    "id": f"{self.id}",
+                    "content": self.content,
+                    "task_id": f"{self.task.id}" if self.task else None,
+                    "project_id": f"{self.project.id}"
+                    if self.project
+                    else None,
+                }
+                pusher_client.trigger(
+                    channel,
+                    "comment_created",  # it's called when updated as well
+                    data,
+                )
+            except Exception as ex:
+                logger.exception(f"Pusher exception: {ex}")
+
 
 class PrivateNote(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -289,9 +319,7 @@ class PrivateNote(models.Model):
         related_name="private_notes",
     )
     user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name="piravte_notes"
+        User, on_delete=models.CASCADE, related_name="piravte_notes"
     )
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

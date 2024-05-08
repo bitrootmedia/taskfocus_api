@@ -117,7 +117,7 @@ REST_FRAMEWORK = {
 }
 
 REST_AUTH_SERIALIZERS = {
-        'PASSWORD_RESET_SERIALIZER': "apis.auth_serializers.CustomPasswordResetSerializer",
+    "PASSWORD_RESET_SERIALIZER": "apis.auth_serializers.CustomPasswordResetSerializer",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -135,14 +135,19 @@ AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="")
 AWS_QUERYSTRING_AUTH = False
 AWS_DEFAULT_ACL = "public-read"
 
-EMAIL_HOST = env('EMAIL_HOST', default="")
-EMAIL_PORT = env('EMAIL_PORT', default="")
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env("EMAIL_PORT", default="")
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL=env('DEFAULT_FROM_EMAIL', default="")
-WEB_APP_URL=env('WEB_APP_URL', default="https://SETMEUP.com")
-PUSHOVER_TOKEN=env("PUSHOVER_TOKEN", default="")
-NOTIFIER_URL=env("NOTIFIER_URL", default="")
-NOTIFIER_TOKEN=env("NOTIFIER_TOKEN", default="")
-REQUESTS_CONNECT_TIMEOUT=3
-REQUESTS_READ_TIMEOUT=3
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="")
+WEB_APP_URL = env("WEB_APP_URL", default="https://SETMEUP.com")
+PUSHOVER_TOKEN = env("PUSHOVER_TOKEN", default="")
+NOTIFIER_URL = env("NOTIFIER_URL", default="")
+NOTIFIER_TOKEN = env("NOTIFIER_TOKEN", default="")
+REQUESTS_CONNECT_TIMEOUT = 3
+REQUESTS_READ_TIMEOUT = 3
+
+PUSHER_APP_ID = env("PUSHER_APP_ID", default="")
+PUSHER_HOST = env("PUSHER_HOST", default="")
+PUSHER_APP_SECRET = env("PUSHER_APP_SECRET", default="")
+PUSHER_APP_KEY = env("PUSHER_APP_KEY", default="")
