@@ -46,6 +46,7 @@ class TaskFilter(filters.FilterSet):
             "updated_at",
             "tag",
             "query",
+            "urgency_level",
         ]
 
     def filter_by_all_fields(self, queryset, name, value):

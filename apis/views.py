@@ -1024,21 +1024,3 @@ class ChangeProjectOwnerView(APIView):
 class TestCIReloadView(APIView):
     def get(self, request):
         return JsonResponse({"value": "test-after-reload"})
-
-
-# TODO:
-# class TaskChecklistItemListView(generics.ListCreateAPIView):
-#     permission_classes = (IsAuthenticated,)
-#     serializer_class = ReminderSerializer
-#     filter_backends = [DjangoFilterBackend, OrderingFilter]
-#     filterset_class = ReminderFilter
-#
-#     def get_queryset(self):
-#         # user = self.request.user
-#         # if self.request.GET.get('user'):
-#         #     user = User.objects.get(pk=self.request.GET.get('user'))
-#         reminders = Reminder.objects.all()
-#         return reminders
-#
-#     def perform_create(self, serializer):
-#         serializer.save(created_by=self.request.user)
