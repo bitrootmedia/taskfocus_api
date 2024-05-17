@@ -16,6 +16,7 @@ from django.core.files.storage import default_storage
 from rest_framework.views import APIView
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
+from core.utils.websockets import WebsocketHelper
 from .filters import (
     ProjectFilter,
     TaskFilter,
@@ -638,6 +639,13 @@ class TaskStartWorkView(APIView):
             task=task,
             user=request.user,
             message=f"User {request.user} started working on this task.",
+        )
+
+        ws = WebsocketHelper()
+        ws.send(
+            f"USR_{request.user.id}",
+            "current_task_update",
+            data={"task_id": f"{task.id}"},
         )
 
         return JsonResponse({"id": f"{twa.id}", "status": "OK", "message": ""})
