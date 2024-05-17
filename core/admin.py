@@ -18,6 +18,7 @@ from .models import (
     Reminder,
     TaskChecklistItem,
     Team,
+    Pin,
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
@@ -217,3 +218,8 @@ class UserInline(admin.TabularInline):
 class TeamAdmin(admin.ModelAdmin):
     list_display = ("name",)
     inlines = [UserInline]
+
+
+@admin.register(Pin)
+class PinAdmin(admin.ModelAdmin):
+    list_display = ("user", "task", "project")

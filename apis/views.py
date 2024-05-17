@@ -16,6 +16,7 @@ from django.core.files.storage import default_storage
 from rest_framework.views import APIView
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
+from core.utils.websockets import WebsocketHelper
 from .filters import (
     ProjectFilter,
     TaskFilter,
@@ -640,6 +641,13 @@ class TaskStartWorkView(APIView):
             message=f"User {request.user} started working on this task.",
         )
 
+        ws = WebsocketHelper()
+        ws.send(
+            f"USR_{request.user.id}",
+            "current_task_update",
+            data={"task_id": f"{task.id}"},
+        )
+
         return JsonResponse({"id": f"{twa.id}", "status": "OK", "message": ""})
 
 
@@ -1024,21 +1032,3 @@ class ChangeProjectOwnerView(APIView):
 class TestCIReloadView(APIView):
     def get(self, request):
         return JsonResponse({"value": "test-after-reload"})
-
-
-# TODO:
-# class TaskChecklistItemListView(generics.ListCreateAPIView):
-#     permission_classes = (IsAuthenticated,)
-#     serializer_class = ReminderSerializer
-#     filter_backends = [DjangoFilterBackend, OrderingFilter]
-#     filterset_class = ReminderFilter
-#
-#     def get_queryset(self):
-#         # user = self.request.user
-#         # if self.request.GET.get('user'):
-#         #     user = User.objects.get(pk=self.request.GET.get('user'))
-#         reminders = Reminder.objects.all()
-#         return reminders
-#
-#     def perform_create(self, serializer):
-#         serializer.save(created_by=self.request.user)
