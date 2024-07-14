@@ -159,6 +159,24 @@ class Task(models.Model):
         return self.title
 
 
+class TaskBlock(models.Model):
+
+    class BlockTypeChoices(models.TextChoices):
+        MARKDOWN = "MARKDOWN", "Markdown"
+        IMAGE = "IMAGE", "Image"
+        CHECKLIST = "CHECKLIST", "Checklist"
+
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="blocks")
+    block_type = models.CharField(max_length=150, choices=BlockTypeChoices.choices)
+    position = models.PositiveSmallIntegerField(default=0)
+    content = models.JSONField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User,on_delete=models.CASCADE)
+
+
 class Pin(models.Model):
     user = models.ForeignKey(
         User,
