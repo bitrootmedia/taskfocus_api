@@ -1,14 +1,13 @@
+import logging
 import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-import pusher
-from core.utils.notify import notify_user
-import logging
 from django.utils.timezone import now
-from django.conf import settings
 
+from core.utils.notify import notify_user
 from core.utils.websockets import WebsocketHelper
 
 logger = logging.getLogger(__name__)
