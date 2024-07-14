@@ -16,7 +16,7 @@ from core.models import (
     UserTaskQueue,
     Reminder,
     TaskChecklistItem,
-    PrivateNote,
+    PrivateNote, TaskBlock,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
 from core.utils.time_from_seconds import time_from_seconds
@@ -205,6 +205,29 @@ class TaskTotalTimeReadOnlySerializer(serializers.ModelSerializer):
         hours, minutes, _ = time_from_seconds(total_seconds)
         return {"hours": f"{hours:02}", "minutes": f"{minutes:02}"}
 
+
+class TaskBlockListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = TaskBlock
+        fields = (
+            "id",
+            "block_type",
+            "position",
+            "content",
+            "created_at",
+            "updated_at",
+            "created_by"
+        )
+
+class TaskBlockDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskBlock
+        fields = (
+            "id",
+            "position",
+            "content",
+        )
 
 class LogListSerializer(serializers.ModelSerializer):
     user = UserSerializer()
