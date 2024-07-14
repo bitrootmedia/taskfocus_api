@@ -88,3 +88,11 @@ class IsPrivateNoteOwner(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.user == request.user
+
+
+class IsBlockOwner(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        return obj.created_by == request.user
