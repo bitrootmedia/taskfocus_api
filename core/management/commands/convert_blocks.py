@@ -70,7 +70,7 @@ class Command(BaseCommand):
                 except Exception as e:
                     Log.objects.create(
                         task=task,
-                        created_by=admin_user,
+                        user=admin_user,
                         message=f"Error while converting block(s) e: {str(e)}"
                     )
                     self.stdout.write(
