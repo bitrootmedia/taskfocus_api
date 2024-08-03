@@ -1,14 +1,13 @@
+import logging
 import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-import pusher
-from core.utils.notify import notify_user
-import logging
 from django.utils.timezone import now
-from django.conf import settings
 
+from core.utils.notify import notify_user
 from core.utils.websockets import WebsocketHelper
 
 logger = logging.getLogger(__name__)
@@ -107,7 +106,7 @@ class Task(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
-    blocks = models.JSONField(default=list)
+    blocks_old = models.JSONField(default=list)
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
@@ -158,6 +157,24 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class TaskBlock(models.Model):
+
+    class BlockTypeChoices(models.TextChoices):
+        MARKDOWN = "MARKDOWN", "Markdown"
+        IMAGE = "IMAGE", "Image"
+        CHECKLIST = "CHECKLIST", "Checklist"
+
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="blocks")
+    block_type = models.CharField(max_length=150, choices=BlockTypeChoices.choices)
+    position = models.PositiveSmallIntegerField(default=0)
+    content = models.JSONField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User,on_delete=models.CASCADE)
 
 
 class Pin(models.Model):

@@ -57,7 +57,7 @@ from .serializers import (
     ReminderSerializer,
     ReminderReadOnlySerializer,
     PrivateNoteListSerializer,
-    PrivateNoteDetailSerializer,
+    PrivateNoteDetailSerializer, TaskBlockListSerializer, TaskBlockDetailSerializer,
 )
 
 from core.models import (
@@ -75,9 +75,9 @@ from core.models import (
     Reminder,
     Notification,
     Team,
-    PrivateNote,
+    PrivateNote, TaskBlock,
 )
-from django.db.models import Q
+from django.db.models import Q, F
 from .permissions import (
     HasProjectAccess,
     HasTaskAccess,
@@ -85,7 +85,7 @@ from .permissions import (
     IsOwnerOrReadOnly,
     IsProjectOwner,
     IsTaskOwner,
-    IsPrivateNoteOwner,
+    IsPrivateNoteOwner, IsBlockOwner, IsOwner,
 )
 
 
@@ -298,6 +298,103 @@ class TaskTotalTime(generics.RetrieveAPIView):
     permission_classes = (HasTaskAccess,)
     serializer_class = TaskTotalTimeReadOnlySerializer
     queryset = Task.objects.all()
+
+
+class TaskBlockList(generics.ListCreateAPIView):
+    serializer_class = TaskBlockListSerializer
+    permission_classes = (IsAuthenticated, )
+
+    def get_task(self):
+        task_id = self.kwargs.get('pk')
+        if not task_id:
+            raise PermissionDenied()
+        return Task.objects.get(pk=task_id)
+
+    def can_list(self):
+        # Make sure user has access to the task before listing blocks
+        task = self.get_task()
+        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
+        if not has_task_access:
+            raise PermissionDenied()
+
+        return True
+
+    def can_create(self):
+        task = self.get_task()
+        is_task_owner = IsOwner().has_object_permission(self.request, self, task)
+        if not is_task_owner:
+            raise PermissionDenied()
+
+        return True
+
+    def get_queryset(self):
+        self.can_list()
+        task_id = self.kwargs.get("pk", None)
+        blocks = (
+            TaskBlock.objects.filter(task__id=task_id)
+            .distinct()
+            .order_by("position")
+        )
+
+        return blocks
+
+    def perform_create(self, serializer):
+        self.can_create()
+        task = Task.objects.get(pk=self.kwargs["pk"])
+        instance = serializer.save(created_by=self.request.user, task=task)
+        # In theory new blocks will always be last but since API allows
+        # to create a block with arbitrary position this is just a safeguard
+        #
+        # Increase position of all following blocks
+        # (including the one we might be switching with)
+        (
+            TaskBlock.objects.filter(
+                task=task,
+                position__gte=instance.position,
+            ).exclude(id=instance.id)
+             .update(position=F("position") + 1)
+        )
+        Log.objects.create(
+            task=task, user=self.request.user, message="User created a block"
+        )
+
+
+class TaskBlockDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = TaskBlockDetailSerializer
+    permission_classes = (IsBlockOwner,)
+    queryset = TaskBlock.objects.all()
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        # Increase position of all following blocks
+        # (including the one we might be switching with)
+        (
+            TaskBlock.objects.filter(
+                task=instance.task,
+                position__gte=instance.position,
+            ).exclude(id=instance.id)
+            .update(position=F("position") + 1)
+        )
+        Log.objects.create(
+            user=self.request.user,
+            task=instance.task,
+            message="Block updated",
+        )
+
+    def perform_destroy(self, instance):
+        Log.objects.create(
+            task=instance.task,
+            user=self.request.user,
+            message="Block deleted",
+        )
+
+        # Decrease position of all following blocks on delete.
+        TaskBlock.objects.filter(
+            task=instance.task,
+            position__gt=instance.position
+        ).update(position=F("position") - 1)
+
+        instance.delete()
 
 
 class LogList(generics.ListAPIView):

@@ -19,6 +19,7 @@ from .models import (
     TaskChecklistItem,
     Team,
     Pin,
+    TaskBlock,
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
@@ -164,6 +165,21 @@ class TaskAdmin(admin.ModelAdmin):
     inlines = [TaskAccessInline]
     search_fields = ("title",)
 
+@admin.register(TaskBlock)
+class TaskBlockAdmin(admin.ModelAdmin):
+    list_display = (
+        "task",
+        "block_type",
+        "position",
+        "created_at",
+        "updated_at",
+        "created_by"
+    )
+    list_filter = (
+        "task",
+        "block_type",
+        "created_by"
+    )
 
 @admin.register(TaskAccess)
 class TaskAccessAdmin(admin.ModelAdmin):

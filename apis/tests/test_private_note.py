@@ -125,7 +125,7 @@ class PrivateNoteTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_edit_own_pirvate_note(self):
+    def test_edit_own_private_note(self):
         self.client.force_login(self.user_2)
         updated_note = "this is edited note"
         response = self.client.put(
@@ -139,7 +139,7 @@ class PrivateNoteTests(APITestCase):
         private_note = PrivateNote.objects.get(id=self.note_1_task_1_user2.id)
         self.assertEqual(updated_note, private_note.note)
 
-    def test_edit_own_pirvate_note_no_note(self):
+    def test_edit_own_private_note_no_note(self):
         self.client.force_login(self.user_2)
         response = self.client.put(
             reverse(
