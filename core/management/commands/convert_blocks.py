@@ -3,13 +3,17 @@ import json
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from core.models import Task, TaskBlock
+from core.models import Task, TaskBlock, User, Log
 
 
 class Command(BaseCommand):
     help = 'Converts all existing blocks to new model based format'
 
     def handle(self, *args, **options):
+
+        # Not ideal but we need a user to create a log.
+        admin_user = User.objects.filter(is_superuser=True).first()
+
         for task in Task.objects.all():
             if task.blocks_old:
                 blocks = []
@@ -64,5 +68,10 @@ class Command(BaseCommand):
                             self.style.SUCCESS(f"Successfully converted {len(blocks)} blocks for task {task.id}"))
 
                 except Exception as e:
+                    Log.objects.create(
+                        task=task,
+                        created_by=admin_user,
+                        message=f"Error while converting block(s) e: {str(e)}"
+                    )
                     self.stdout.write(
                         self.style.ERROR(f"Something went wrong while converting task ({task.id}) blocks: {str(e)}"))
