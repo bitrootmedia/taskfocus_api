@@ -120,9 +120,9 @@ class TasksTests(APITestCase):
                 "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
                 "content": '{"markdown":"NEW BLOCK CONTENT"}',
                 "position": 0,
-                "created_by": self.user.id,
             }
         )
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.block_1.refresh_from_db()
         # Existing block was 0, should be 1 now.

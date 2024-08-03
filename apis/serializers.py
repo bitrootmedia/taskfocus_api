@@ -215,8 +215,9 @@ class TaskBlockListSerializer(serializers.ModelSerializer):
             "content",
             "created_at",
             "updated_at",
-            "created_by"
+            "created_by",
         )
+        read_only_fields = ("created_by",)
 
 class TaskBlockDetailSerializer(serializers.ModelSerializer):
     class Meta:
