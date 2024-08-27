@@ -30,7 +30,7 @@ class Command(BaseCommand):
                             new_block = TaskBlock(
                                 task=task,
                                 block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-                                content=json.dumps({"markdown": block_data.get("content")}),
+                                content={"markdown": block_data.get("content")},
                                 position=i,
                                 created_by=task.owner,
                             )
@@ -38,7 +38,7 @@ class Command(BaseCommand):
                             new_block = TaskBlock(
                                 task=task,
                                 block_type=TaskBlock.BlockTypeChoices.IMAGE,
-                                content=json.dumps({"path": block_data.get("path")}),
+                                content={"path": block_data.get("path")},
                                 position=i,
                                 created_by=task.owner
                             )
@@ -46,12 +46,10 @@ class Command(BaseCommand):
                             new_block = TaskBlock(
                                 task=task,
                                 block_type=TaskBlock.BlockTypeChoices.CHECKLIST,
-                                content=json.dumps(
-                                    {
-                                        "title": block_data.get("title"),
-                                        "elements": block_data.get("elements")
-                                    }
-                                ),
+                                content={
+                                    "title": block_data.get("title"),
+                                    "elements": block_data.get("elements")
+                                },
                                 position=i,
                                 created_by=task.owner
                             )
