@@ -171,7 +171,7 @@ class TaskBlock(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="blocks")
     block_type = models.CharField(max_length=150, choices=BlockTypeChoices.choices)
     position = models.PositiveSmallIntegerField(default=0)
-    content = models.JSONField(blank=True)
+    content = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User,on_delete=models.CASCADE)
