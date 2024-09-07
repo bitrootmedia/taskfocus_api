@@ -54,7 +54,7 @@ class TaskFilter(filters.FilterSet):
             Q(title__icontains=value)
             | Q(description__icontains=value)
             | Q(tag__icontains=value)
-            | Q(blocks__icontains=value)
+            | Q(blocks__content__icontains=value)  # content JSONField
         )
 
 
