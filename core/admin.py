@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
     Attachment,
@@ -166,7 +167,7 @@ class TaskAdmin(admin.ModelAdmin):
     search_fields = ("title",)
 
 @admin.register(TaskBlock)
-class TaskBlockAdmin(admin.ModelAdmin):
+class TaskBlockAdmin(SimpleHistoryAdmin):
     list_display = (
         "task",
         "block_type",
