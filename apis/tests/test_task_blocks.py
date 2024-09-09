@@ -99,10 +99,10 @@ class TasksTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_task_block_create(self):
+    def test_task_block_create_not_owner(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(
-            reverse("task_block_list", kwargs={"pk": self.task_1.id}),
+            reverse("task_block_list", kwargs={"pk": self.task_3.id}),
             {
                 "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
                 "content": '{"markdown":"NEW BLOCK CONTENT"}',
@@ -140,34 +140,13 @@ class TasksTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.put(
             reverse("task_block_detail", kwargs={"pk": self.block_4.id}),
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_task_block_update(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.put(
-            reverse("task_block_detail", kwargs={"pk": self.block_1.id}),
-            {"content": '{"markdown": "Block 1 Updated Content"}'}
+            {"content": '{"markdown": "Block 4 Updated Content"}'}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.block_1.refresh_from_db()
-        self.assertEqual(self.block_1.content, {"markdown": "Block 1 Updated Content"})
+        self.block_4.refresh_from_db()
+        self.assertEqual(self.block_4.content, {"markdown": "Block 4 Updated Content"})
 
-    def test_task_block_delete_no_access(self):
-        self.client.force_authenticate(user=self.user_2)
-        response = self.client.delete(
-            reverse("task_block_detail", kwargs={"pk": self.block_1.id})
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_task_block_delete(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.delete(
-            reverse("task_block_detail", kwargs={"pk": self.block_1.id})
-        )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-    def test_task_block_reorder_on_edit(self):
+    def test_task_block_reorder_on_update(self):
         self.client.force_authenticate(user=self.user_3)
         response = self.client.put(
             reverse("task_block_detail", kwargs={"pk": self.block_4.id}),
@@ -179,6 +158,20 @@ class TasksTests(APITestCase):
         # was 1 should be 0
         self.assertEqual(self.block_4.position, 0)
         self.assertEqual(self.block_3.position, 1)
+
+    def test_task_block_delete_no_access(self):
+        self.client.force_authenticate(user=self.user_2)
+        response = self.client.delete(
+            reverse("task_block_detail", kwargs={"pk": self.block_1.id})
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_task_block_delete_not_owner(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.delete(
+            reverse("task_block_detail", kwargs={"pk": self.block_4.id})
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_task_block_reorder_on_delete(self):
         self.client.force_authenticate(user=self.user_3)

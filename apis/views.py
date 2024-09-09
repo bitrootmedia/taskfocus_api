@@ -85,7 +85,8 @@ from .permissions import (
     IsOwnerOrReadOnly,
     IsProjectOwner,
     IsTaskOwner,
-    IsPrivateNoteOwner, IsBlockOwner, IsOwner,
+    IsPrivateNoteOwner,
+    BlockUserHasTaskAccess,
 )
 
 
@@ -302,7 +303,7 @@ class TaskTotalTime(generics.RetrieveAPIView):
 
 class TaskBlockList(generics.ListCreateAPIView):
     serializer_class = TaskBlockListSerializer
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated,)
 
     def get_task(self):
         task_id = self.kwargs.get('pk')
@@ -310,8 +311,8 @@ class TaskBlockList(generics.ListCreateAPIView):
             raise PermissionDenied()
         return Task.objects.get(pk=task_id)
 
-    def can_list(self):
-        # Make sure user has access to the task before listing blocks
+    def has_task_access(self):
+        # Make sure user has access to the task
         task = self.get_task()
         has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
         if not has_task_access:
@@ -319,16 +320,8 @@ class TaskBlockList(generics.ListCreateAPIView):
 
         return True
 
-    def can_create(self):
-        task = self.get_task()
-        is_task_owner = IsOwner().has_object_permission(self.request, self, task)
-        if not is_task_owner:
-            raise PermissionDenied()
-
-        return True
-
     def get_queryset(self):
-        self.can_list()
+        self.has_task_access()
         task_id = self.kwargs.get("pk", None)
         blocks = (
             TaskBlock.objects.filter(task__id=task_id)
@@ -339,7 +332,7 @@ class TaskBlockList(generics.ListCreateAPIView):
         return blocks
 
     def perform_create(self, serializer):
-        self.can_create()
+        self.has_task_access()
         task = Task.objects.get(pk=self.kwargs["pk"])
         instance = serializer.save(created_by=self.request.user, task=task)
         # In theory new blocks will always be last but since API allows
@@ -361,7 +354,7 @@ class TaskBlockList(generics.ListCreateAPIView):
 
 class TaskBlockDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TaskBlockDetailSerializer
-    permission_classes = (IsBlockOwner,)
+    permission_classes = (BlockUserHasTaskAccess,)
     queryset = TaskBlock.objects.all()
 
     def perform_update(self, serializer):
