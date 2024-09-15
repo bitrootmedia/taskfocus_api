@@ -5,7 +5,7 @@ from rest_framework.test import APITestCase
 from core.models import Project, User, ProjectAccess, Task, TaskBlock
 
 
-class TasksTests(APITestCase):
+class TaskBlocksTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create(username="user1")
