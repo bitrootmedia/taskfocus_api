@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Task
+from core.models import Project, User, ProjectAccess, Task, Pin
 
 
 class TasksTests(APITestCase):
@@ -199,3 +199,16 @@ class TasksTests(APITestCase):
     # TODO: only task owner and project owner can change task owner
     def test_task_change_owner_not_task_owner(self):
         ...
+
+    def test_task_detail_is_pinned(self):
+        self.client.force_login(self.user)
+        request = self.client.get(
+            reverse("task_detail", kwargs={"pk": self.task_1.id})
+        )
+        self.assertFalse(request.json().get("is_pinned"))
+
+        Pin.objects.create(user=self.user, task=self.task_1)
+        request = self.client.get(
+            reverse("task_detail", kwargs={"pk": self.task_1.id})
+        )
+        self.assertTrue(request.json().get("is_pinned"))
