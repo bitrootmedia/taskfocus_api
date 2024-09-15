@@ -132,6 +132,16 @@ urlpatterns = [
         name="project_owner_change",
     ),
     path(
+        "pinned-tasks",
+        views.PinnedTaskList.as_view(),
+        name="pinned_task_list",
+    ),
+    path(
+        "pin-task/<task_id>",
+        views.PinTaskDetail.as_view(),
+        name="pin_task_detail",
+    ),
+    path(
         "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
 ]
