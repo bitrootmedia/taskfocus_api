@@ -434,3 +434,14 @@ class ReminderReadOnlySerializer(serializers.ModelSerializer):
             "closed_at",
         )
         read_only_fields = ("created_by",)
+
+
+class PinDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pin
+        fields = (
+            "id",
+            "user",
+            "task",
+            "project",
+        )
