@@ -7,12 +7,13 @@ from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import OrderingFilter, SearchFilter
 from django.core.files.storage import default_storage
+from rest_framework.response import Response
 from rest_framework.views import APIView
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
@@ -57,7 +58,10 @@ from .serializers import (
     ReminderSerializer,
     ReminderReadOnlySerializer,
     PrivateNoteListSerializer,
-    PrivateNoteDetailSerializer, TaskBlockListSerializer, TaskBlockDetailSerializer,
+    PrivateNoteDetailSerializer,
+    TaskBlockListSerializer,
+    TaskBlockDetailSerializer,
+    PinDetailSerializer,
 )
 
 from core.models import (
@@ -75,7 +79,9 @@ from core.models import (
     Reminder,
     Notification,
     Team,
-    PrivateNote, TaskBlock,
+    PrivateNote,
+    TaskBlock,
+    Pin,
 )
 from django.db.models import Q, F
 from .permissions import (
@@ -1117,6 +1123,65 @@ class ChangeProjectOwnerView(APIView):
             message="Owner of the project changed",
         )
         return JsonResponse({"status": "OK"})
+
+
+class PinnedTaskList(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskListSerializer
+
+    def get_queryset(self):
+        pinned_tasks = (
+            Task.objects.filter(pinned_tasks__user=self.request.user)
+            .distinct()
+            .order_by('urgency_level')
+        )
+        return pinned_tasks
+
+
+class PinTaskDetail(generics.GenericAPIView):
+    http_method_names = ("post", "delete")
+    serializer_class = PinDetailSerializer
+
+    def has_task_access(self, task):
+        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
+        if not has_task_access:
+            raise PermissionDenied()
+
+        return True
+
+    def get_task(self):
+        task_id = self.kwargs.get('task_id', 0)
+        task = Task.objects.filter(id=task_id).first()
+        if not task:
+            raise PermissionDenied()
+
+        return task
+
+    def post(self, request, task_id):
+        task = self.get_task()
+        self.has_task_access(task)
+
+        if Pin.objects.filter(user=self.request.user, task=task).exists():
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        serializer = self.get_serializer(data={"task":task.id, "user":request.user.id})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+    def delete(self, request, task_id):
+        task = self.get_task()
+        self.has_task_access(task)
+        pin = Pin.objects.filter(user=self.request.user, task=task).first()
+
+        if not pin:
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        pin.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TestCIReloadView(APIView):

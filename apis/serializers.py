@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from rest_framework import serializers
 
 from core.models import (
@@ -16,7 +16,9 @@ from core.models import (
     UserTaskQueue,
     Reminder,
     TaskChecklistItem,
-    PrivateNote, TaskBlock,
+    PrivateNote,
+    TaskBlock,
+    Pin,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
 from core.utils.time_from_seconds import time_from_seconds
@@ -127,6 +129,7 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
     responsible = UserSerializer()
     project = ProjectDetailReadOnlySerializer()
     title = serializers.SerializerMethodField()
+    is_pinned = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -149,6 +152,7 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "position",
             "estimated_work_hours",
             "is_urgent",
+            "is_pinned",
         )
 
     def get_title(self, instance):
@@ -161,6 +165,15 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
                 return masked_string
         else:
             return instance.title
+
+    def get_is_pinned(self, instance):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+
+        if request and user and instance:
+            return Pin.objects.filter(Q(user=user) & Q(task=instance)).exists()
+
+        return False
 
 
 class TaskDetailSerializer(serializers.ModelSerializer):
@@ -421,3 +434,14 @@ class ReminderReadOnlySerializer(serializers.ModelSerializer):
             "closed_at",
         )
         read_only_fields = ("created_by",)
+
+
+class PinDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pin
+        fields = (
+            "id",
+            "user",
+            "task",
+            "project",
+        )
