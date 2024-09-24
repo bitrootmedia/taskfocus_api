@@ -445,3 +445,23 @@ class PinDetailSerializer(serializers.ModelSerializer):
             "task",
             "project",
         )
+
+class WorkSessionsBreakdownInputSerializer(serializers.Serializer):
+    user_id = serializers.UUIDField(required=True)
+    timezone = ... # TODO: Details for that
+    start_date = serializers.DateField(required=True)
+    end_date = serializers.DateField(required=True)
+
+class WorkSessionsWSBSerializer(serializers.ModelSerializer):
+    start = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="started_at")
+    end = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="stopped_at")
+    title = serializers.CharField(source="task.title")  # TODO: Does that break? (as in NoneType)
+
+    class Meta:
+        model = TaskWorkSession
+        fields = (
+            "start",
+            "end",
+            "title",
+            "total_time"
+        )
