@@ -456,6 +456,7 @@ class WorkSessionsWSBSerializer(serializers.ModelSerializer):
     start = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="started_at")
     end = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="stopped_at")
     title = serializers.CharField(source="task.title")  # TODO: Does that break? (as in NoneType)
+    task_id = serializers.UUIDField(source="task.id")
 
     class Meta:
         model = TaskWorkSession
@@ -463,5 +464,6 @@ class WorkSessionsWSBSerializer(serializers.ModelSerializer):
             "start",
             "end",
             "title",
+            "task_id",
             "total_time"
         )
