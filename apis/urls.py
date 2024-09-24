@@ -142,6 +142,11 @@ urlpatterns = [
         name="pin_task_detail",
     ),
     path(
+        "work_session_breakdown",
+        views.WorkSessionsBreakdownView.as_view(),
+        name="work_sessions_breakdown",
+    ),
+    path(
         "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
 ]

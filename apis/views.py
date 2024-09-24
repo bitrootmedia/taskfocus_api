@@ -3,6 +3,8 @@ import pathlib
 import time
 import uuid
 import mimetypes
+from collections import defaultdict
+
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
@@ -17,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
+from core.utils.time_from_seconds import time_from_seconds
 from core.utils.websockets import WebsocketHelper
 from .filters import (
     ProjectFilter,
@@ -62,6 +65,8 @@ from .serializers import (
     TaskBlockListSerializer,
     TaskBlockDetailSerializer,
     PinDetailSerializer,
+    WorkSessionsBreakdownInputSerializer,
+    WorkSessionsWSBSerializer,
 )
 
 from core.models import (
@@ -83,7 +88,7 @@ from core.models import (
     TaskBlock,
     Pin,
 )
-from django.db.models import Q, F
+from django.db.models import Q, F, Sum
 from .permissions import (
     HasProjectAccess,
     HasTaskAccess,
@@ -1170,7 +1175,6 @@ class PinTaskDetail(generics.GenericAPIView):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
     def delete(self, request, task_id):
         task = self.get_task()
         self.has_task_access(task)
@@ -1187,3 +1191,61 @@ class PinTaskDetail(generics.GenericAPIView):
 class TestCIReloadView(APIView):
     def get(self, request):
         return JsonResponse({"value": "test-after-reload"})
+
+
+class WorkSessionsBreakdownView(APIView):
+    permission_classes = (IsAuthenticated,)  # TODO: Are we sure about that?
+    def post(self, request):
+        serializer = WorkSessionsBreakdownInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        work_sessions = TaskWorkSession.objects.filter(
+            Q(started_at__date__gte=serializer.data.get("start_date"))
+            & Q(stopped_at__date__lte=serializer.data.get("end_date"))
+            & Q(user_id=serializer.data.get("user_id"))
+        )
+        s = WorkSessionsWSBSerializer(work_sessions, many=True)
+
+        work_sessions_annotated = work_sessions.annotate(
+            date=F("started_at__date"),
+            task_name=F("task__title"),
+        ).order_by("date")
+
+        # Create entries maps
+        sessions_by_day = defaultdict(list)  # date as key
+        tasks_total = defaultdict(int)  # task name as key
+
+        for session in work_sessions_annotated:
+            date_as_key = session.started_at.strftime("%Y-%m-%d")
+            sessions_by_day[date_as_key].append(session)
+            tasks_total[session.task_name] += session.total_time
+
+        sessions_by_day_total = defaultdict(lambda: {"total": 0})
+        # Calculate daily totals
+        for date, day_data in sessions_by_day.items():
+            day_total = sum([entry.total_time for entry in day_data])
+            day_total_h, day_total_m, _ = time_from_seconds(day_total)
+            sessions_by_day_total[date] = f"{day_total_h:02}:{day_total_m:02}"
+
+        # Calculate task totals
+        for task_name, task_total in tasks_total.items():
+            task_total_h, task_total_m, _  = time_from_seconds(task_total)
+            tasks_total[task_name] = f"{task_total_h:02}:{task_total_m:02}"
+
+        # Overall total across all tasks
+        total_time_sum = work_sessions.aggregate(
+            time_sum=Sum("total_time")
+        ).get("time_sum")
+        total_hours, total_minutes, _ = time_from_seconds(total_time_sum)
+        total_time_sum_str = f"{total_hours:02}:{total_minutes:02}"
+
+        return Response(
+            data={
+                "events": s.data,
+                "total_sum": total_time_sum_str,
+                "sessions_by_day": sessions_by_day_total,
+                "tasks_total": tasks_total
+            },
+            status=status.HTTP_200_OK
+        )
+
