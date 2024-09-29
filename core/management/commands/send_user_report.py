@@ -127,7 +127,7 @@ class Command(BaseCommand):
 
         sessions_by_day = dict(
             sessions_by_day
-        )  # Conver to dict for DTL .items call
+        )  # Convert to dict for DTL .items call
 
         message_content_html = render_to_string(
             "user_report.html",
