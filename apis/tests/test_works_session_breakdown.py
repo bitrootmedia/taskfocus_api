@@ -11,6 +11,8 @@ class WorkSessionBreakdownTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create(username="user1")
+        cls.user_2 = User.objects.create(username="user2")
+
         cls.task_1 = Task.objects.create(
             owner=cls.user, title="Task 1", description="Task 1 Description"
         )
@@ -51,4 +53,21 @@ class WorkSessionBreakdownTests(APITestCase):
         self.assertEqual(r.status_code, status.HTTP_200_OK)
 
 
+    def test_no_sessions(self):
+        self.client.force_authenticate(user=self.user_2)
+        r = self.client.post(reverse('work_sessions_breakdown'), data={
+            "user_id": self.user_2.id,
+            "start_date": self.base_dt.strftime("%Y-%m-%d"),
+            "end_date": self.next_day.strftime("%Y-%m-%d"),
+        })
+
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+
+    def test_missing_data(self):
+        self.client.force_authenticate(user=self.user_2)
+        r = self.client.post(reverse('work_sessions_breakdown'), data={
+            "user_id": self.user.id,
+        })
+
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
 
