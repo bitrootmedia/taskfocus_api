@@ -121,6 +121,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "position",
             "estimated_work_hours",
             "is_urgent",
+            "follow_up"
         )
 
 
@@ -152,6 +153,7 @@ class TaskReadOnlySerializer(serializers.ModelSerializer):
             "position",
             "estimated_work_hours",
             "is_urgent",
+            "follow_up",
             "is_pinned",
         )
 
@@ -194,6 +196,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "position",
             "estimated_work_hours",
             "is_urgent",
+            "follow_up",
             # "owner",
             "created_at",
             "updated_at",
