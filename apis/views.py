@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
+from core.utils.permissions import user_can_see_task
 from core.utils.websockets import WebsocketHelper
 from .filters import (
     ProjectFilter,
@@ -312,7 +313,7 @@ class TaskBlockList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_task(self):
-        task_id = self.kwargs.get('pk')
+        task_id = self.kwargs.get("pk")
         if not task_id:
             raise PermissionDenied()
         return Task.objects.get(pk=task_id)
@@ -320,7 +321,9 @@ class TaskBlockList(generics.ListCreateAPIView):
     def has_task_access(self):
         # Make sure user has access to the task
         task = self.get_task()
-        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
+        has_task_access = HasTaskAccess().has_object_permission(
+            self.request, self, task
+        )
         if not has_task_access:
             raise PermissionDenied()
 
@@ -350,8 +353,9 @@ class TaskBlockList(generics.ListCreateAPIView):
             TaskBlock.objects.filter(
                 task=task,
                 position__gte=instance.position,
-            ).exclude(id=instance.id)
-             .update(position=F("position") + 1)
+            )
+            .exclude(id=instance.id)
+            .update(position=F("position") + 1)
         )
         Log.objects.create(
             task=task, user=self.request.user, message="User created a block"
@@ -371,7 +375,8 @@ class TaskBlockDetail(generics.RetrieveUpdateDestroyAPIView):
             TaskBlock.objects.filter(
                 task=instance.task,
                 position__gte=instance.position,
-            ).exclude(id=instance.id)
+            )
+            .exclude(id=instance.id)
             .update(position=F("position") + 1)
         )
         Log.objects.create(
@@ -389,8 +394,7 @@ class TaskBlockDetail(generics.RetrieveUpdateDestroyAPIView):
 
         # Decrease position of all following blocks on delete.
         TaskBlock.objects.filter(
-            task=instance.task,
-            position__gt=instance.position
+            task=instance.task, position__gt=instance.position
         ).update(position=F("position") - 1)
 
         instance.delete()
@@ -829,13 +833,20 @@ class CurrentTaskView(APIView):
             user=user, stopped_at__isnull=True
         ).last()
 
-        # TODO: mask name if user has no access
-
         response = {}
-        if task_work_session:
-            serializer = TaskReadOnlySerializer(task_work_session.task)
-            response = serializer.data
+        if not task_work_session:
+            return JsonResponse(response)
 
+        if not user_can_see_task(user, task_work_session.task):
+            return JsonResponse(response)
+
+        if not user_can_see_task(request.user, task_work_session.task):
+            return JsonResponse(response)
+
+        serializer = TaskReadOnlySerializer(
+            task_work_session.task, context={"request": request}
+        )
+        response = serializer.data
         return JsonResponse(response)
 
 
@@ -1133,7 +1144,7 @@ class PinnedTaskList(ListAPIView):
         pinned_tasks = (
             Task.objects.filter(pinned_tasks__user=self.request.user)
             .distinct()
-            .order_by('urgency_level')
+            .order_by("urgency_level")
         )
         return pinned_tasks
 
@@ -1143,14 +1154,16 @@ class PinTaskDetail(generics.GenericAPIView):
     serializer_class = PinDetailSerializer
 
     def has_task_access(self, task):
-        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
+        has_task_access = HasTaskAccess().has_object_permission(
+            self.request, self, task
+        )
         if not has_task_access:
             raise PermissionDenied()
 
         return True
 
     def get_task(self):
-        task_id = self.kwargs.get('task_id', 0)
+        task_id = self.kwargs.get("task_id", 0)
         task = Task.objects.filter(id=task_id).first()
         if not task:
             raise PermissionDenied()
@@ -1164,12 +1177,13 @@ class PinTaskDetail(generics.GenericAPIView):
         if Pin.objects.filter(user=self.request.user, task=task).exists():
             return Response(status=status.HTTP_304_NOT_MODIFIED)
 
-        serializer = self.get_serializer(data={"task":task.id, "user":request.user.id})
+        serializer = self.get_serializer(
+            data={"task": task.id, "user": request.user.id}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
     def delete(self, request, task_id):
         task = self.get_task()
