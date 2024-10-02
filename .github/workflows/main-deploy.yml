@@ -59,4 +59,4 @@ jobs:
         key: ${{ secrets.LIVE_KEY }}
         port: ${{ secrets.LIVE_PORT }}
         # User needs NOPASSWORD supervisorctl in sudoers for that to work
-        script: sudo supervisorctl reload  
+        script: sudo /usr/bin/supervisorctl restart
