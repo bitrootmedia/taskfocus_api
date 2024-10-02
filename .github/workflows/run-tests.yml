@@ -1,12 +1,11 @@
-name: Run tests
+name: Build and deploy django api to prod
 
 on:
   push:
-    branches-ignore:
-      - 'stage'  # already has tests in deploy workflow
-
+    branches: [ main ]
+ 
 jobs:
-  execute_tests:
+  test_before_deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -25,3 +24,39 @@ jobs:
 
       - name: Run tests
         run: python manage.py test
+
+  django-deploy:
+    needs: ["test_before_deploy"]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install requirements
+      run: pip install -r requirements.txt
+
+    - name: Deploy to server
+      uses: appleboy/scp-action@master
+      with:   
+        host: ${{ secrets.LIVE_HOST }}
+        username: ${{ secrets.LIVE_USERNAME }}
+        key: ${{ secrets.LIVE_KEY }}
+        port: ${{ secrets.LIVE_PORT }}
+        overwrite: true
+        source: "./*"
+        target: "/home/deploy/taskfocus_api"
+    
+    - name: Restart supervisor
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.LIVE_HOST }}
+        username: ${{ secrets.LIVE_USERNAME }}
+        key: ${{ secrets.LIVE_KEY }}
+        port: ${{ secrets.LIVE_PORT }}
+        # User needs NOPASSWORD supervisorctl in sudoers for that to work
+        script: sudo supervisorctl reload  
