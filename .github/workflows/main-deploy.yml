@@ -40,6 +40,9 @@ jobs:
     - name: Install requirements
       run: pip install -r requirements.txt
 
+    - name: Run migrations
+      run: python manage.py migrate
+
     - name: Deploy to server
       uses: appleboy/scp-action@master
       with:   
@@ -59,4 +62,4 @@ jobs:
         key: ${{ secrets.LIVE_KEY }}
         port: ${{ secrets.LIVE_PORT }}
         # User needs NOPASSWORD supervisorctl in sudoers for that to work
-        script: sudo /usr/bin/supervisorctl restart
+        script: sudo /usr/bin/supervisorctl restart all
