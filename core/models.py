@@ -155,6 +155,7 @@ class Task(models.Model):
         choices=UrgencyLevelChoices.choices,
     )
     archived_at = models.DateTimeField(null=True, blank=True)
+    follow_up = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.title

@@ -49,6 +49,12 @@ class PinTests(APITestCase):
 
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
 
+    def test_list_task_pins(self):
+        self.client.force_authenticate(user=self.user_2)
+        response = self.client.get(reverse('pinned_task_list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+
     def test_create_pin_no_task_access(self):
         self.client.force_authenticate(user=self.user_2)
         response = self.client.post(reverse('pin_task_detail', kwargs={"task_id": str(self.task_3.id)}))
