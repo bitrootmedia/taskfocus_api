@@ -20,6 +20,7 @@ from rest_framework.views import APIView
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
 from core.utils.time_from_seconds import time_from_seconds
+from core.utils.permissions import user_can_see_task
 from core.utils.websockets import WebsocketHelper
 from .filters import (
     ProjectFilter,
@@ -867,13 +868,20 @@ class CurrentTaskView(APIView):
             user=user, stopped_at__isnull=True
         ).last()
 
-        # TODO: mask name if user has no access
-
         response = {}
-        if task_work_session:
-            serializer = TaskReadOnlySerializer(task_work_session.task)
-            response = serializer.data
+        if not task_work_session:
+            return JsonResponse(response)
 
+        if not user_can_see_task(user, task_work_session.task):
+            return JsonResponse(response)
+
+        if not user_can_see_task(request.user, task_work_session.task):
+            return JsonResponse(response)
+
+        serializer = TaskReadOnlySerializer(
+            task_work_session.task, context={"request": request}
+        )
+        response = serializer.data
         return JsonResponse(response)
 
 
