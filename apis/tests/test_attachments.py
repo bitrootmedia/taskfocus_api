@@ -1,10 +1,16 @@
-import base64
 from unittest import skip
 
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Task, Attachment
+from core.models import (
+    Project,
+    User,
+    ProjectAccess,
+    Task,
+    Attachment,
+    TaskAccess,
+)
 
 
 class AttachmentTests(APITestCase):
@@ -63,6 +69,22 @@ class AttachmentTests(APITestCase):
         self.client.force_login(self.user_1)
         response = self.client.get(reverse("attachment_list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_attachment_list_user_in_task_not_in_project(self):
+        TaskAccess.objects.create(
+            user=self.user_3, task=self.task_1_project_1_user_1
+        )
+        self.client.force_login(self.user_3)
+        response = self.client.get(
+            reverse("attachment_list")
+            + f"?task={self.task_1_project_1_user_1.id}"
+        )
+        attachment_ids = [
+            x.get("id") for x in response.json().get("results", [])
+        ]
+        self.assertIn(
+            str(self.attachment_4_project_1_task_1.id), attachment_ids
+        )
 
     def test_attachment_no_access(self):
         self.client.force_login(self.user_3)
