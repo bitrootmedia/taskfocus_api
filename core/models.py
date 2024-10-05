@@ -347,6 +347,20 @@ class Comment(models.Model):
             )
 
 
+class Note(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )
+    title = models.CharField(max_length=150)
+    content = models.TextField()
+    tag = models.CharField(max_length=150, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class PrivateNote(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     task = models.ForeignKey(
@@ -355,7 +369,7 @@ class PrivateNote(models.Model):
         related_name="private_notes",
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="piravte_notes"
+        User, on_delete=models.CASCADE, related_name="private_notes"
     )
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
