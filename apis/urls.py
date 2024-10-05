@@ -44,8 +44,16 @@ urlpatterns = [
     ),
     path("upload", views.UploadView.as_view(), name="upload"),
     path("task/<pk>", views.TaskDetail.as_view(), name="task_detail"),
-    path("task-block-list/<pk>", views.TaskBlockList.as_view(), name="task_block_list"),
-    path("task-block/<pk>", views.TaskBlockDetail.as_view(), name="task_block_detail"),
+    path(
+        "task-block-list/<pk>",
+        views.TaskBlockList.as_view(),
+        name="task_block_list",
+    ),
+    path(
+        "task-block/<pk>",
+        views.TaskBlockDetail.as_view(),
+        name="task_block_detail",
+    ),
     path(
         "task-start-work/<pk>",
         views.TaskStartWorkView.as_view(),
@@ -75,6 +83,8 @@ urlpatterns = [
         name="task_sessions_detail",
     ),
     path("comment/<pk>", views.CommentDetail.as_view(), name="comment_detail"),
+    path("notes", views.NoteList.as_view(), name="note_list"),
+    path("note/<pk>", views.NoteDetail.as_view(), name="note_detail"),
     path(
         "private-notes",
         views.PrivateNoteList.as_view(),
