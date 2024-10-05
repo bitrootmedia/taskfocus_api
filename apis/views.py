@@ -33,6 +33,7 @@ from .filters import (
     ReminderFilter,
     NotificationAckFilter,
     PrivateNoteFilter,
+    NoteFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -67,6 +68,8 @@ from .serializers import (
     PinDetailSerializer,
     WorkSessionsBreakdownInputSerializer,
     WorkSessionsWSBSerializer,
+    NoteListSerializer,
+    NoteDetailSerializer,
 )
 
 from core.models import (
@@ -87,6 +90,7 @@ from core.models import (
     PrivateNote,
     TaskBlock,
     Pin,
+    Note,
 )
 from django.db.models import Q, F, Sum
 from .permissions import (
@@ -317,7 +321,7 @@ class TaskBlockList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_task(self):
-        task_id = self.kwargs.get('pk')
+        task_id = self.kwargs.get("pk")
         if not task_id:
             raise PermissionDenied()
         return Task.objects.get(pk=task_id)
@@ -325,7 +329,9 @@ class TaskBlockList(generics.ListCreateAPIView):
     def has_task_access(self):
         # Make sure user has access to the task
         task = self.get_task()
-        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
+        has_task_access = HasTaskAccess().has_object_permission(
+            self.request, self, task
+        )
         if not has_task_access:
             raise PermissionDenied()
 
@@ -355,8 +361,9 @@ class TaskBlockList(generics.ListCreateAPIView):
             TaskBlock.objects.filter(
                 task=task,
                 position__gte=instance.position,
-            ).exclude(id=instance.id)
-             .update(position=F("position") + 1)
+            )
+            .exclude(id=instance.id)
+            .update(position=F("position") + 1)
         )
         Log.objects.create(
             task=task, user=self.request.user, message="User created a block"
@@ -376,7 +383,8 @@ class TaskBlockDetail(generics.RetrieveUpdateDestroyAPIView):
             TaskBlock.objects.filter(
                 task=instance.task,
                 position__gte=instance.position,
-            ).exclude(id=instance.id)
+            )
+            .exclude(id=instance.id)
             .update(position=F("position") + 1)
         )
         Log.objects.create(
@@ -394,8 +402,7 @@ class TaskBlockDetail(generics.RetrieveUpdateDestroyAPIView):
 
         # Decrease position of all following blocks on delete.
         TaskBlock.objects.filter(
-            task=instance.task,
-            position__gt=instance.position
+            task=instance.task, position__gt=instance.position
         ).update(position=F("position") - 1)
 
         instance.delete()
@@ -510,6 +517,32 @@ class CommentDetail(generics.RetrieveUpdateAPIView):
     serializer_class = CommentDetailSerializer
     permission_classes = (IsAuthorOrReadOnly,)
     queryset = Comment.objects.all()
+
+
+class NoteList(generics.ListCreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = NoteListSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_class = NoteFilter
+
+    def get_queryset(self):
+        notes = (
+            Note.objects.filter(user=self.request.user)
+            .distinct()
+            .order_by("-created_at")
+        )
+        return notes
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class NoteDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = NoteDetailSerializer
+
+    def get_queryset(self):
+        return Note.objects.filter(user=self.request.user)
 
 
 class PrivateNoteList(generics.ListCreateAPIView):
@@ -1138,7 +1171,7 @@ class PinnedTaskList(ListAPIView):
         pinned_tasks = (
             Task.objects.filter(pinned_tasks__user=self.request.user)
             .distinct()
-            .order_by('urgency_level')
+            .order_by("urgency_level")
         )
         return pinned_tasks
 
@@ -1148,14 +1181,16 @@ class PinTaskDetail(generics.GenericAPIView):
     serializer_class = PinDetailSerializer
 
     def has_task_access(self, task):
-        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
+        has_task_access = HasTaskAccess().has_object_permission(
+            self.request, self, task
+        )
         if not has_task_access:
             raise PermissionDenied()
 
         return True
 
     def get_task(self):
-        task_id = self.kwargs.get('task_id', 0)
+        task_id = self.kwargs.get("task_id", 0)
         task = Task.objects.filter(id=task_id).first()
         if not task:
             raise PermissionDenied()
@@ -1169,7 +1204,9 @@ class PinTaskDetail(generics.GenericAPIView):
         if Pin.objects.filter(user=self.request.user, task=task).exists():
             return Response(status=status.HTTP_304_NOT_MODIFIED)
 
-        serializer = self.get_serializer(data={"task":task.id, "user":request.user.id})
+        serializer = self.get_serializer(
+            data={"task": task.id, "user": request.user.id}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -1195,6 +1232,7 @@ class TestCIReloadView(APIView):
 
 class WorkSessionsBreakdownView(APIView):
     permission_classes = (IsAuthenticated,)  # TODO: Are we sure about that?
+
     def post(self, request):
         serializer = WorkSessionsBreakdownInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1220,16 +1258,16 @@ class WorkSessionsBreakdownView(APIView):
             sessions_by_day[date_as_key].append(session)
             tasks_total[session.task_name] += session.total_time
 
-        sessions_by_day_total = defaultdict(lambda: {"total": 0})
         # Calculate daily totals
+        sessions_by_day_total = defaultdict(lambda: {"total": 0})
         for date, day_data in sessions_by_day.items():
             day_total = sum([entry.total_time for entry in day_data])
             day_total_h, day_total_m, _ = time_from_seconds(day_total)
             sessions_by_day_total[date] = f"{day_total_h:02}:{day_total_m:02}"
 
-        # Calculate task totals
+        # Format task totals
         for task_name, task_total in tasks_total.items():
-            task_total_h, task_total_m, _  = time_from_seconds(task_total)
+            task_total_h, task_total_m, _ = time_from_seconds(task_total)
             tasks_total[task_name] = f"{task_total_h:02}:{task_total_m:02}"
 
         # Overall total across all tasks
@@ -1244,8 +1282,7 @@ class WorkSessionsBreakdownView(APIView):
                 "events": s.data,
                 "total_sum": total_time_sum_str,
                 "sessions_by_day": sessions_by_day_total,
-                "tasks_total": tasks_total
+                "tasks_total": tasks_total,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
-
