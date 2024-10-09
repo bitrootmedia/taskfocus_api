@@ -278,16 +278,17 @@ class CommentDetailSerializer(serializers.ModelSerializer):
         fields = ("id", "content", "task_id", "project_id")
 
 
-class NoteListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Note
-        fields = ("id", "title", "tag", "created_at", "updated_at")
-
-
-class NoteDetailSerializer(serializers.ModelSerializer):
+class NoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Note
         fields = ("id", "title", "content", "tag", "created_at", "updated_at")
+        read_only_fields = ("title",)
+
+    def get_title_from_content(self):
+        """Get first 50 chars of content to use as a title"""
+        content = self.validated_data.get("content", "")
+        title = content.split("\n")[0][:50]
+        return title
 
 
 class PrivateNoteListSerializer(serializers.ModelSerializer):
