@@ -15,17 +15,17 @@ class TestNotes(APITestCase):
         cls.note = Note.objects.create(
             user=cls.user,
             title="Test Note",
-            content="Content here",
+            content="Test Note\nContent here",
         )
         cls.note_2 = Note.objects.create(
             user=cls.user_2,
             title="Test Note 2",
-            content="Content 2 here",
+            content="Test Note 2\nContent 2 here",
         )
         cls.note_3 = Note.objects.create(
             user=cls.user,
             title="Test Note 3",
-            content="Content 3 here",
+            content="Test Note 3\nContent 3 here",
         )
 
     def test_note_list_not_authenticated(self):
@@ -40,7 +40,7 @@ class TestNotes(APITestCase):
         self.assertListEqual(
             note_ids,
             [
-                str(self.note_3.id),  # Order by -created_at so latest first
+                str(self.note_3.id),  # Order by -updated_at so latest first
                 str(self.note.id),
             ],
         )
@@ -51,13 +51,26 @@ class TestNotes(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json().get("results"), [])
 
-    def test_create_note(self):
+    def test_create_note_with_title(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(
             reverse("note_list"),
-            {"title": "Test Note", "content": "Content here"},
+            {"content": "First line is the title\nContent here"},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            "First line is the title", response.json().get("title")
+        )
+
+    def test_create_note_first_newlines(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse("note_list"),
+            {"content": "\n\n\nContent here"},  # first line empty
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual("Content here", response.json().get("title"))
 
     def test_get_other_users_note(self):
         self.client.force_authenticate(user=self.user)
@@ -70,19 +83,21 @@ class TestNotes(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.put(
             reverse("note_detail", kwargs={"pk": self.note.id}),
-            {"title": "Updated Title", "content": "Updated Content here"},
+            {"content": "Updated Title\nUpdated Content here"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.note.refresh_from_db()
         self.assertEqual(self.note.title, "Updated Title")
-        self.assertEqual(self.note.content, "Updated Content here")
+        self.assertEqual(
+            self.note.content, "Updated Title\nUpdated Content here"
+        )
 
     def test_edit_other_users_note(self):
         self.client.force_authenticate(user=self.user_2)
         response = self.client.put(
             reverse("note_detail", kwargs={"pk": self.note.id}),
             {
-                "title": "Updated Title",
+                "content": "Updated Content",
             },
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
