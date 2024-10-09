@@ -69,8 +69,7 @@ from .serializers import (
     PinDetailSerializer,
     WorkSessionsBreakdownInputSerializer,
     WorkSessionsWSBSerializer,
-    NoteListSerializer,
-    NoteDetailSerializer,
+    NoteSerializer,
 )
 
 from core.models import (
@@ -522,7 +521,7 @@ class CommentDetail(generics.RetrieveUpdateAPIView):
 
 class NoteList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
-    serializer_class = NoteListSerializer
+    serializer_class = NoteSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_class = NoteFilter
 
@@ -535,15 +534,20 @@ class NoteList(generics.ListCreateAPIView):
         return notes
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        title = serializer.get_title_from_content()
+        serializer.save(user=self.request.user, title=title)
 
 
 class NoteDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
-    serializer_class = NoteDetailSerializer
+    serializer_class = NoteSerializer
 
     def get_queryset(self):
         return Note.objects.filter(user=self.request.user)
+
+    def perform_update(self, serializer):
+        title = serializer.get_title_from_content()
+        serializer.save(user=self.request.user, title=title)
 
 
 class PrivateNoteList(generics.ListCreateAPIView):
