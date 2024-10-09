@@ -530,7 +530,7 @@ class NoteList(generics.ListCreateAPIView):
         notes = (
             Note.objects.filter(user=self.request.user)
             .distinct()
-            .order_by("-created_at")
+            .order_by("-updated_at")
         )
         return notes
 
