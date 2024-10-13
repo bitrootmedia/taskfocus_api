@@ -34,6 +34,7 @@ from .filters import (
     ReminderFilter,
     NotificationAckFilter,
     PrivateNoteFilter,
+    NoteFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -68,6 +69,7 @@ from .serializers import (
     PinDetailSerializer,
     WorkSessionsBreakdownInputSerializer,
     WorkSessionsWSBSerializer,
+    NoteSerializer,
 )
 
 from core.models import (
@@ -88,6 +90,7 @@ from core.models import (
     PrivateNote,
     TaskBlock,
     Pin,
+    Note,
 )
 from django.db.models import Q, F, Sum
 from .permissions import (
@@ -514,6 +517,37 @@ class CommentDetail(generics.RetrieveUpdateAPIView):
     serializer_class = CommentDetailSerializer
     permission_classes = (IsAuthorOrReadOnly,)
     queryset = Comment.objects.all()
+
+
+class NoteList(generics.ListCreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = NoteSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_class = NoteFilter
+
+    def get_queryset(self):
+        notes = (
+            Note.objects.filter(user=self.request.user)
+            .distinct()
+            .order_by("-updated_at")
+        )
+        return notes
+
+    def perform_create(self, serializer):
+        title = serializer.get_title_from_content()
+        serializer.save(user=self.request.user, title=title)
+
+
+class NoteDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = NoteSerializer
+
+    def get_queryset(self):
+        return Note.objects.filter(user=self.request.user)
+
+    def perform_update(self, serializer):
+        title = serializer.get_title_from_content()
+        serializer.save(user=self.request.user, title=title)
 
 
 class PrivateNoteList(generics.ListCreateAPIView):
@@ -1210,6 +1244,7 @@ class TestCIReloadView(APIView):
 
 class WorkSessionsBreakdownView(APIView):
     permission_classes = (IsAuthenticated,)  # TODO: Are we sure about that?
+
     def post(self, request):
         serializer = WorkSessionsBreakdownInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1235,16 +1270,16 @@ class WorkSessionsBreakdownView(APIView):
             sessions_by_day[date_as_key].append(session)
             tasks_total[session.task_name] += session.total_time
 
-        sessions_by_day_total = defaultdict(lambda: {"total": 0})
         # Calculate daily totals
+        sessions_by_day_total = defaultdict(lambda: {"total": 0})
         for date, day_data in sessions_by_day.items():
             day_total = sum([entry.total_time for entry in day_data])
             day_total_h, day_total_m, _ = time_from_seconds(day_total)
             sessions_by_day_total[date] = f"{day_total_h:02}:{day_total_m:02}"
 
-        # Calculate task totals
+        # Format task totals
         for task_name, task_total in tasks_total.items():
-            task_total_h, task_total_m, _  = time_from_seconds(task_total)
+            task_total_h, task_total_m, _ = time_from_seconds(task_total)
             tasks_total[task_name] = f"{task_total_h:02}:{task_total_m:02}"
 
         # Overall total across all tasks
@@ -1259,8 +1294,7 @@ class WorkSessionsBreakdownView(APIView):
                 "events": s.data,
                 "total_sum": total_time_sum_str,
                 "sessions_by_day": sessions_by_day_total,
-                "tasks_total": tasks_total
+                "tasks_total": tasks_total,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
-

@@ -19,6 +19,7 @@ from core.models import (
     PrivateNote,
     TaskBlock,
     Pin,
+    Note,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
 from core.utils.time_from_seconds import time_from_seconds
@@ -121,7 +122,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "position",
             "estimated_work_hours",
             "is_urgent",
-            "follow_up"
+            "follow_up",
         )
 
 
@@ -221,7 +222,6 @@ class TaskTotalTimeReadOnlySerializer(serializers.ModelSerializer):
 
 
 class TaskBlockListSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = TaskBlock
         fields = (
@@ -235,6 +235,7 @@ class TaskBlockListSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("created_by",)
 
+
 class TaskBlockDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskBlock
@@ -243,6 +244,7 @@ class TaskBlockDetailSerializer(serializers.ModelSerializer):
             "position",
             "content",
         )
+
 
 class LogListSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -274,6 +276,19 @@ class CommentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ("id", "content", "task_id", "project_id")
+
+
+class NoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Note
+        fields = ("id", "title", "content", "tag", "created_at", "updated_at")
+        read_only_fields = ("title",)
+
+    def get_title_from_content(self):
+        """Get first 50 chars of content to use as a title"""
+        content = self.validated_data.get("content", "")
+        title = content.split("\n")[0][:50]
+        return title
 
 
 class PrivateNoteListSerializer(serializers.ModelSerializer):
@@ -449,24 +464,26 @@ class PinDetailSerializer(serializers.ModelSerializer):
             "project",
         )
 
+
 class WorkSessionsBreakdownInputSerializer(serializers.Serializer):
     user_id = serializers.UUIDField(required=True)
-    timezone = ... # TODO: Details for that
+    timezone = ...  # TODO: Details for that
     start_date = serializers.DateField(required=True)
     end_date = serializers.DateField(required=True)
 
+
 class WorkSessionsWSBSerializer(serializers.ModelSerializer):
-    start = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="started_at")
-    end = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="stopped_at")
-    title = serializers.CharField(source="task.title")  # TODO: Does that break? (as in NoneType)
+    start = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M", source="started_at"
+    )
+    end = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M", source="stopped_at"
+    )
+    title = serializers.CharField(
+        source="task.title"
+    )  # TODO: Does that break? (as in NoneType)
     task_id = serializers.UUIDField(source="task.id")
 
     class Meta:
         model = TaskWorkSession
-        fields = (
-            "start",
-            "end",
-            "title",
-            "task_id",
-            "total_time"
-        )
+        fields = ("start", "end", "title", "task_id", "total_time")

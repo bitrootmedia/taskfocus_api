@@ -21,6 +21,7 @@ from .models import (
     Team,
     Pin,
     TaskBlock,
+    Note,
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
@@ -166,6 +167,7 @@ class TaskAdmin(admin.ModelAdmin):
     inlines = [TaskAccessInline]
     search_fields = ("title",)
 
+
 @admin.register(TaskBlock)
 class TaskBlockAdmin(SimpleHistoryAdmin):
     list_display = (
@@ -174,13 +176,10 @@ class TaskBlockAdmin(SimpleHistoryAdmin):
         "position",
         "created_at",
         "updated_at",
-        "created_by"
+        "created_by",
     )
-    list_filter = (
-        "task",
-        "block_type",
-        "created_by"
-    )
+    list_filter = ("task", "block_type", "created_by")
+
 
 @admin.register(TaskAccess)
 class TaskAccessAdmin(admin.ModelAdmin):
@@ -240,3 +239,8 @@ class TeamAdmin(admin.ModelAdmin):
 @admin.register(Pin)
 class PinAdmin(admin.ModelAdmin):
     list_display = ("user", "task", "project")
+
+
+@admin.register(Note)
+class NoteAdmin(admin.ModelAdmin):
+    list_display = ("user", "title", "created_at", "updated_at")

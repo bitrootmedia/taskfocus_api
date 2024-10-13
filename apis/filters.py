@@ -13,6 +13,7 @@ from core.models import (
     NotificationAck,
     TaskWorkSession,
     PrivateNote,
+    Note,
 )
 
 
@@ -86,6 +87,12 @@ class CommentFilter(filters.FilterSet):
     class Meta:
         model = Comment
         fields = ["project", "content", "task"]
+
+
+class NoteFilter(filters.FilterSet):
+    class Meta:
+        model = Note
+        fields = ["user"]
 
 
 class PrivateNoteFilter(filters.FilterSet):
