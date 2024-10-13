@@ -108,7 +108,8 @@ from .permissions import (
 class UserList(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    search_fields = ["username"]
 
     def get_queryset(self):
         user_teams = Team.objects.filter(user=self.request.user)
