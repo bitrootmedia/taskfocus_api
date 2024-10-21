@@ -110,7 +110,8 @@ class UserList(generics.ListAPIView):
     serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     search_fields = ["username"]
-
+    page_size = 1000
+    
     def get_queryset(self):
         user_teams = Team.objects.filter(user=self.request.user)
         users = User.objects.filter(teams__in=user_teams).distinct()
