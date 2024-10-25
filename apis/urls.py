@@ -175,6 +175,19 @@ urlpatterns = [
     path("card-detail/<pk>", views.CardDetail.as_view(), name="card_detail"),
     path("card-move", views.CardMove.as_view(), name="card_move"),
     path(
+        "card-task-create",
+        views.CardTaskCreate.as_view(),
+        name="card_task_create",
+    ),
+    path(
+        "card-task-detail/<pk>",
+        views.CardTaskDetail.as_view(),
+        name="card_task_detail",
+    ),
+    path(
+        "card-task-move", views.CardTaskMove.as_view(), name="card_task_move"
+    ),
+    path(
         "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
 ]
