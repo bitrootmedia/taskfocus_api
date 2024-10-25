@@ -157,6 +157,16 @@ urlpatterns = [
         name="work_sessions_breakdown",
     ),
     path(
+        "boards",
+        views.BoardList.as_view(),
+        name="board_list",
+    ),
+    path(
+        "board/<pk>",
+        views.BoardDetail.as_view(),
+        name="board_detail",
+    ),
+    path(
         "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
 ]

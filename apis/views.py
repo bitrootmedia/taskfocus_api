@@ -5,6 +5,7 @@ import uuid
 import mimetypes
 from collections import defaultdict
 
+from django.db import transaction
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
@@ -71,6 +72,11 @@ from .serializers import (
     WorkSessionsWSBSerializer,
     NoteListSerializer,
     NoteDetailSerializer,
+    BoardReadonlySerializer,
+    BoardSerializer,
+    CardSerializer,
+    CardTaskSerializer,
+    BoardUserSerializer,
 )
 
 from core.models import (
@@ -92,6 +98,10 @@ from core.models import (
     TaskBlock,
     Pin,
     Note,
+    BoardUser,
+    Board,
+    Card,
+    CardTask,
 )
 from django.db.models import Q, F, Sum
 from .permissions import (
@@ -1294,3 +1304,24 @@ class WorkSessionsBreakdownView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class BoardList(generics.ListCreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = BoardSerializer
+
+    def get_queryset(self):
+        boards = Board.objects.filter(
+            Q(owner=self.request.user) | Q(board_users__user=self.request.user)
+        ).order_by("name")
+        return boards
+
+
+class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsOwnerOrReadOnly,)
+    queryset = Board.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return BoardReadonlySerializer
+        return BoardSerializer
