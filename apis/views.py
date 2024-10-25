@@ -1395,3 +1395,69 @@ class BoardUserView(APIView):
 
         BoardUser.objects.filter(Q(user=user) & Q(board_id=board_id)).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CardCreate(generics.CreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = CardSerializer
+
+    def perform_create(self, serializer):
+        board = serializer.validated_data.get("board")
+        if not board.user_has_board_access(self.request.user):
+            raise PermissionDenied()
+        return super().perform_create(serializer)
+
+
+class CardDetail(
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = CardSerializer
+
+    def get_queryset(self):
+        return Card.objects.filter(
+            Q(board__owner=self.request.user)
+            | Q(board__board_users__user=self.request.user)
+        )
+
+
+class CardMove(APIView):
+    def put(self, request, *args, **kwargs):
+        card_id = request.data.get("card")
+        new_position = request.data.get("position")
+        try:
+            new_position = int(new_position)
+        except (ValueError, TypeError):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        card = (
+            Card.objects.filter(
+                Q(board__owner=self.request.user)
+                | Q(board__board_users__user=self.request.user)
+            )
+            .filter(id=card_id)
+            .first()
+        )
+
+        if not card:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        if card.position == new_position:
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        with transaction.atomic():
+            old_position = card.position
+
+            if old_position < new_position:
+                card.board.cards.filter(
+                    position__gt=old_position, position__lte=new_position
+                ).update(position=F("position") - 1)
+            else:
+                card.board.cards.filter(
+                    position__lt=old_position, position__gte=new_position
+                ).update(position=F("position") + 1)
+
+            card.position = new_position
+            card.save()
+
+        return Response(status=status.HTTP_200_OK)

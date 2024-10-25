@@ -171,6 +171,9 @@ urlpatterns = [
         views.BoardUserView.as_view(),
         name="board_users",
     ),
+    path("card-create", views.CardCreate.as_view(), name="card_create"),
+    path("card-detail/<pk>", views.CardDetail.as_view(), name="card_detail"),
+    path("card-move", views.CardMove.as_view(), name="card_move"),
     path(
         "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
