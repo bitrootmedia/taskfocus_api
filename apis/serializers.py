@@ -20,6 +20,10 @@ from core.models import (
     TaskBlock,
     Pin,
     Note,
+    Board,
+    Card,
+    CardTask,
+    BoardUser,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
 from core.utils.time_from_seconds import time_from_seconds
@@ -478,11 +482,59 @@ class WorkSessionsWSBSerializer(serializers.ModelSerializer):
     end = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M", source="stopped_at"
     )
-    title = serializers.CharField(
-        source="task.title"
-    )  # TODO: Does that break? (as in NoneType)
+    title = serializers.CharField(source="task.title")
     task_id = serializers.UUIDField(source="task.id")
 
     class Meta:
         model = TaskWorkSession
         fields = ("start", "end", "title", "task_id", "total_time")
+
+
+class CardTaskReadOnlySerializer(serializers.ModelSerializer):
+    task = TaskReadOnlySerializer()
+
+    class Meta:
+        model = CardTask
+        fields = ("id", "task", "card", "position")
+
+
+class CardTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CardTask
+        fields = ("id", "task", "card", "position")
+
+
+class CardReadOnlySerializer(serializers.ModelSerializer):
+    card_tasks = CardTaskReadOnlySerializer(many=True)
+
+    class Meta:
+        model = Card
+        fields = ("id", "board", "name", "position", "card_tasks")
+
+
+class CardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Card
+        fields = ("id", "board", "name", "position")
+
+
+class BoardReadonlySerializer(serializers.ModelSerializer):
+    cards = CardReadOnlySerializer(many=True)
+
+    class Meta:
+        model = Board
+        fields = ("id", "name", "owner", "cards")
+
+
+class BoardSerializer(serializers.ModelSerializer):
+    """Used to edit only board specific fields (not cards or tasks)"""
+
+    class Meta:
+        model = Board
+        fields = ("id", "name", "owner")
+
+
+class BoardUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BoardUser
+        fields = ("id", "board", "user")
