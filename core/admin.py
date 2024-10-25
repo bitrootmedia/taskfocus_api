@@ -22,6 +22,10 @@ from .models import (
     Pin,
     TaskBlock,
     Note,
+    Board,
+    BoardUser,
+    Card,
+    CardTask,
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
@@ -244,3 +248,23 @@ class PinAdmin(admin.ModelAdmin):
 @admin.register(Note)
 class NoteAdmin(admin.ModelAdmin):
     list_display = ("user", "title", "created_at", "updated_at")
+
+
+@admin.register(Board)
+class BoardAdmin(admin.ModelAdmin):
+    list_display = ("name", "owner")
+
+
+@admin.register(BoardUser)
+class BoardUserAdmin(admin.ModelAdmin):
+    list_display = ("board", "user")
+
+
+@admin.register(Card)
+class CardAdmin(admin.ModelAdmin):
+    list_display = ("board", "name")
+
+
+@admin.register(CardTask)
+class CardTaskAdmin(admin.ModelAdmin):
+    list_display = ("task", "card")
