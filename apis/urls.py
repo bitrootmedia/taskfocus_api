@@ -167,6 +167,11 @@ urlpatterns = [
         name="board_detail",
     ),
     path(
+        "board-users/<uuid:board_id>",
+        views.BoardUserView.as_view(),
+        name="board_users",
+    ),
+    path(
         "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
 ]

@@ -1325,3 +1325,73 @@ class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == "GET":
             return BoardReadonlySerializer
         return BoardSerializer
+
+
+class BoardUserView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def get_user(user_id):
+        return User.objects.filter(id=user_id).first()
+
+    @staticmethod
+    def user_in_board_users(board, user):
+        return board.board_users.filter(user=user).exists()
+
+    def get(self, request, board_id, *args, **kwargs):
+        # Make sure user has the access to requested board
+        board = (
+            Board.objects.filter(
+                Q(owner=self.request.user)
+                | Q(board_users__user=self.request.user)
+            )
+            .filter(id=board_id)
+            .first()
+        )
+
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        serializer = BoardUserSerializer(board.board_users.all(), many=True)
+        return Response(
+            {"results": serializer.data}, status=status.HTTP_200_OK
+        )
+
+    def post(self, request, board_id, *args, **kwargs):
+        board = Board.objects.filter(
+            Q(id=board_id) & Q(owner=request.user)
+        ).first()
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        user = self.get_user(request.data.get("user"))
+        if not user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        if self.user_in_board_users(board, user):
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        serializer = BoardUserSerializer(
+            data={"board": board.id, "user": user.id}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, board_id, *args, **kwargs):
+        board = Board.objects.filter(
+            Q(id=board_id) & Q(owner=request.user)
+        ).first()
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        user = self.get_user(request.data.get("user"))
+        if not user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        if not self.user_in_board_users(board, user):
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        BoardUser.objects.filter(Q(user=user) & Q(board_id=board_id)).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
