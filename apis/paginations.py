@@ -26,3 +26,7 @@ class CustomPagination(PageNumberPagination):
                 "results": data,
             }
         )
+
+
+class CustomPaginationPageSize1k(CustomPagination):
+    page_size = 1000

@@ -71,6 +71,7 @@ from .serializers import (
     WorkSessionsBreakdownInputSerializer,
     WorkSessionsWSBSerializer,
     NoteListSerializer,
+    NoteSerializer,
     NoteDetailSerializer,
     BoardReadonlySerializer,
     BoardSerializer,
@@ -114,13 +115,16 @@ from .permissions import (
     IsPrivateNoteOwner,
     BlockUserHasTaskAccess,
 )
+from .paginations import CustomPaginationPageSize1k
 
 
 class UserList(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    search_fields = ["username"]
+    pagination_class = CustomPaginationPageSize1k
+    
     def get_queryset(self):
         user_teams = Team.objects.filter(user=self.request.user)
         users = User.objects.filter(teams__in=user_teams).distinct()
@@ -532,7 +536,7 @@ class CommentDetail(generics.RetrieveUpdateAPIView):
 
 class NoteList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
-    serializer_class = NoteListSerializer
+    serializer_class = NoteSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_class = NoteFilter
 
@@ -540,20 +544,25 @@ class NoteList(generics.ListCreateAPIView):
         notes = (
             Note.objects.filter(user=self.request.user)
             .distinct()
-            .order_by("-created_at")
+            .order_by("-updated_at")
         )
         return notes
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        title = serializer.get_title_from_content()
+        serializer.save(user=self.request.user, title=title)
 
 
 class NoteDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
-    serializer_class = NoteDetailSerializer
+    serializer_class = NoteSerializer
 
     def get_queryset(self):
         return Note.objects.filter(user=self.request.user)
+
+    def perform_update(self, serializer):
+        title = serializer.get_title_from_content()
+        serializer.save(user=self.request.user, title=title)
 
 
 class PrivateNoteList(generics.ListCreateAPIView):
