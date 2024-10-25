@@ -582,18 +582,46 @@ class TaskChecklistItem(models.Model):
     )
 
 
-class TaskUserNote(models.Model):
-    """Private notes per task"""
-
+class Board(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    name = models.CharField(max_length=150)
+    owner = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="owned_boards"
+    )
 
-    task = models.ForeignKey(
-        Task,
-        on_delete=models.CASCADE,
+    def user_has_board_access(self, user):
+        return (self.owner == user) or self.board_users.filter(
+            id=user.id
+        ).exists()
+
+
+class BoardUser(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    board = models.ForeignKey(
+        Board, on_delete=models.CASCADE, related_name="board_users"
     )
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name="board_users",  # Name is icky
     )
+
+
+class Card(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    board = models.ForeignKey(
+        Board, on_delete=models.CASCADE, related_name="cards"
+    )
+    name = models.CharField(max_length=150)
+    position = models.IntegerField(default=0)
+
+
+class CardTask(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(
+        Task, on_delete=models.CASCADE, related_name="card_tasks"
+    )
+    card = models.ForeignKey(
+        Card, on_delete=models.CASCADE, related_name="card_tasks"
+    )
+    position = models.IntegerField(default=0)
