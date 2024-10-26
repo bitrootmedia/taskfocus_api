@@ -96,6 +96,18 @@ class BoardTest(APITestCase):
         self.assertIn(str(self.board_2.id), board_ids)
         self.assertNotIn(str(self.board_3.id), board_ids)
 
+    def test_board_create(self):
+        self.client.force_login(user=self.user)
+        response = self.client.post(
+            reverse("board_list"),
+            data={"name": "NEW BOARD TEST", "owner": self.user.id},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        board = Board.objects.get(name="NEW BOARD TEST")
+        self.assertEqual(board.name, "NEW BOARD TEST")
+        self.assertEqual(board.owner, self.user)
+
     def test_board_detail_get_not_owner(self):
         self.client.force_login(user=self.user_2)  # not owner
         response = self.client.get(
