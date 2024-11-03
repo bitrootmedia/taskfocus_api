@@ -616,12 +616,24 @@ class Card(models.Model):
     position = models.IntegerField(default=0)
 
 
-class CardTask(models.Model):
+class CardItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     task = models.ForeignKey(
-        Task, on_delete=models.CASCADE, related_name="card_tasks"
+        Task,
+        on_delete=models.CASCADE,
+        related_name="card_items",
+        null=True,
+        blank=True,
     )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="card_items",
+        null=True,
+        blank=True,
+    )
+    comment = models.TextField(null=True, blank=True)
     card = models.ForeignKey(
-        Card, on_delete=models.CASCADE, related_name="card_tasks"
+        Card, on_delete=models.CASCADE, related_name="card_items"
     )
     position = models.IntegerField(default=0)

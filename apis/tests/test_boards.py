@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from core.models import User, Task, Board, BoardUser, Card, CardTask
+from core.models import User, Task, Board, BoardUser, Card, CardItem, Project
 
 
 class BoardTest(APITestCase):
@@ -14,8 +14,13 @@ class BoardTest(APITestCase):
         cls.user_2 = User.objects.create(username="user2")
         cls.user_3 = User.objects.create(username="user3")  # No Board access
 
+        cls.project = Project.objects.create(title="project1", owner=cls.user)
+
         cls.task = Task.objects.create(
-            owner=cls.user, title="Task 1", description="Task 1 Description"
+            owner=cls.user,
+            title="Task 1",
+            description="Task 1 Description",
+            project=cls.project,
         )
 
         cls.task_2 = Task.objects.create(
@@ -61,13 +66,13 @@ class BoardTest(APITestCase):
             position=0,
         )
 
-        cls.card_task = CardTask.objects.create(
+        cls.card_item = CardItem.objects.create(
             card=cls.card,
             task=cls.task,
             position=0,
         )
 
-        cls.card_task_2 = CardTask.objects.create(
+        cls.card_item_2 = CardItem.objects.create(
             card=cls.card,
             task=cls.task_2,
             position=1,
@@ -79,7 +84,7 @@ class BoardTest(APITestCase):
             position=1,
         )
 
-        cls.card_task_3 = CardTask.objects.create(
+        cls.card_item_3 = CardItem.objects.create(
             card=cls.card_2,
             task=cls.task_3,
             position=0,
@@ -95,6 +100,18 @@ class BoardTest(APITestCase):
         self.assertIn(str(self.board.id), board_ids)
         self.assertIn(str(self.board_2.id), board_ids)
         self.assertNotIn(str(self.board_3.id), board_ids)
+
+    def test_board_create(self):
+        self.client.force_login(user=self.user)
+        response = self.client.post(
+            reverse("board_list"),
+            data={"name": "NEW BOARD TEST", "owner": self.user.id},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        board = Board.objects.get(name="NEW BOARD TEST")
+        self.assertEqual(board.name, "NEW BOARD TEST")
+        self.assertEqual(board.owner, self.user)
 
     def test_board_detail_get_not_owner(self):
         self.client.force_login(user=self.user_2)  # not owner
@@ -276,8 +293,6 @@ class BoardTest(APITestCase):
         self.assertEqual(self.card.position, 1)
         self.assertEqual(self.card_2.position, 0)
 
-    # ---- Card Task Tests ----
-
     def test_card_move_same_position(self):
         self.client.force_login(self.user)
         response = self.client.put(
@@ -285,63 +300,113 @@ class BoardTest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_304_NOT_MODIFIED)
 
-    def test_card_task_create(self):
+    # ---- Card Item Tests ----
+
+    def test_card_item_create_task_only(self):
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse("card_task_create"),
+            reverse("card_item_create"),
             {"task": self.task_3.id, "card": self.card_2.id, "position": 0},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = CardItem.objects.get(id=response.json()["id"])
+        self.assertEqual(item.task, self.task_3)
 
-    def test_card_task_create_no_board_access(self):
+    def test_card_item_create_project_only(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("card_item_create"),
+            {
+                "project": self.project.id,
+                "card": self.card_2.id,
+                "position": 0,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = CardItem.objects.get(id=response.json()["id"])
+        self.assertEqual(item.project, self.project)
+
+    def test_card_item_create_comment_only(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("card_item_create"),
+            {
+                "comment": "Comment content",
+                "card": self.card_2.id,
+                "position": 0,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = CardItem.objects.get(id=response.json()["id"])
+        self.assertEqual(item.comment, "Comment content")
+
+    def test_card_item_create_mixed_data(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("card_item_create"),
+            {
+                "task": self.task.id,
+                "project": self.project.id,
+                "comment": "Comment content",
+                "card": self.card_2.id,
+                "position": 0,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = CardItem.objects.get(id=response.json()["id"])
+        self.assertEqual(item.task, self.task)
+        self.assertEqual(item.project, self.project)
+        self.assertEqual(item.comment, "Comment content")
+
+    def test_card_item_create_no_board_access(self):
         self.client.force_login(self.user_3)
         response = self.client.post(
-            reverse("card_task_create"),
+            reverse("card_item_create"),
             {"task": self.task_3.id, "card": self.card_2.id, "position": 0},
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_card_task_delete(self):
+    def test_card_item_delete(self):
         self.client.force_login(self.user)
         response = self.client.delete(
-            reverse("card_task_detail", kwargs={"pk": self.card_task_2.id})
+            reverse("card_item_detail", kwargs={"pk": self.card_item_2.id})
         )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        with self.assertRaises(CardTask.DoesNotExist):
-            self.card_task_2.refresh_from_db()
+        with self.assertRaises(CardItem.DoesNotExist):
+            self.card_item_2.refresh_from_db()
 
-    def test_card_task_move_same_card(self):
+    def test_card_item_move_same_card(self):
         self.client.force_login(self.user)
         response = self.client.put(
-            reverse("card_task_move"),
+            reverse("card_item_move"),
             {
-                "task": self.card_task.id,
-                "card": self.card_task.card.id,
+                "item": self.card_item.id,
+                "card": self.card_item.card.id,
                 "position": 1,
             },
         )
-        self.card_task.refresh_from_db()
-        self.card_task_2.refresh_from_db()
+        self.card_item.refresh_from_db()
+        self.card_item_2.refresh_from_db()
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(self.card_task.position, 1)
-        self.assertEqual(self.card_task_2.position, 0)
+        self.assertEqual(self.card_item.position, 1)
+        self.assertEqual(self.card_item_2.position, 0)
 
-    def test_card_task_move_different_card(self):
+    def test_card_item_move_different_card(self):
         self.client.force_login(self.user)
         response = self.client.put(
-            reverse("card_task_move"),
-            {"task": self.card_task.id, "card": self.card_2.id, "position": 0},
+            reverse("card_item_move"),
+            {"item": self.card_item.id, "card": self.card_2.id, "position": 0},
         )
-        self.card_task.refresh_from_db()
-        self.card_task_2.refresh_from_db()
-        self.card_task_3.refresh_from_db()
+        self.card_item.refresh_from_db()
+        self.card_item_2.refresh_from_db()
+        self.card_item_3.refresh_from_db()
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # new card and new position
-        self.assertEqual(self.card_task.card.id, self.card_2.id)
-        self.assertEqual(self.card_task.position, 0)
+        self.assertEqual(self.card_item.card.id, self.card_2.id)
+        self.assertEqual(self.card_item.position, 0)
         # previous 0 in new card is now 1
-        self.assertEqual(self.card_task_3.position, 1)
+        self.assertEqual(self.card_item_3.position, 1)
         # previous 1 in old card is now 0
-        self.assertEqual(self.card_task_2.position, 0)
+        self.assertEqual(self.card_item_2.position, 0)
