@@ -74,7 +74,7 @@ from .serializers import (
     BoardReadonlySerializer,
     BoardSerializer,
     CardSerializer,
-    CardTaskSerializer,
+    CardItemSerializer,
     BoardUserSerializer,
 )
 
@@ -100,7 +100,7 @@ from core.models import (
     BoardUser,
     Board,
     Card,
-    CardTask,
+    CardItem,
 )
 from django.db.models import Q, F, Sum
 from .permissions import (
@@ -1326,7 +1326,12 @@ class BoardList(generics.ListCreateAPIView):
 
 class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsOwnerOrReadOnly,)
-    queryset = Board.objects.all()
+
+    def get_queryset(self):
+        boards = Board.objects.filter(
+            Q(owner=self.request.user) | Q(board_users__user=self.request.user)
+        ).order_by("name")
+        return boards
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -1470,9 +1475,9 @@ class CardMove(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class CardTaskCreate(generics.CreateAPIView):
+class CardItemCreate(generics.CreateAPIView):
     permission_classes = (IsAuthenticated,)
-    serializer_class = CardTaskSerializer
+    serializer_class = CardItemSerializer
 
     def perform_create(self, serializer):
         card = serializer.validated_data.get("card")
@@ -1481,22 +1486,22 @@ class CardTaskCreate(generics.CreateAPIView):
         return super().perform_create(serializer)
 
 
-class CardTaskDetail(
+class CardItemDetail(
     generics.RetrieveUpdateDestroyAPIView,
 ):
     permission_classes = (IsAuthenticated,)
-    serializer_class = CardTaskSerializer
+    serializer_class = CardItemSerializer
 
     def get_queryset(self):
-        return CardTask.objects.filter(
+        return CardItem.objects.filter(
             Q(card__board__owner=self.request.user)
             | Q(card__board__board_users__user=self.request.user)
         )
 
 
-class CardTaskMove(APIView):  # Change Task position (or card)
+class CardItemMove(APIView):  # Change Item position (or card)
     def put(self, request, *args, **kwargs):
-        card_task_id = request.data.get("task")
+        card_item_id = request.data.get("item")
         new_card_id = request.data.get("card")
         new_position = request.data.get("position")
 
@@ -1505,22 +1510,22 @@ class CardTaskMove(APIView):  # Change Task position (or card)
         except (ValueError, TypeError):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        card_task = (
-            CardTask.objects.filter(
+        card_item = (
+            CardItem.objects.filter(
                 Q(card__board__owner=self.request.user)
                 | Q(card__board__board_users__user=self.request.user)
             )
-            .filter(id=card_task_id)
+            .filter(id=card_item_id)
             .first()
         )
 
-        if not card_task:
+        if not card_item:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         # Moving to different card
-        if str(card_task.card.id) != str(new_card_id):
+        if str(card_item.card.id) != str(new_card_id):
             with transaction.atomic():
-                old_card = card_task.card
+                old_card = card_item.card
                 new_card = (
                     Card.objects.filter(
                         Q(board__owner=self.request.user)
@@ -1530,36 +1535,36 @@ class CardTaskMove(APIView):  # Change Task position (or card)
                     .first()
                 )
 
-                old_card.card_tasks.filter(position__gt=new_position).update(
+                old_card.card_items.filter(position__gt=new_position).update(
                     position=F("position") - 1
                 )
 
-                new_card.card_tasks.filter(position__gte=new_position).update(
+                new_card.card_items.filter(position__gte=new_position).update(
                     position=F("position") + 1
                 )
 
-                card_task.card = new_card
-                card_task.position = new_position
-                card_task.save()
+                card_item.card = new_card
+                card_item.position = new_position
+                card_item.save()
 
         # Swapping in the same card
         else:
-            if card_task.position == new_position:
+            if card_item.position == new_position:
                 return Response(status=status.HTTP_304_NOT_MODIFIED)
 
             with transaction.atomic():
-                old_position = card_task.position
+                old_position = card_item.position
 
                 if old_position < new_position:
-                    card_task.card.card_tasks.filter(
+                    card_item.card.card_items.filter(
                         position__gt=old_position, position__lte=new_position
                     ).update(position=F("position") - 1)
                 else:
-                    card_task.card.card_tasks.filter(
+                    card_item.card.card_items.filter(
                         position__lt=old_position, position__gte=new_position
                     ).update(position=F("position") + 1)
 
-                card_task.position = new_position
-                card_task.save()
+                card_item.position = new_position
+                card_item.save()
 
         return Response(status=status.HTTP_200_OK)
