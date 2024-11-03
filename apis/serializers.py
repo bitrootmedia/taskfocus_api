@@ -22,7 +22,7 @@ from core.models import (
     Note,
     Board,
     Card,
-    CardTask,
+    CardItem,
     BoardUser,
 )
 from core.utils.permissions import user_can_see_task, user_can_see_project
@@ -491,26 +491,27 @@ class WorkSessionsWSBSerializer(serializers.ModelSerializer):
         fields = ("start", "end", "title", "task_id", "total_time")
 
 
-class CardTaskReadOnlySerializer(serializers.ModelSerializer):
+class CardItemReadOnlySerializer(serializers.ModelSerializer):
     task = TaskReadOnlySerializer()
+    project = ProjectDetailReadOnlySerializer()
 
     class Meta:
-        model = CardTask
-        fields = ("id", "task", "card", "position")
+        model = CardItem
+        fields = ("id", "task", "project", "comment", "card", "position")
 
 
-class CardTaskSerializer(serializers.ModelSerializer):
+class CardItemSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CardTask
-        fields = ("id", "task", "card", "position")
+        model = CardItem
+        fields = ("id", "task", "project", "comment", "card", "position")
 
 
 class CardReadOnlySerializer(serializers.ModelSerializer):
-    card_tasks = CardTaskReadOnlySerializer(many=True)
+    card_items = CardItemReadOnlySerializer(many=True)
 
     class Meta:
         model = Card
-        fields = ("id", "board", "name", "position", "card_tasks")
+        fields = ("id", "board", "name", "position", "card_items")
 
 
 class CardSerializer(serializers.ModelSerializer):
@@ -528,7 +529,7 @@ class BoardReadonlySerializer(serializers.ModelSerializer):
 
 
 class BoardSerializer(serializers.ModelSerializer):
-    """Used to edit only board specific fields (not cards or tasks)"""
+    """Used to edit only board specific fields (not cards or card items)"""
 
     class Meta:
         model = Board
