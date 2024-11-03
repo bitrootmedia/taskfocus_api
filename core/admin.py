@@ -25,7 +25,7 @@ from .models import (
     Board,
     BoardUser,
     Card,
-    CardTask,
+    CardItem,
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
@@ -265,6 +265,6 @@ class CardAdmin(admin.ModelAdmin):
     list_display = ("board", "name")
 
 
-@admin.register(CardTask)
-class CardTaskAdmin(admin.ModelAdmin):
+@admin.register(CardItem)
+class CardItemAdmin(admin.ModelAdmin):
     list_display = ("task", "card")
