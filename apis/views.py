@@ -1318,9 +1318,14 @@ class BoardList(generics.ListCreateAPIView):
     serializer_class = BoardSerializer
 
     def get_queryset(self):
-        boards = Board.objects.filter(
-            Q(owner=self.request.user) | Q(board_users__user=self.request.user)
-        ).order_by("name")
+        boards = (
+            Board.objects.filter(
+                Q(owner=self.request.user)
+                | Q(board_users__user=self.request.user)
+            )
+            .distinct()
+            .order_by("name")
+        )
         return boards
 
 
