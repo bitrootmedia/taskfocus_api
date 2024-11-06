@@ -5,6 +5,7 @@ import uuid
 import mimetypes
 from collections import defaultdict
 
+from django.db import transaction
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
@@ -70,6 +71,11 @@ from .serializers import (
     WorkSessionsBreakdownInputSerializer,
     WorkSessionsWSBSerializer,
     NoteSerializer,
+    BoardReadonlySerializer,
+    BoardSerializer,
+    CardSerializer,
+    CardItemSerializer,
+    BoardUserSerializer,
 )
 
 from core.models import (
@@ -91,6 +97,10 @@ from core.models import (
     TaskBlock,
     Pin,
     Note,
+    BoardUser,
+    Board,
+    Card,
+    CardItem,
 )
 from django.db.models import Q, F, Sum
 from .permissions import (
@@ -112,7 +122,7 @@ class UserList(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     search_fields = ["username"]
     pagination_class = CustomPaginationPageSize1k
-    
+
     def get_queryset(self):
         user_teams = Team.objects.filter(user=self.request.user)
         users = User.objects.filter(teams__in=user_teams).distinct()
@@ -1301,3 +1311,265 @@ class WorkSessionsBreakdownView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class BoardList(generics.ListCreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = BoardSerializer
+
+    def get_queryset(self):
+        boards = (
+            Board.objects.filter(
+                Q(owner=self.request.user)
+                | Q(board_users__user=self.request.user)
+            )
+            .distinct()
+            .order_by("name")
+        )
+        return boards
+
+
+class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (IsOwnerOrReadOnly,)
+
+    def get_queryset(self):
+        boards = Board.objects.filter(
+            Q(owner=self.request.user) | Q(board_users__user=self.request.user)
+        ).order_by("name")
+        return boards
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return BoardReadonlySerializer
+        return BoardSerializer
+
+
+class BoardUserView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def get_user(user_id):
+        return User.objects.filter(id=user_id).first()
+
+    @staticmethod
+    def user_in_board_users(board, user):
+        return board.board_users.filter(user=user).exists()
+
+    def get(self, request, board_id, *args, **kwargs):
+        # Make sure user has the access to requested board
+        board = (
+            Board.objects.filter(
+                Q(owner=self.request.user)
+                | Q(board_users__user=self.request.user)
+            )
+            .filter(id=board_id)
+            .first()
+        )
+
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        serializer = BoardUserSerializer(board.board_users.all(), many=True)
+        return Response(
+            {"results": serializer.data}, status=status.HTTP_200_OK
+        )
+
+    def post(self, request, board_id, *args, **kwargs):
+        board = Board.objects.filter(
+            Q(id=board_id) & Q(owner=request.user)
+        ).first()
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        user = self.get_user(request.data.get("user"))
+        if not user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        if self.user_in_board_users(board, user):
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        serializer = BoardUserSerializer(
+            data={"board": board.id, "user": user.id}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, board_id, *args, **kwargs):
+        board = Board.objects.filter(
+            Q(id=board_id) & Q(owner=request.user)
+        ).first()
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        user = self.get_user(request.data.get("user"))
+        if not user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        if not self.user_in_board_users(board, user):
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        BoardUser.objects.filter(Q(user=user) & Q(board_id=board_id)).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CardCreate(generics.CreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = CardSerializer
+
+    def perform_create(self, serializer):
+        board = serializer.validated_data.get("board")
+        if not board.user_has_board_access(self.request.user):
+            raise PermissionDenied()
+        return super().perform_create(serializer)
+
+
+class CardDetail(
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = CardSerializer
+
+    def get_queryset(self):
+        return Card.objects.filter(
+            Q(board__owner=self.request.user)
+            | Q(board__board_users__user=self.request.user)
+        )
+
+
+class CardMove(APIView):
+    def put(self, request, *args, **kwargs):
+        card_id = request.data.get("card")
+        new_position = request.data.get("position")
+        try:
+            new_position = int(new_position)
+        except (ValueError, TypeError):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        card = (
+            Card.objects.filter(
+                Q(board__owner=self.request.user)
+                | Q(board__board_users__user=self.request.user)
+            )
+            .filter(id=card_id)
+            .first()
+        )
+
+        if not card:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        if card.position == new_position:
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        with transaction.atomic():
+            old_position = card.position
+
+            if old_position < new_position:
+                card.board.cards.filter(
+                    position__gt=old_position, position__lte=new_position
+                ).update(position=F("position") - 1)
+            else:
+                card.board.cards.filter(
+                    position__lt=old_position, position__gte=new_position
+                ).update(position=F("position") + 1)
+
+            card.position = new_position
+            card.save()
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class CardItemCreate(generics.CreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = CardItemSerializer
+
+    def perform_create(self, serializer):
+        card = serializer.validated_data.get("card")
+        if not card.board.user_has_board_access(self.request.user):
+            raise PermissionDenied()
+        return super().perform_create(serializer)
+
+
+class CardItemDetail(
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = CardItemSerializer
+
+    def get_queryset(self):
+        return CardItem.objects.filter(
+            Q(card__board__owner=self.request.user)
+            | Q(card__board__board_users__user=self.request.user)
+        )
+
+
+class CardItemMove(APIView):  # Change Item position (or card)
+    def put(self, request, *args, **kwargs):
+        card_item_id = request.data.get("item")
+        new_card_id = request.data.get("card")
+        new_position = request.data.get("position")
+
+        try:
+            new_position = int(new_position)
+        except (ValueError, TypeError):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        card_item = (
+            CardItem.objects.filter(
+                Q(card__board__owner=self.request.user)
+                | Q(card__board__board_users__user=self.request.user)
+            )
+            .filter(id=card_item_id)
+            .first()
+        )
+
+        if not card_item:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        # Moving to different card
+        if str(card_item.card.id) != str(new_card_id):
+            with transaction.atomic():
+                old_card = card_item.card
+                new_card = (
+                    Card.objects.filter(
+                        Q(board__owner=self.request.user)
+                        | Q(board__board_users__user=self.request.user)
+                    )
+                    .filter(id=new_card_id)
+                    .first()
+                )
+
+                old_card.card_items.filter(position__gt=new_position).update(
+                    position=F("position") - 1
+                )
+
+                new_card.card_items.filter(position__gte=new_position).update(
+                    position=F("position") + 1
+                )
+
+                card_item.card = new_card
+                card_item.position = new_position
+                card_item.save()
+
+        # Swapping in the same card
+        else:
+            if card_item.position == new_position:
+                return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+            with transaction.atomic():
+                old_position = card_item.position
+
+                if old_position < new_position:
+                    card_item.card.card_items.filter(
+                        position__gt=old_position, position__lte=new_position
+                    ).update(position=F("position") - 1)
+                else:
+                    card_item.card.card_items.filter(
+                        position__lt=old_position, position__gte=new_position
+                    ).update(position=F("position") + 1)
+
+                card_item.position = new_position
+                card_item.save()
+
+        return Response(status=status.HTTP_200_OK)

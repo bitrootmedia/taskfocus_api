@@ -157,6 +157,37 @@ urlpatterns = [
         name="work_sessions_breakdown",
     ),
     path(
+        "boards",
+        views.BoardList.as_view(),
+        name="board_list",
+    ),
+    path(
+        "board/<pk>",
+        views.BoardDetail.as_view(),
+        name="board_detail",
+    ),
+    path(
+        "board-users/<uuid:board_id>",
+        views.BoardUserView.as_view(),
+        name="board_users",
+    ),
+    path("card-create", views.CardCreate.as_view(), name="card_create"),
+    path("card-detail/<pk>", views.CardDetail.as_view(), name="card_detail"),
+    path("card-move", views.CardMove.as_view(), name="card_move"),
+    path(
+        "card-item-create",
+        views.CardItemCreate.as_view(),
+        name="card_item_create",
+    ),
+    path(
+        "card-item-detail/<pk>",
+        views.CardItemDetail.as_view(),
+        name="card_item_detail",
+    ),
+    path(
+        "card-item-move", views.CardItemMove.as_view(), name="card_item_move"
+    ),
+    path(
         "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
 ]
