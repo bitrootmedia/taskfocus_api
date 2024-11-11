@@ -1334,8 +1334,12 @@ class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         boards = Board.objects.filter(
-            Q(owner=self.request.user) | Q(board_users__user=self.request.user)
-        ).order_by("name")
+            Q(id=self.kwargs["pk"])
+            & (
+                Q(owner=self.request.user)
+                | Q(board_users__user=self.request.user)
+            )
+        ).distinct()
         return boards
 
     def get_serializer_class(self):
@@ -1433,9 +1437,12 @@ class CardDetail(
 
     def get_queryset(self):
         return Card.objects.filter(
-            Q(board__owner=self.request.user)
-            | Q(board__board_users__user=self.request.user)
-        )
+            Q(id=self.kwargs["pk"])
+            & (
+                Q(board__owner=self.request.user)
+                | Q(board__board_users__user=self.request.user)
+            )
+        ).distinct()
 
 
 class CardMove(APIView):
@@ -1499,9 +1506,12 @@ class CardItemDetail(
 
     def get_queryset(self):
         return CardItem.objects.filter(
-            Q(card__board__owner=self.request.user)
-            | Q(card__board__board_users__user=self.request.user)
-        )
+            Q(id=self.kwargs["pk"])
+            & (
+                Q(card__board__owner=self.request.user)
+                | Q(card__board__board_users__user=self.request.user)
+            )
+        ).distinct()
 
 
 class CardItemMove(APIView):  # Change Item position (or card)

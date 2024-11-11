@@ -13,6 +13,7 @@ class BoardTest(APITestCase):
         cls.user = User.objects.create(username="user1")
         cls.user_2 = User.objects.create(username="user2")
         cls.user_3 = User.objects.create(username="user3")  # No Board access
+        cls.user_4 = User.objects.create(username="user4")  # No Board access
 
         cls.project = Project.objects.create(title="project1", owner=cls.user)
 
@@ -53,6 +54,10 @@ class BoardTest(APITestCase):
         cls.board_user = BoardUser.objects.create(
             board=cls.board,
             user=cls.user_2,
+        )
+
+        cls.board_user_4 = BoardUser.objects.create(
+            board=cls.board, user=cls.user_4
         )
 
         cls.board_2_user = BoardUser.objects.create(
