@@ -297,6 +297,13 @@ class Comment(models.Model):
         null=True,
         blank=True,
     )
+    block = models.ForeignKey(
+        TaskBlock,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        null=True,
+        blank=True,
+    )
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="comments"
     )
@@ -347,8 +354,33 @@ class Comment(models.Model):
             )
 
 
+class CommentReaction(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=150)
+    image = models.CharField(max_length=500)
+
+
+class CommentAck(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    seen_at = models.DateTimeField(null=True, blank=True)
+    reaction = models.ForeignKey(
+        CommentReaction, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    mentioned = models.BooleanField(null=True, blank=True)
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )
+
+
 class Note(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
