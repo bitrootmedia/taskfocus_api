@@ -14,6 +14,7 @@ from core.models import (
     TaskWorkSession,
     PrivateNote,
     Note,
+    Board,
 )
 
 
@@ -130,3 +131,9 @@ class TaskAccessFilter(filters.FilterSet):
     class Meta:
         model = TaskAccess
         fields = ["id", "task"]
+
+
+class BoardFilter(filters.FilterSet):
+    class Meta:
+        model = Board
+        fields = ["name"]
