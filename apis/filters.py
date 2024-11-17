@@ -90,9 +90,16 @@ class CommentFilter(filters.FilterSet):
 
 
 class NoteFilter(filters.FilterSet):
+    search = filters.CharFilter(method="filter_by_all_fields")
+
     class Meta:
         model = Note
         fields = ["user"]
+
+    def filter_by_all_fields(self, queryset, name, value):
+        return queryset.filter(
+            Q(title__icontains=value) | Q(content__icontains=value)
+        )
 
 
 class PrivateNoteFilter(filters.FilterSet):
