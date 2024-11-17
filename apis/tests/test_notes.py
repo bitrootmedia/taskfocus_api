@@ -51,6 +51,20 @@ class TestNotes(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json().get("results"), [])
 
+    def test_notes_list_search(self):
+        self.client.force_authenticate(user=self.user)
+        self.note_3.content += " uniqueSearchVal"
+        self.note_3.save()
+
+        response = self.client.get(
+            reverse("note_list") + "?search=uniqueSearchVal",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        note_ids = [x.get("id") for x in response.json().get("results")]
+
+        self.assertIn(str(self.note_3.id), note_ids)
+        self.assertNotIn(str(self.note.id), note_ids)
+
     def test_create_note_with_title(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(
