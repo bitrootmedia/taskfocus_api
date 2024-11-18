@@ -440,6 +440,13 @@ class Log(models.Model):
         null=True,
         blank=True,
     )
+    board = models.ForeignKey(
+        "core.Board",
+        on_delete=models.CASCADE,
+        related_name="logs",
+        null=True,
+        blank=True,
+    )
     action = models.CharField(max_length=7, choices=ActionType.choices)
     created_at = models.DateTimeField(auto_now_add=True)
     archived_at = models.DateTimeField(null=True, blank=True)
