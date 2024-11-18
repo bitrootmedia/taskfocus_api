@@ -428,3 +428,39 @@ class BoardTest(APITestCase):
         self.assertEqual(self.card_item_3.position, 1)
         # previous 1 in old card is now 0
         self.assertEqual(self.card_item_2.position, 0)
+
+    # --- CardItem get_log_label tests ---
+
+    def test_card_item_get_log_label_task(self):
+        card_item = CardItem.objects.create(
+            card=self.card,
+            task=self.task,
+        )
+        label = card_item.get_log_label()
+        self.assertEqual(label, f"Item ({self.task.title})")
+
+    def test_card_item_get_log_label_project(self):
+        card_item = CardItem.objects.create(
+            card=self.card,
+            project=self.project,
+        )
+        label = card_item.get_log_label()
+        self.assertEqual(label, f"Item ({self.project.title})")
+
+    def test_card_item_get_log_label_comment_short(self):
+        card_item = CardItem.objects.create(
+            card=self.card, comment="Short comment"  # less than 50 char
+        )
+        label = card_item.get_log_label()
+        self.assertEqual(label, "Item (Short comment)")
+
+    def test_card_item_get_log_label_comment_long(self):
+        hundred_x = "x" * 100
+
+        card_item = CardItem.objects.create(
+            card=self.card,
+            comment=hundred_x,
+        )
+        label = card_item.get_log_label()
+        fifty_x_and_ellipsis = "x" * 50 + "..."
+        self.assertEqual(label, f"Item ({fifty_x_and_ellipsis})")
