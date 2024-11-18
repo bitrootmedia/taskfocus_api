@@ -106,6 +106,19 @@ class BoardTest(APITestCase):
         self.assertIn(str(self.board_2.id), board_ids)
         self.assertNotIn(str(self.board_3.id), board_ids)
 
+    def test_board_list_search(self):
+        self.client.force_login(user=self.user)
+        response = self.client.get(
+            reverse("board_list") + f"?name={self.board.name}"
+        )
+        board_ids = [x["id"] for x in response.json()["results"]]
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertIn(str(self.board.id), board_ids)
+        self.assertNotIn(str(self.board_2.id), board_ids)
+        self.assertNotIn(str(self.board_3.id), board_ids)
+
     def test_board_create(self):
         self.client.force_login(user=self.user)
         response = self.client.post(
