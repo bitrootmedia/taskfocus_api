@@ -134,6 +134,8 @@ class TaskAccessFilter(filters.FilterSet):
 
 
 class BoardFilter(filters.FilterSet):
+    name = django_filters.CharFilter(lookup_expr="icontains")
+
     class Meta:
         model = Board
         fields = ["name"]
