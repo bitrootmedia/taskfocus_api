@@ -36,6 +36,7 @@ from .filters import (
     NotificationAckFilter,
     PrivateNoteFilter,
     NoteFilter,
+    BoardFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -1316,6 +1317,8 @@ class WorkSessionsBreakdownView(APIView):
 class BoardList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = BoardSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = BoardFilter
 
     def get_queryset(self):
         boards = (
