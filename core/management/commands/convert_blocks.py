@@ -7,7 +7,7 @@ from core.models import Task, TaskBlock, User, Log
 
 
 class Command(BaseCommand):
-    help = 'Converts all existing blocks to new model based format'
+    help = "Converts all existing blocks to new model based format"
 
     def handle(self, *args, **options):
 
@@ -20,7 +20,9 @@ class Command(BaseCommand):
 
                 try:
                     old_blocks_dict = task.blocks_old
-                    if isinstance(old_blocks_dict, str):  # we got un-serialized json
+                    if isinstance(
+                        old_blocks_dict, str
+                    ):  # we got un-serialized json
                         old_blocks_dict = json.loads(old_blocks_dict)
 
                     for i, block_data in enumerate(old_blocks_dict):
@@ -30,7 +32,9 @@ class Command(BaseCommand):
                             new_block = TaskBlock(
                                 task=task,
                                 block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-                                content={"markdown": block_data.get("content")},
+                                content={
+                                    "markdown": block_data.get("content")
+                                },
                                 position=i,
                                 created_by=task.owner,
                             )
@@ -40,7 +44,7 @@ class Command(BaseCommand):
                                 block_type=TaskBlock.BlockTypeChoices.IMAGE,
                                 content={"path": block_data.get("path")},
                                 position=i,
-                                created_by=task.owner
+                                created_by=task.owner,
                             )
                         elif block_type == "checklist":
                             new_block = TaskBlock(
@@ -48,10 +52,10 @@ class Command(BaseCommand):
                                 block_type=TaskBlock.BlockTypeChoices.CHECKLIST,
                                 content={
                                     "title": block_data.get("title"),
-                                    "elements": block_data.get("elements")
+                                    "elements": block_data.get("elements"),
                                 },
                                 position=i,
-                                created_by=task.owner
+                                created_by=task.owner,
                             )
                         else:
                             raise CommandError(
@@ -63,13 +67,19 @@ class Command(BaseCommand):
                     with transaction.atomic():
                         TaskBlock.objects.bulk_create(blocks)
                         self.stdout.write(
-                            self.style.SUCCESS(f"Successfully converted {len(blocks)} blocks for task {task.id}"))
+                            self.style.SUCCESS(
+                                f"Successfully converted {len(blocks)} blocks for task {task.id}"
+                            )
+                        )
 
                 except Exception as e:
                     Log.objects.create(
                         task=task,
                         user=admin_user,
-                        message=f"Error while converting block(s) e: {str(e)}"
+                        message=f"Error while converting block(s) e: {str(e)}",
                     )
                     self.stdout.write(
-                        self.style.ERROR(f"Something went wrong while converting task ({task.id}) blocks: {str(e)}"))
+                        self.style.ERROR(
+                            f"Something went wrong while converting task ({task.id}) blocks: {str(e)}"
+                        )
+                    )

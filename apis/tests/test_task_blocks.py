@@ -67,19 +67,23 @@ class TaskBlocksTests(APITestCase):
             block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
             content="Block 3 Content",
             created_by=cls.user_3,
-            position=1
+            position=1,
         )
 
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
 
     def test_task_block_list_no_task_access(self):
         self.client.force_authenticate(user=self.user_2)
-        response = self.client.get(reverse('task_block_list', kwargs={"pk": str(self.task_1.id)}))
+        response = self.client.get(
+            reverse("task_block_list", kwargs={"pk": str(self.task_1.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_task_block_list_authenticated_and_ordered(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.get(reverse('task_block_list', kwargs={"pk": str(self.task_3.id)}))
+        response = self.client.get(
+            reverse("task_block_list", kwargs={"pk": str(self.task_3.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.json().get("results")
         self.assertEqual(results[0].get("id"), str(self.block_3.id))
@@ -95,7 +99,7 @@ class TaskBlocksTests(APITestCase):
                 "content": '{"markdown":"SHOULD NOT BE CREATED"}',
                 "position": 1,
                 "created_by": self.user_2.id,
-            }
+            },
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -108,7 +112,7 @@ class TaskBlocksTests(APITestCase):
                 "content": '{"markdown":"NEW BLOCK CONTENT"}',
                 "position": 3,
                 "created_by": self.user.id,
-            }
+            },
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -120,7 +124,7 @@ class TaskBlocksTests(APITestCase):
                 "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
                 "content": '{"markdown":"NEW BLOCK CONTENT"}',
                 "position": 0,
-            }
+            },
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -132,7 +136,7 @@ class TaskBlocksTests(APITestCase):
         self.client.force_authenticate(user=self.user_2)
         response = self.client.put(
             reverse("task_block_detail", kwargs={"pk": self.block_1.id}),
-            {"content": '{"markdown": "Will not be updated"}'}
+            {"content": '{"markdown": "Will not be updated"}'},
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -140,17 +144,19 @@ class TaskBlocksTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.put(
             reverse("task_block_detail", kwargs={"pk": self.block_4.id}),
-            {"content": '{"markdown": "Block 4 Updated Content"}'}
+            {"content": '{"markdown": "Block 4 Updated Content"}'},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.block_4.refresh_from_db()
-        self.assertEqual(self.block_4.content, {"markdown": "Block 4 Updated Content"})
+        self.assertEqual(
+            self.block_4.content, {"markdown": "Block 4 Updated Content"}
+        )
 
     def test_task_block_reorder_on_update(self):
         self.client.force_authenticate(user=self.user_3)
         response = self.client.put(
             reverse("task_block_detail", kwargs={"pk": self.block_4.id}),
-            {"position": 0}
+            {"position": 0},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.block_3.refresh_from_db()

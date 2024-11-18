@@ -25,7 +25,7 @@ class ConvertBlocksTest(TestCase):
 
         markdown_old_block = {
             "type": "markdown",
-            "content": "mkd down\nwith\n\n**different**\n*stuff in it*\n##### test"
+            "content": "mkd down\nwith\n\n**different**\n*stuff in it*\n##### test",
         }
         image_old_block = {"type": "image", "path": "some/path/here"}
         checklist_old_block = {
@@ -33,13 +33,22 @@ class ConvertBlocksTest(TestCase):
             "title": "the title",
             "elements": [
                 {"label": "a", "checked": True},
-                {"label": "b", "checked": False}
-            ]
+                {"label": "b", "checked": False},
+            ],
         }
-        empty_checklist = {"type": "checklist", "title": "empty checklist", "elements": []}
+        empty_checklist = {
+            "type": "checklist",
+            "title": "empty checklist",
+            "elements": [],
+        }
 
         old_blocks_json = json.dumps(
-            [markdown_old_block, image_old_block, checklist_old_block, empty_checklist]
+            [
+                markdown_old_block,
+                image_old_block,
+                checklist_old_block,
+                empty_checklist,
+            ]
         )
 
         task = Task.objects.create(
@@ -56,27 +65,41 @@ class ConvertBlocksTest(TestCase):
         created_blocks = TaskBlock.objects.order_by("position")
 
         self.assertEqual(TaskBlock.objects.count(), created_blocks.count())
-        self.assertEqual(created_blocks[0].block_type, TaskBlock.BlockTypeChoices.MARKDOWN)
+        self.assertEqual(
+            created_blocks[0].block_type, TaskBlock.BlockTypeChoices.MARKDOWN
+        )
         self.assertEqual(created_blocks[0].position, 0)
-        self.assertEqual(created_blocks[0].content, {
-            "markdown": "mkd down\nwith\n\n**different**\n*stuff in it*\n##### test"
-        })
+        self.assertEqual(
+            created_blocks[0].content,
+            {
+                "markdown": "mkd down\nwith\n\n**different**\n*stuff in it*\n##### test"
+            },
+        )
 
-        self.assertEqual(created_blocks[1].block_type, TaskBlock.BlockTypeChoices.IMAGE)
+        self.assertEqual(
+            created_blocks[1].block_type, TaskBlock.BlockTypeChoices.IMAGE
+        )
         self.assertEqual(created_blocks[1].position, 1)
         self.assertEqual(created_blocks[1].content, {"path": "some/path/here"})
-        self.assertEqual(created_blocks[2].block_type, TaskBlock.BlockTypeChoices.CHECKLIST)
+        self.assertEqual(
+            created_blocks[2].block_type, TaskBlock.BlockTypeChoices.CHECKLIST
+        )
         self.assertEqual(created_blocks[2].position, 2)
-        self.assertEqual(created_blocks[2].content, {
-            "title": "the title",
-            "elements": [
-                {"label": "a", "checked": True},
-                {"label": "b", "checked": False}
-            ]
-        })
-        self.assertEqual(created_blocks[3].block_type, TaskBlock.BlockTypeChoices.CHECKLIST)
+        self.assertEqual(
+            created_blocks[2].content,
+            {
+                "title": "the title",
+                "elements": [
+                    {"label": "a", "checked": True},
+                    {"label": "b", "checked": False},
+                ],
+            },
+        )
+        self.assertEqual(
+            created_blocks[3].block_type, TaskBlock.BlockTypeChoices.CHECKLIST
+        )
         self.assertEqual(created_blocks[3].position, 3)
-        self.assertEqual(created_blocks[3].content, {
-            "title": "empty checklist",
-            "elements": []
-        })
+        self.assertEqual(
+            created_blocks[3].content,
+            {"title": "empty checklist", "elements": []},
+        )
