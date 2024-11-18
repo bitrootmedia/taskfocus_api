@@ -676,3 +676,21 @@ class CardItem(models.Model):
         Card, on_delete=models.CASCADE, related_name="card_items"
     )
     position = models.IntegerField(default=0)
+
+    def get_log_label(self):
+        """
+        Used to get an identifiable label of a CardItem for log entries
+        """
+
+        label = "Item ({})"
+        if self.task:
+            return label.format(self.task.title)
+        if self.project:
+            return label.format(self.project.title)
+        if self.comment:
+            if len(self.comment) > 50:
+                return label.format(self.comment[:50] + "...")
+            else:
+                return label.format(self.comment[:50])
+
+        return label.format(f"id:{self.id}")
