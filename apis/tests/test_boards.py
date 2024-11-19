@@ -464,3 +464,21 @@ class BoardTest(APITestCase):
         label = card_item.get_log_label()
         fifty_x_and_ellipsis = "x" * 50 + "..."
         self.assertEqual(label, f"Item ({fifty_x_and_ellipsis})")
+
+    def test_board_log_list(self):
+        self.client.force_login(user=self.user)
+        self.client.put(  # Create log
+            reverse("board_detail", kwargs={"pk": self.board.id}),
+            {"name": "Board 1 Name Updated", "owner": self.user.id},
+        )
+
+        response = self.client.get(
+            reverse("board_log_list", kwargs={"pk": self.board.id})
+        )
+        messages = [x["message"] for x in response.json()["results"]]
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            f"Board {self.board.name} Name Updated updated by {self.user}",
+            messages,
+        )
