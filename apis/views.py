@@ -1375,6 +1375,21 @@ class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
 
 
+class BoardLogList(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk, *args, **kwargs):
+        board = Board.objects.filter(pk=pk, owner=self.request.user).first()
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        logs = Log.objects.filter(board=board).order_by("-created_at")
+        serializer = LogListSerializer(logs, many=True)
+        return JsonResponse(
+            {"results": serializer.data}, status=status.HTTP_200_OK
+        )
+
+
 class BoardUserView(APIView):
     permission_classes = (IsAuthenticated,)
 
