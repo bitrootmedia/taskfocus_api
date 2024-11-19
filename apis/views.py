@@ -36,6 +36,7 @@ from .filters import (
     NotificationAckFilter,
     PrivateNoteFilter,
     NoteFilter,
+    BoardFilter,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -1316,6 +1317,8 @@ class WorkSessionsBreakdownView(APIView):
 class BoardList(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = BoardSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = BoardFilter
 
     def get_queryset(self):
         boards = (
@@ -1327,6 +1330,14 @@ class BoardList(generics.ListCreateAPIView):
             .order_by("name")
         )
         return boards
+
+    def perform_create(self, serializer):
+        board = serializer.save()
+        Log.objects.create(
+            board=board,
+            user=self.request.user,
+            message=f"Board {board.name} created by {self.request.user}",
+        )
 
 
 class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -1346,6 +1357,37 @@ class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == "GET":
             return BoardReadonlySerializer
         return BoardSerializer
+
+    def perform_update(self, serializer):
+        board = serializer.save()
+        Log.objects.create(
+            board=serializer.instance,
+            user=self.request.user,
+            message=f"Board {board.name} updated by {self.request.user}",
+        )
+
+    def perform_destroy(self, instance):
+        Log.objects.create(
+            board=instance,
+            user=self.request.user,
+            message=f"Board {instance.name} deleted by {self.request.user}",
+        )
+        instance.delete()
+
+
+class BoardLogList(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk, *args, **kwargs):
+        board = Board.objects.filter(pk=pk, owner=self.request.user).first()
+        if not board:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        logs = Log.objects.filter(board=board).order_by("-created_at")
+        serializer = LogListSerializer(logs, many=True)
+        return JsonResponse(
+            {"results": serializer.data}, status=status.HTTP_200_OK
+        )
 
 
 class BoardUserView(APIView):
@@ -1398,6 +1440,12 @@ class BoardUserView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        Log.objects.create(
+            board=board,
+            user=self.request.user,
+            message=f"{user} added to board by {self.request.user}",
+        )
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, board_id, *args, **kwargs):
@@ -1415,6 +1463,13 @@ class BoardUserView(APIView):
             return Response(status=status.HTTP_304_NOT_MODIFIED)
 
         BoardUser.objects.filter(Q(user=user) & Q(board_id=board_id)).delete()
+
+        Log.objects.create(
+            board=board,
+            user=self.request.user,
+            message=f"{user} removed from board by {self.request.user}",
+        )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -1426,7 +1481,13 @@ class CardCreate(generics.CreateAPIView):
         board = serializer.validated_data.get("board")
         if not board.user_has_board_access(self.request.user):
             raise PermissionDenied()
-        return super().perform_create(serializer)
+        card = serializer.save()
+
+        Log.objects.create(
+            board=board,
+            user=self.request.user,
+            message=f"Card {card.name} created by {self.request.user}",
+        )
 
 
 class CardDetail(
@@ -1443,6 +1504,22 @@ class CardDetail(
                 | Q(board__board_users__user=self.request.user)
             )
         ).distinct()
+
+    def perform_update(self, serializer):
+        card = serializer.save()
+        Log.objects.create(
+            board=card.board,
+            user=self.request.user,
+            message=f"Card {card.name} created by {self.request.user}",
+        )
+
+    def perform_destroy(self, instance):
+        Log.objects.create(
+            board=instance.board,
+            user=self.request.user,
+            message=f"Card {instance.name} deleted by {self.request.user}",
+        )
+        instance.delete()
 
 
 class CardMove(APIView):
@@ -1484,6 +1561,12 @@ class CardMove(APIView):
             card.position = new_position
             card.save()
 
+        Log.objects.create(
+            board=card.board,
+            user=self.request.user,
+            message=f"Card {card.name} moved by {self.request.user}",
+        )
+
         return Response(status=status.HTTP_200_OK)
 
 
@@ -1495,7 +1578,12 @@ class CardItemCreate(generics.CreateAPIView):
         card = serializer.validated_data.get("card")
         if not card.board.user_has_board_access(self.request.user):
             raise PermissionDenied()
-        return super().perform_create(serializer)
+        card_item = serializer.save()
+        Log.objects.create(
+            board=card.board,
+            user=self.request.user,
+            message=f"{card_item.get_log_label()} created by {self.request.user}",
+        )
 
 
 class CardItemDetail(
@@ -1512,6 +1600,22 @@ class CardItemDetail(
                 | Q(card__board__board_users__user=self.request.user)
             )
         ).distinct()
+
+    def perform_update(self, serializer):
+        card_item = serializer.save()
+        Log.objects.create(
+            board=card_item.card.board,
+            user=self.request.user,
+            message=f"{card_item.get_log_label()} edited by {self.request.user}",
+        )
+
+    def perform_destroy(self, instance):
+        Log.objects.create(
+            board=instance.card.board,
+            user=self.request.user,
+            message=f"{instance.get_log_label()} deleted by {self.request.user}",
+        )
+        instance.delete()
 
 
 class CardItemMove(APIView):  # Change Item position (or card)
@@ -1562,6 +1666,16 @@ class CardItemMove(APIView):  # Change Item position (or card)
                 card_item.position = new_position
                 card_item.save()
 
+                Log.objects.create(
+                    board=old_card.board,
+                    user=self.request.user,
+                    message="{} moved to new card ({}) by {}".format(
+                        card_item.get_log_label(),
+                        new_card.name,
+                        self.request.user,
+                    ),
+                )
+
         # Swapping in the same card
         else:
             if card_item.position == new_position:
@@ -1581,5 +1695,11 @@ class CardItemMove(APIView):  # Change Item position (or card)
 
                 card_item.position = new_position
                 card_item.save()
+
+                Log.objects.create(
+                    board=card_item.card.board,
+                    user=self.request.user,
+                    message=f"{card_item.get_log_label()} moved by {self.request.user}",
+                )
 
         return Response(status=status.HTTP_200_OK)

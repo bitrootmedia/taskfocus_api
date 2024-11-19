@@ -167,6 +167,9 @@ urlpatterns = [
         name="board_detail",
     ),
     path(
+        "board/logs/<pk>", views.BoardLogList.as_view(), name="board_log_list"
+    ),
+    path(
         "board-users/<uuid:board_id>",
         views.BoardUserView.as_view(),
         name="board_users",

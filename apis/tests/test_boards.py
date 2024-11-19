@@ -106,6 +106,19 @@ class BoardTest(APITestCase):
         self.assertIn(str(self.board_2.id), board_ids)
         self.assertNotIn(str(self.board_3.id), board_ids)
 
+    def test_board_list_search(self):
+        self.client.force_login(user=self.user)
+        response = self.client.get(
+            reverse("board_list") + f"?name={self.board.name}"
+        )
+        board_ids = [x["id"] for x in response.json()["results"]]
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertIn(str(self.board.id), board_ids)
+        self.assertNotIn(str(self.board_2.id), board_ids)
+        self.assertNotIn(str(self.board_3.id), board_ids)
+
     def test_board_create(self):
         self.client.force_login(user=self.user)
         response = self.client.post(
@@ -415,3 +428,57 @@ class BoardTest(APITestCase):
         self.assertEqual(self.card_item_3.position, 1)
         # previous 1 in old card is now 0
         self.assertEqual(self.card_item_2.position, 0)
+
+    # --- CardItem get_log_label tests ---
+
+    def test_card_item_get_log_label_task(self):
+        card_item = CardItem.objects.create(
+            card=self.card,
+            task=self.task,
+        )
+        label = card_item.get_log_label()
+        self.assertEqual(label, f"Item ({self.task.title})")
+
+    def test_card_item_get_log_label_project(self):
+        card_item = CardItem.objects.create(
+            card=self.card,
+            project=self.project,
+        )
+        label = card_item.get_log_label()
+        self.assertEqual(label, f"Item ({self.project.title})")
+
+    def test_card_item_get_log_label_comment_short(self):
+        card_item = CardItem.objects.create(
+            card=self.card, comment="Short comment"  # less than 50 char
+        )
+        label = card_item.get_log_label()
+        self.assertEqual(label, "Item (Short comment)")
+
+    def test_card_item_get_log_label_comment_long(self):
+        hundred_x = "x" * 100
+
+        card_item = CardItem.objects.create(
+            card=self.card,
+            comment=hundred_x,
+        )
+        label = card_item.get_log_label()
+        fifty_x_and_ellipsis = "x" * 50 + "..."
+        self.assertEqual(label, f"Item ({fifty_x_and_ellipsis})")
+
+    def test_board_log_list(self):
+        self.client.force_login(user=self.user)
+        self.client.put(  # Create log
+            reverse("board_detail", kwargs={"pk": self.board.id}),
+            {"name": "Board 1 Name Updated", "owner": self.user.id},
+        )
+
+        response = self.client.get(
+            reverse("board_log_list", kwargs={"pk": self.board.id})
+        )
+        messages = [x["message"] for x in response.json()["results"]]
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            f"Board {self.board.name} Name Updated updated by {self.user}",
+            messages,
+        )

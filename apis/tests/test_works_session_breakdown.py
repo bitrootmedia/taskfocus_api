@@ -7,7 +7,6 @@ from core.models import User, Task, TaskWorkSession
 
 
 class WorkSessionBreakdownTests(APITestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create(username="user1")
@@ -19,9 +18,14 @@ class WorkSessionBreakdownTests(APITestCase):
         cls.task_2 = Task.objects.create(
             owner=cls.user, title="Task 2", description="Task 2 Description"
         )
-        cls.base_dt = datetime.datetime(2024,1,1,10,) # 10:00 2024-01-01
+        cls.base_dt = datetime.datetime(
+            2024,
+            1,
+            1,
+            10,
+        )  # 10:00 2024-01-01
         cls.next_day = cls.base_dt + datetime.timedelta(days=1)
-        cls.work_session_1 = TaskWorkSession.objects.create( # 10:00 - 10:20
+        cls.work_session_1 = TaskWorkSession.objects.create(  # 10:00 - 10:20
             started_at=cls.base_dt,
             stopped_at=cls.base_dt + datetime.timedelta(minutes=20),
             task=cls.task_1,
@@ -45,29 +49,36 @@ class WorkSessionBreakdownTests(APITestCase):
         # TODO: Add authorization - staff only?
         self.client.force_authenticate(user=self.user)
 
-        r = self.client.post(reverse('work_sessions_breakdown'), data={
-            "user_id": self.user.id,
-            "start_date": self.base_dt.strftime("%Y-%m-%d"),
-            "end_date": self.next_day.strftime("%Y-%m-%d"),
-        })
+        r = self.client.post(
+            reverse("work_sessions_breakdown"),
+            data={
+                "user_id": self.user.id,
+                "start_date": self.base_dt.strftime("%Y-%m-%d"),
+                "end_date": self.next_day.strftime("%Y-%m-%d"),
+            },
+        )
         self.assertEqual(r.status_code, status.HTTP_200_OK)
-
 
     def test_no_sessions(self):
         self.client.force_authenticate(user=self.user_2)
-        r = self.client.post(reverse('work_sessions_breakdown'), data={
-            "user_id": self.user_2.id,
-            "start_date": self.base_dt.strftime("%Y-%m-%d"),
-            "end_date": self.next_day.strftime("%Y-%m-%d"),
-        })
+        r = self.client.post(
+            reverse("work_sessions_breakdown"),
+            data={
+                "user_id": self.user_2.id,
+                "start_date": self.base_dt.strftime("%Y-%m-%d"),
+                "end_date": self.next_day.strftime("%Y-%m-%d"),
+            },
+        )
 
         self.assertEqual(r.status_code, status.HTTP_200_OK)
 
     def test_missing_data(self):
         self.client.force_authenticate(user=self.user_2)
-        r = self.client.post(reverse('work_sessions_breakdown'), data={
-            "user_id": self.user.id,
-        })
+        r = self.client.post(
+            reverse("work_sessions_breakdown"),
+            data={
+                "user_id": self.user.id,
+            },
+        )
 
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
-

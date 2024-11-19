@@ -14,6 +14,7 @@ from core.models import (
     TaskWorkSession,
     PrivateNote,
     Note,
+    Board,
 )
 
 
@@ -90,9 +91,16 @@ class CommentFilter(filters.FilterSet):
 
 
 class NoteFilter(filters.FilterSet):
+    search = filters.CharFilter(method="filter_by_all_fields")
+
     class Meta:
         model = Note
         fields = ["user"]
+
+    def filter_by_all_fields(self, queryset, name, value):
+        return queryset.filter(
+            Q(title__icontains=value) | Q(content__icontains=value)
+        )
 
 
 class PrivateNoteFilter(filters.FilterSet):
@@ -123,3 +131,11 @@ class TaskAccessFilter(filters.FilterSet):
     class Meta:
         model = TaskAccess
         fields = ["id", "task"]
+
+
+class BoardFilter(filters.FilterSet):
+    name = django_filters.CharFilter(lookup_expr="icontains")
+
+    class Meta:
+        model = Board
+        fields = ["name"]

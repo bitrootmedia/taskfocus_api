@@ -51,36 +51,48 @@ class PinTests(APITestCase):
 
     def test_list_task_pins(self):
         self.client.force_authenticate(user=self.user_2)
-        response = self.client.get(reverse('pinned_task_list'))
+        response = self.client.get(reverse("pinned_task_list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data["count"], 1)
 
     def test_create_pin_no_task_access(self):
         self.client.force_authenticate(user=self.user_2)
-        response = self.client.post(reverse('pin_task_detail', kwargs={"task_id": str(self.task_3.id)}))
+        response = self.client.post(
+            reverse("pin_task_detail", kwargs={"task_id": str(self.task_3.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_pin(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.post(reverse('pin_task_detail', kwargs={"task_id": str(self.task_3.id)}))
+        response = self.client.post(
+            reverse("pin_task_detail", kwargs={"task_id": str(self.task_3.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_pin_already_pinned(self):
         self.client.force_authenticate(user=self.user_2)
-        response = self.client.post(reverse('pin_task_detail', kwargs={"task_id": str(self.task_2.id)}))
+        response = self.client.post(
+            reverse("pin_task_detail", kwargs={"task_id": str(self.task_2.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_304_NOT_MODIFIED)
 
     def test_delete_pin_no_task_access(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.delete(reverse('pin_task_detail', kwargs={"task_id": str(self.task_2.id)}))
+        response = self.client.delete(
+            reverse("pin_task_detail", kwargs={"task_id": str(self.task_2.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_pin(self):
         self.client.force_authenticate(user=self.user_2)
-        response = self.client.delete(reverse('pin_task_detail', kwargs={"task_id": str(self.task_2.id)}))
+        response = self.client.delete(
+            reverse("pin_task_detail", kwargs={"task_id": str(self.task_2.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_delete_pin_not_pinned(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.delete(reverse('pin_task_detail', kwargs={"task_id": str(self.task_3.id)}))
+        response = self.client.delete(
+            reverse("pin_task_detail", kwargs={"task_id": str(self.task_3.id)})
+        )
         self.assertEqual(response.status_code, status.HTTP_304_NOT_MODIFIED)

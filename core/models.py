@@ -297,6 +297,13 @@ class Comment(models.Model):
         null=True,
         blank=True,
     )
+    block = models.ForeignKey(
+        TaskBlock,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        null=True,
+        blank=True,
+    )
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="comments"
     )
@@ -347,8 +354,33 @@ class Comment(models.Model):
             )
 
 
+class CommentReaction(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=150)
+    image = models.CharField(max_length=500)
+
+
+class CommentAck(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    seen_at = models.DateTimeField(null=True, blank=True)
+    reaction = models.ForeignKey(
+        CommentReaction, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    mentioned = models.BooleanField(null=True, blank=True)
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )
+
+
 class Note(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -403,6 +435,13 @@ class Log(models.Model):
     )
     comment = models.ForeignKey(
         Comment,
+        on_delete=models.CASCADE,
+        related_name="logs",
+        null=True,
+        blank=True,
+    )
+    board = models.ForeignKey(
+        "core.Board",
         on_delete=models.CASCADE,
         related_name="logs",
         null=True,
@@ -637,3 +676,21 @@ class CardItem(models.Model):
         Card, on_delete=models.CASCADE, related_name="card_items"
     )
     position = models.IntegerField(default=0)
+
+    def get_log_label(self):
+        """
+        Used to get an identifiable label of a CardItem for log entries
+        """
+
+        label = "Item ({})"
+        if self.task:
+            return label.format(self.task.title)
+        if self.project:
+            return label.format(self.project.title)
+        if self.comment:
+            if len(self.comment) > 50:
+                return label.format(self.comment[:50] + "...")
+            else:
+                return label.format(self.comment[:50])
+
+        return label.format(f"id:{self.id}")

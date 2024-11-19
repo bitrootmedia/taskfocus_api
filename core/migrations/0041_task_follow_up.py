@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0040_task_block_history'),
+        ("core", "0040_task_block_history"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='task',
-            name='follow_up',
+            model_name="task",
+            name="follow_up",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]
