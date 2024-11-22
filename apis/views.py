@@ -1517,6 +1517,9 @@ class CardDetail(
         )
 
     def perform_destroy(self, instance):
+        if CardItem.objects.filter(card=instance).exists():
+            raise PermissionDenied("Cannot remove a card that contains items")
+
         Log.objects.create(
             board=instance.board,
             user=self.request.user,
