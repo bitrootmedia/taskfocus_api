@@ -50,7 +50,18 @@ jobs:
         overwrite: true
         source: "./*"
         target: "/home/deploy/taskfocus_api"
-    
+
+    - name: Apply migrations
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        key: ${{ secrets.STAGE_KEY }}
+        port: ${{ secrets.STAGE_PORT }}
+        # Assumes venv already exists and user has access to binaries
+        script: |
+          source /home/deploy/taskfocus_api/venv/bin/activate python manage.py migrate
+
     - name: Restart supervisor
       uses: appleboy/ssh-action@master
       with:
