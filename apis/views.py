@@ -11,7 +11,7 @@ from django.utils.text import slugify
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -1367,6 +1367,11 @@ class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def perform_destroy(self, instance):
+        if CardItem.objects.filter(card__board=instance).exists():
+            raise ValidationError(
+                {"error": "Cannot remove a board that contains items"}
+            )
+
         Log.objects.create(
             board=instance,
             user=self.request.user,
