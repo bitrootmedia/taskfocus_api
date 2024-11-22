@@ -60,7 +60,7 @@ jobs:
         port: ${{ secrets.STAGE_PORT }}
         # Assumes venv already exists and user has access to binaries
         script: |
-          source /home/deploy/taskfocus_api/venv/bin/activate python manage.py migrate
+           source /home/deploy/taskfocus_api/venv/bin/activate && python /home/deploy/taskfocus_api/manage.py migrate
 
     - name: Restart supervisor
       uses: appleboy/ssh-action@master
