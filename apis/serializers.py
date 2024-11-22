@@ -497,13 +497,29 @@ class CardItemReadOnlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CardItem
-        fields = ("id", "task", "project", "comment", "card", "position")
+        fields = (
+            "id",
+            "task",
+            "project",
+            "comment",
+            "card",
+            "position",
+            "config",
+        )
 
 
 class CardItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CardItem
-        fields = ("id", "task", "project", "comment", "card", "position")
+        fields = (
+            "id",
+            "task",
+            "project",
+            "comment",
+            "card",
+            "position",
+            "config",
+        )
 
 
 class CardReadOnlySerializer(serializers.ModelSerializer):
@@ -511,13 +527,13 @@ class CardReadOnlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Card
-        fields = ("id", "board", "name", "position", "card_items")
+        fields = ("id", "board", "name", "position", "card_items", "config")
 
 
 class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Card
-        fields = ("id", "board", "name", "position")
+        fields = ("id", "board", "name", "position", "config")
 
 
 class BoardReadonlySerializer(serializers.ModelSerializer):
@@ -525,7 +541,7 @@ class BoardReadonlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Board
-        fields = ("id", "name", "owner", "cards")
+        fields = ("id", "name", "owner", "cards", "config")
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -533,7 +549,7 @@ class BoardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Board
-        fields = ("id", "name", "owner")
+        fields = ("id", "name", "owner", "config")
 
 
 class BoardUserSerializer(serializers.ModelSerializer):
