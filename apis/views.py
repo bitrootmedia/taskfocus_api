@@ -1368,9 +1368,7 @@ class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         if CardItem.objects.filter(card__board=instance).exists():
-            raise ValidationError(
-                {"error": "Cannot remove a board that contains items"}
-            )
+            raise PermissionDenied("Cannot remove a board that contains items")
 
         Log.objects.create(
             board=instance,
