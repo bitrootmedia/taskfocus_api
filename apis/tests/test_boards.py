@@ -156,6 +156,17 @@ class BoardTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(self.board.name, "Board 1 Name Updated")
 
+    def test_board_detail_edit_config(self):
+        self.client.force_login(user=self.user)
+        response = self.client.patch(
+            reverse("board_detail", kwargs={"pk": self.board.id}),
+            {"config": {"class": "bg-pink"}},
+            format="json",
+        )
+        self.board.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.board.config, {"class": "bg-pink"})
+
     def test_board_detail_delete_not_owner(self):
         self.client.force_login(user=self.user_2)
         response = self.client.delete(
@@ -307,6 +318,17 @@ class BoardTest(APITestCase):
         self.card.refresh_from_db()
         self.assertEqual(self.card.name, "New Name")
 
+    def test_card_edit_config(self):
+        self.client.force_login(self.user)
+        response = self.client.patch(
+            reverse("card_detail", kwargs={"pk": self.card.id}),
+            {"config": {"class": "bg-pink"}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.card.refresh_from_db()
+        self.assertEqual(self.card.config, {"class": "bg-pink"})
+
     def test_card_delete_not_empty(self):
         self.client.force_login(self.user)
         response = self.client.delete(
@@ -411,6 +433,17 @@ class BoardTest(APITestCase):
             {"task": self.task_3.id, "card": self.card_2.id, "position": 0},
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_card_item_edit_config(self):
+        self.client.force_login(self.user)
+        response = self.client.patch(
+            reverse("card_item_detail", kwargs={"pk": self.card_item.id}),
+            {"config": {"class": "bg-pink"}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.card_item.refresh_from_db()
+        self.assertEqual(self.card_item.config, {"class": "bg-pink"})
 
     def test_card_item_delete(self):
         self.client.force_login(self.user)

@@ -627,6 +627,7 @@ class Board(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="owned_boards"
     )
+    config = models.JSONField(default=dict, blank=True)
 
     def user_has_board_access(self, user):
         return (self.owner == user) or self.board_users.filter(
@@ -653,6 +654,7 @@ class Card(models.Model):
     )
     name = models.CharField(max_length=150)
     position = models.IntegerField(default=0)
+    config = models.JSONField(default=dict, blank=True)
 
 
 class CardItem(models.Model):
@@ -676,6 +678,7 @@ class CardItem(models.Model):
         Card, on_delete=models.CASCADE, related_name="card_items"
     )
     position = models.IntegerField(default=0)
+    config = models.JSONField(default=dict, blank=True)
 
     def get_log_label(self):
         """
