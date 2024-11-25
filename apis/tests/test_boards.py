@@ -163,7 +163,21 @@ class BoardTest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_board_detail_delete_not_empty(self):
+        self.client.force_login(user=self.user)
+        response = self.client.delete(
+            reverse("board_detail", kwargs={"pk": self.board.id})
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            "Cannot remove a board that contains items",
+            response.json()["detail"],
+        )
+
     def test_board_detail_delete(self):
+        # Delete all items from the board
+        CardItem.objects.filter(card__board=self.board).delete()
+
         self.client.force_login(user=self.user)
         response = self.client.delete(
             reverse("board_detail", kwargs={"pk": self.board.id})
@@ -293,7 +307,21 @@ class BoardTest(APITestCase):
         self.card.refresh_from_db()
         self.assertEqual(self.card.name, "New Name")
 
+    def test_card_delete_not_empty(self):
+        self.client.force_login(self.user)
+        response = self.client.delete(
+            reverse("card_detail", kwargs={"pk": self.card.id})
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            "Cannot remove a card that contains items",
+            response.json()["detail"],
+        )
+
     def test_card_delete(self):
+        # Delete all items from the card
+        CardItem.objects.filter(card=self.card).delete()
+
         self.client.force_login(self.user)
         response = self.client.delete(
             reverse("card_detail", kwargs={"pk": self.card.id})
