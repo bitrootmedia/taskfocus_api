@@ -543,3 +543,12 @@ class BoardTest(APITestCase):
             f"Board {self.board.name} Name Updated updated by {self.user}",
             messages,
         )
+
+    def test_user_has_board_access_method_owner(self):
+        self.assertTrue(self.board.user_has_board_access(self.user))
+
+    def test_user_has_board_access_method_board_user(self):
+        self.assertTrue(self.board.user_has_board_access(self.user_2))
+
+    def test_user_has_board_access_method_no_access(self):
+        self.assertFalse(self.board.user_has_board_access(self.user_3))
