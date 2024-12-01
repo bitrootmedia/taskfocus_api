@@ -1258,6 +1258,10 @@ class PinnedBoardList(ListAPIView):
     def get_queryset(self):
         pinned_boards = (
             Board.objects.filter(pinned_boards__user=self.request.user)
+            .filter(  # only list boards user has access to
+                Q(owner=self.request.user)
+                | Q(board_users__user=self.request.user)
+            )
             .distinct()
             .order_by("name")
         )

@@ -73,7 +73,9 @@ class PinTests(APITestCase):
         )
 
         # Add user to board 2
-        BoardUser.objects.create(board=cls.board_2, user=cls.user)
+        cls.board_user = BoardUser.objects.create(
+            board=cls.board_2, user=cls.user
+        )
 
     def test_list_task_pins(self):
         self.client.force_authenticate(user=self.user_2)
@@ -126,6 +128,19 @@ class PinTests(APITestCase):
     # --- Board Pin tests ---
 
     def test_list_board_pins(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse("pinned_board_list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+
+    def test_dont_list_boards_user_has_no_access_to_anymore(self):
+        # Pin board 2 to user's dashboard
+        Pin.objects.create(
+            user=self.user,
+            board=self.board_2,
+        )
+        # Remove access to a board user had pinned
+        self.board_user.delete()
         self.client.force_authenticate(user=self.user)
         response = self.client.get(reverse("pinned_board_list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
