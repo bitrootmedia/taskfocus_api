@@ -203,6 +203,13 @@ class Pin(models.Model):
         null=True,
         blank=True,
     )
+    board = models.ForeignKey(
+        "core.Board",
+        on_delete=models.CASCADE,
+        related_name="pinned_boards",
+        null=True,
+        blank=True,
+    )
 
 
 class TaskAccess(models.Model):

@@ -1251,6 +1251,59 @@ class PinTaskDetail(generics.GenericAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class PinnedBoardList(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = BoardSerializer
+
+    def get_queryset(self):
+        pinned_boards = (
+            Board.objects.filter(pinned_boards__user=self.request.user)
+            .filter(  # only list boards user has access to
+                Q(owner=self.request.user)
+                | Q(board_users__user=self.request.user)
+            )
+            .distinct()
+            .order_by("name")
+        )
+        return pinned_boards
+
+
+class PinBoardDetail(generics.GenericAPIView):
+    http_method_names = ("post", "delete")
+    serializer_class = PinDetailSerializer
+
+    def get_board(self):
+        board = Board.objects.filter(id=self.kwargs.get("board_id", 0)).first()
+        if not board or not board.user_has_board_access(self.request.user):
+            raise PermissionDenied()
+
+        return board
+
+    def post(self, request, board_id):
+        board = self.get_board()
+
+        if Pin.objects.filter(user=self.request.user, board=board).exists():
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        serializer = self.get_serializer(
+            data={"board": board.id, "user": request.user.id}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, board_id):
+        board = self.get_board()
+        pin = Pin.objects.filter(user=self.request.user, board=board).first()
+        if not pin:
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+        pin.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class TestCIReloadView(APIView):
     def get(self, request):
         return JsonResponse({"value": "test-after-reload"})

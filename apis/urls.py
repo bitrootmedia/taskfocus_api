@@ -142,6 +142,11 @@ urlpatterns = [
         name="project_owner_change",
     ),
     path(
+        "work_session_breakdown",
+        views.WorkSessionsBreakdownView.as_view(),
+        name="work_sessions_breakdown",
+    ),
+    path(
         "pinned-tasks",
         views.PinnedTaskList.as_view(),
         name="pinned_task_list",
@@ -152,9 +157,14 @@ urlpatterns = [
         name="pin_task_detail",
     ),
     path(
-        "work_session_breakdown",
-        views.WorkSessionsBreakdownView.as_view(),
-        name="work_sessions_breakdown",
+        "pinned-boards",
+        views.PinnedBoardList.as_view(),
+        name="pinned_board_list",
+    ),
+    path(
+        "pin-board/<board_id>",
+        views.PinBoardDetail.as_view(),
+        name="pin_board_detail",
     ),
     path(
         "boards",
