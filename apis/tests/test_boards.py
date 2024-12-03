@@ -394,6 +394,20 @@ class BoardTest(APITestCase):
         item = CardItem.objects.get(id=response.json()["id"])
         self.assertEqual(item.project, self.project)
 
+    def test_card_item_create_board_only(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("card_item_create"),
+            {
+                "board": self.board_2.id,
+                "card": self.card_2.id,
+                "position": 0,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = CardItem.objects.get(id=response.json()["id"])
+        self.assertEqual(item.board, self.board_2)
+
     def test_card_item_create_comment_only(self):
         self.client.force_login(self.user)
         response = self.client.post(
@@ -507,6 +521,11 @@ class BoardTest(APITestCase):
         )
         label = card_item.get_log_label()
         self.assertEqual(label, f"Item ({self.project.title})")
+
+    def test_card_item_get_log_label_board(self):
+        card_item = CardItem.objects.create(card=self.card, board=self.board_2)
+        label = card_item.get_log_label()
+        self.assertEqual(label, f"Item ({self.board_2.name})")
 
     def test_card_item_get_log_label_comment_short(self):
         card_item = CardItem.objects.create(
