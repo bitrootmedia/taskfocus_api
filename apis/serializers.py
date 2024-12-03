@@ -538,10 +538,22 @@ class CardSerializer(serializers.ModelSerializer):
 
 class BoardReadonlySerializer(serializers.ModelSerializer):
     cards = CardReadOnlySerializer(many=True)
+    is_pinned = serializers.SerializerMethodField()
 
     class Meta:
         model = Board
-        fields = ("id", "name", "owner", "cards", "config")
+        fields = ("id", "name", "owner", "cards", "config", "is_pinned")
+
+    def get_is_pinned(self, instance):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+
+        if request and user and instance:
+            return Pin.objects.filter(
+                Q(user=user) & Q(board=instance)
+            ).exists()
+
+        return False
 
 
 class BoardSerializer(serializers.ModelSerializer):
