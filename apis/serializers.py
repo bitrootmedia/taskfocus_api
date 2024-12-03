@@ -491,11 +491,27 @@ class WorkSessionsWSBSerializer(serializers.ModelSerializer):
         fields = ("start", "end", "title", "task_id", "total_time")
 
 
-class CardItemReadOnlySerializer(serializers.ModelSerializer):
-    task = TaskReadOnlySerializer()
-    project = ProjectDetailReadOnlySerializer()
-    board = "BoardSerializer"
+class BoardSerializer(serializers.ModelSerializer):
+    """Used to edit only board specific fields (not cards or card items)"""
 
+    class Meta:
+        model = Board
+        fields = ("id", "name", "owner", "config")
+
+
+class BoardUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BoardUser
+        fields = ("id", "board", "user")
+
+
+class CardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Card
+        fields = ("id", "board", "name", "position", "config")
+
+
+class CardItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CardItem
         fields = (
@@ -510,7 +526,11 @@ class CardItemReadOnlySerializer(serializers.ModelSerializer):
         )
 
 
-class CardItemSerializer(serializers.ModelSerializer):
+class CardItemReadOnlySerializer(serializers.ModelSerializer):
+    task = TaskReadOnlySerializer()
+    project = ProjectDetailReadOnlySerializer()
+    board = BoardSerializer()
+
     class Meta:
         model = CardItem
         fields = (
@@ -533,12 +553,6 @@ class CardReadOnlySerializer(serializers.ModelSerializer):
         fields = ("id", "board", "name", "position", "card_items", "config")
 
 
-class CardSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Card
-        fields = ("id", "board", "name", "position", "config")
-
-
 class BoardReadonlySerializer(serializers.ModelSerializer):
     cards = CardReadOnlySerializer(many=True)
     is_pinned = serializers.SerializerMethodField()
@@ -557,17 +571,3 @@ class BoardReadonlySerializer(serializers.ModelSerializer):
             ).exists()
 
         return False
-
-
-class BoardSerializer(serializers.ModelSerializer):
-    """Used to edit only board specific fields (not cards or card items)"""
-
-    class Meta:
-        model = Board
-        fields = ("id", "name", "owner", "config")
-
-
-class BoardUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BoardUser
-        fields = ("id", "board", "user")
