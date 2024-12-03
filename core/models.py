@@ -707,6 +707,8 @@ class CardItem(models.Model):
             return label.format(self.task.title)
         if self.project:
             return label.format(self.project.title)
+        if self.board:
+            return label.format(self.board.name)
         if self.comment:
             if len(self.comment) > 50:
                 return label.format(self.comment[:50] + "...")
