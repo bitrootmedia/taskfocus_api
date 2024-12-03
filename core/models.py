@@ -684,6 +684,17 @@ class CardItem(models.Model):
     card = models.ForeignKey(
         Card, on_delete=models.CASCADE, related_name="card_items"
     )
+
+    # This field is used to point to a given board from CardItem
+    board = models.ForeignKey(
+        Board,
+        on_delete=models.CASCADE,
+        # Name is silly but does not confuse with reverse relation to card items of a given board
+        related_name="card_items_pointing_to_board",
+        null=True,
+        blank=True,
+    )
+
     position = models.IntegerField(default=0)
     config = models.JSONField(default=dict, blank=True)
 
