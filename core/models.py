@@ -680,11 +680,6 @@ class CardItem(models.Model):
         null=True,
         blank=True,
     )
-    comment = models.TextField(null=True, blank=True)
-    card = models.ForeignKey(
-        Card, on_delete=models.CASCADE, related_name="card_items"
-    )
-
     # This field is used to point to a given board from CardItem
     board = models.ForeignKey(
         Board,
@@ -693,6 +688,10 @@ class CardItem(models.Model):
         related_name="card_items_pointing_to_board",
         null=True,
         blank=True,
+    )
+    comment = models.TextField(null=True, blank=True)
+    card = models.ForeignKey(
+        Card, on_delete=models.CASCADE, related_name="card_items"
     )
 
     position = models.IntegerField(default=0)
