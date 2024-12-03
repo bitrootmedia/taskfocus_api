@@ -4,6 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apis.serializers import CardItemReadOnlySerializer
 from core.models import User, Task, Board, BoardUser, Card, CardItem, Project
 
 
@@ -503,6 +504,19 @@ class BoardTest(APITestCase):
         self.assertEqual(self.card_item_3.position, 1)
         # previous 1 in old card is now 0
         self.assertEqual(self.card_item_2.position, 0)
+
+    def test_card_item_board_data_in_readonly_serializer(self):
+        card_item_with_board = CardItem.objects.create(
+            card=self.card,
+            board=self.board_2,
+            position=2,
+        )
+        card_item_data = CardItemReadOnlySerializer(
+            instance=card_item_with_board
+        ).data
+
+        self.assertEqual(card_item_data["board"]["id"], str(self.board_2.id))
+        self.assertEqual(card_item_data["board"]["name"], self.board_2.name)
 
     # --- CardItem get_log_label tests ---
 
