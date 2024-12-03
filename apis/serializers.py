@@ -494,6 +494,7 @@ class WorkSessionsWSBSerializer(serializers.ModelSerializer):
 class CardItemReadOnlySerializer(serializers.ModelSerializer):
     task = TaskReadOnlySerializer()
     project = ProjectDetailReadOnlySerializer()
+    board = "BoardSerializer"
 
     class Meta:
         model = CardItem
@@ -501,6 +502,7 @@ class CardItemReadOnlySerializer(serializers.ModelSerializer):
             "id",
             "task",
             "project",
+            "board",
             "comment",
             "card",
             "position",
@@ -515,6 +517,7 @@ class CardItemSerializer(serializers.ModelSerializer):
             "id",
             "task",
             "project",
+            "board",
             "comment",
             "card",
             "position",
