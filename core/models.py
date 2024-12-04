@@ -631,7 +631,7 @@ class Board(models.Model):
 
     def user_has_board_access(self, user):
         return (self.owner == user) or self.board_users.filter(
-            id=user.id
+            user__id=user.id
         ).exists()
 
 
