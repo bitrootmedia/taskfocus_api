@@ -203,6 +203,13 @@ class Pin(models.Model):
         null=True,
         blank=True,
     )
+    board = models.ForeignKey(
+        "core.Board",
+        on_delete=models.CASCADE,
+        related_name="pinned_boards",
+        null=True,
+        blank=True,
+    )
 
 
 class TaskAccess(models.Model):
@@ -673,10 +680,20 @@ class CardItem(models.Model):
         null=True,
         blank=True,
     )
+    # This field is used to point to a given board from CardItem
+    board = models.ForeignKey(
+        Board,
+        on_delete=models.CASCADE,
+        # Name is silly but does not confuse with reverse relation to card items of a given board
+        related_name="card_items_pointing_to_board",
+        null=True,
+        blank=True,
+    )
     comment = models.TextField(null=True, blank=True)
     card = models.ForeignKey(
         Card, on_delete=models.CASCADE, related_name="card_items"
     )
+
     position = models.IntegerField(default=0)
     config = models.JSONField(default=dict, blank=True)
 
@@ -690,6 +707,8 @@ class CardItem(models.Model):
             return label.format(self.task.title)
         if self.project:
             return label.format(self.project.title)
+        if self.board:
+            return label.format(self.board.name)
         if self.comment:
             if len(self.comment) > 50:
                 return label.format(self.comment[:50] + "...")
