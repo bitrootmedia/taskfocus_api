@@ -466,6 +466,7 @@ class PinDetailSerializer(serializers.ModelSerializer):
             "user",
             "task",
             "project",
+            "board",
         )
 
 
