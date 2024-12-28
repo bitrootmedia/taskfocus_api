@@ -123,7 +123,7 @@ class TaskBlocksTests(APITestCase):
             ],
             format="json",
         )
-        print(response.json())
+
         results = response.json().get("results")
         task_blocks = self.task_3.blocks.order_by("position")
 
