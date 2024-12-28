@@ -331,7 +331,7 @@ class TaskTotalTime(generics.RetrieveAPIView):
     queryset = Task.objects.all()
 
 
-class TaskBlocks(APIView):
+class TaskBlockList(APIView):
     http_method_names = ["get", "post"]
 
     def get_task(self):
