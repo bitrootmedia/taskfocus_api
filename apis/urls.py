@@ -55,6 +55,11 @@ urlpatterns = [
         name="task_block_detail",
     ),
     path(
+        "task-block-list-v2/<task_id>",
+        views.TaskBlocks.as_view(),
+        name="task_block_list_v2",
+    ),
+    path(
         "task-start-work/<pk>",
         views.TaskStartWorkView.as_view(),
         name="task_start_work",
