@@ -45,16 +45,6 @@ urlpatterns = [
     path("upload", views.UploadView.as_view(), name="upload"),
     path("task/<pk>", views.TaskDetail.as_view(), name="task_detail"),
     path(
-        "task-block-list/<pk>",
-        views.TaskBlockList.as_view(),
-        name="task_block_list",
-    ),
-    path(
-        "task-block/<pk>",
-        views.TaskBlockDetail.as_view(),
-        name="task_block_detail",
-    ),
-    path(
         "task-block-list-v2/<task_id>",
         views.TaskBlocks.as_view(),
         name="task_block_list_v2",
