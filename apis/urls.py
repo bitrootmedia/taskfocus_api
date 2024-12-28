@@ -205,7 +205,4 @@ urlpatterns = [
     path(
         "card-item-move", views.CardItemMove.as_view(), name="card_item_move"
     ),
-    path(
-        "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
-    ),
 ]

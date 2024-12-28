@@ -1401,11 +1401,6 @@ class PinBoardDetail(generics.GenericAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TestCIReloadView(APIView):
-    def get(self, request):
-        return JsonResponse({"value": "test-after-reload"})
-
-
 class WorkSessionsBreakdownView(APIView):
     permission_classes = (IsAuthenticated,)  # TODO: Are we sure about that?
 
