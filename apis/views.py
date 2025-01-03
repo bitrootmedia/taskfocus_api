@@ -77,6 +77,7 @@ from .serializers import (
     CardSerializer,
     CardItemSerializer,
     BoardUserSerializer,
+    TaskBlockListUpdateSerializer,
 )
 
 from core.models import (
@@ -330,96 +331,100 @@ class TaskTotalTime(generics.RetrieveAPIView):
     queryset = Task.objects.all()
 
 
-class TaskBlockList(generics.ListCreateAPIView):
-    serializer_class = TaskBlockListSerializer
-    permission_classes = (IsAuthenticated,)
+class TaskBlockList(APIView):
+    http_method_names = ["get", "post"]
 
     def get_task(self):
-        task_id = self.kwargs.get("pk")
-        if not task_id:
+        task = Task.objects.filter(pk=self.kwargs.get("task_id", 0)).first()
+        if not task:
             raise PermissionDenied()
-        return Task.objects.get(pk=task_id)
 
-    def has_task_access(self):
-        # Make sure user has access to the task
-        task = self.get_task()
         has_task_access = HasTaskAccess().has_object_permission(
             self.request, self, task
         )
         if not has_task_access:
             raise PermissionDenied()
 
-        return True
+        return task
 
-    def get_queryset(self):
-        self.has_task_access()
-        task_id = self.kwargs.get("pk", None)
+    def get(self, request, task_id):
+        task = self.get_task()
         blocks = (
-            TaskBlock.objects.filter(task__id=task_id)
-            .distinct()
-            .order_by("position")
+            TaskBlock.objects.filter(task=task).order_by("position").distinct()
+        )
+        serializer = TaskBlockListSerializer(blocks, many=True)
+        return Response(
+            data={"results": serializer.data}, status=status.HTTP_200_OK
         )
 
-        return blocks
+    def post(self, request, task_id):
+        # I'm leaving the 'blocks_failed_to_validate' path commented in case we do want to
+        #  save all valid blocks on save (even if invalid are present in sent data)
 
-    def perform_create(self, serializer):
-        self.has_task_access()
-        task = Task.objects.get(pk=self.kwargs["pk"])
-        instance = serializer.save(created_by=self.request.user, task=task)
-        # In theory new blocks will always be last but since API allows
-        # to create a block with arbitrary position this is just a safeguard
-        #
-        # Increase position of all following blocks
-        # (including the one we might be switching with)
-        (
-            TaskBlock.objects.filter(
+        task = self.get_task()
+
+        existing_blocks = TaskBlock.objects.filter(task=task).order_by(
+            "position"
+        )
+        existing_blocks_map = {block.id: block for block in existing_blocks}
+
+        sent_blocks = TaskBlockListUpdateSerializer(
+            data=request.data, many=True
+        )
+        if not sent_blocks.is_valid():
+            all_errors = [
+                {
+                    **errors,
+                    "block_position": sent_blocks.initial_data[idx].get(
+                        "position"
+                    ),
+                }
+                for idx, errors in enumerate(sent_blocks.errors)
+                if errors
+            ]
+            return JsonResponse(
+                {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        current_block_ids = []
+        # blocks_failed_to_validate = {}  # block_id: error_message
+
+        for block_data in sent_blocks.validated_data:
+            if block_id := block_data.get("id"):
+                block = existing_blocks_map.get(block_id)
+            else:
+                block = None
+
+            serializer = TaskBlockListUpdateSerializer(
+                instance=block, data=block_data
+            )
+            serializer.is_valid(raise_exception=True)
+
+            # if not serializer.is_valid():
+            #     blocks_failed_to_validate[block.id] = str(serializer.errors)
+            #     continue
+
+            block_instance = serializer.save(
+                created_by=getattr(
+                    block, "created_by", request.user
+                ),  # set user if none
                 task=task,
-                position__gte=instance.position,
             )
-            .exclude(id=instance.id)
-            .update(position=F("position") + 1)
+            current_block_ids.append(block_instance.pk)
+
+        # blocks_to_keep_ids = current_block_ids + list(blocks_failed_to_validate.keys())
+        # existing_blocks.exclude(id__in=blocks_to_keep_ids).delete()
+
+        existing_blocks.exclude(id__in=current_block_ids).delete()
+
+        return JsonResponse(
+            {
+                "results": TaskBlockListSerializer(
+                    TaskBlock.objects.filter(task=task).order_by("position"),
+                    many=True,
+                ).data,
+            }
         )
-        Log.objects.create(
-            task=task, user=self.request.user, message="User created a block"
-        )
-
-
-class TaskBlockDetail(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = TaskBlockDetailSerializer
-    permission_classes = (BlockUserHasTaskAccess,)
-    queryset = TaskBlock.objects.all()
-
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        # Increase position of all following blocks
-        # (including the one we might be switching with)
-        (
-            TaskBlock.objects.filter(
-                task=instance.task,
-                position__gte=instance.position,
-            )
-            .exclude(id=instance.id)
-            .update(position=F("position") + 1)
-        )
-        Log.objects.create(
-            user=self.request.user,
-            task=instance.task,
-            message="Block updated",
-        )
-
-    def perform_destroy(self, instance):
-        Log.objects.create(
-            task=instance.task,
-            user=self.request.user,
-            message="Block deleted",
-        )
-
-        # Decrease position of all following blocks on delete.
-        TaskBlock.objects.filter(
-            task=instance.task, position__gt=instance.position
-        ).update(position=F("position") - 1)
-
-        instance.delete()
 
 
 class LogList(generics.ListAPIView):
@@ -1302,11 +1307,6 @@ class PinBoardDetail(generics.GenericAPIView):
         pin.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class TestCIReloadView(APIView):
-    def get(self, request):
-        return JsonResponse({"value": "test-after-reload"})
 
 
 class WorkSessionsBreakdownView(APIView):

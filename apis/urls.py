@@ -45,14 +45,9 @@ urlpatterns = [
     path("upload", views.UploadView.as_view(), name="upload"),
     path("task/<pk>", views.TaskDetail.as_view(), name="task_detail"),
     path(
-        "task-block-list/<pk>",
+        "task-block-list/<task_id>",
         views.TaskBlockList.as_view(),
         name="task_block_list",
-    ),
-    path(
-        "task-block/<pk>",
-        views.TaskBlockDetail.as_view(),
-        name="task_block_detail",
     ),
     path(
         "task-start-work/<pk>",
@@ -199,8 +194,5 @@ urlpatterns = [
     ),
     path(
         "card-item-move", views.CardItemMove.as_view(), name="card_item_move"
-    ),
-    path(
-        "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
     ),
 ]

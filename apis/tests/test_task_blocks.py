@@ -72,119 +72,382 @@ class TaskBlocksTests(APITestCase):
 
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
 
+        cls.task_4 = Task.objects.create(
+            owner=cls.user,
+            title="Task 4",
+            description="Task 4 Description",
+        )
+
     def test_task_block_list_no_task_access(self):
         self.client.force_authenticate(user=self.user_2)
         response = self.client.get(
-            reverse("task_block_list", kwargs={"pk": str(self.task_1.id)})
+            reverse("task_block_list", kwargs={"task_id": str(self.task_1.id)})
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_task_block_list_authenticated_and_ordered(self):
+    def test_block_list_ordered(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(
-            reverse("task_block_list", kwargs={"pk": str(self.task_3.id)})
+            reverse("task_block_list", kwargs={"task_id": str(self.task_3.id)})
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.json().get("results")
         self.assertEqual(results[0].get("id"), str(self.block_3.id))
         self.assertEqual(results[1].get("id"), str(self.block_4.id))
 
-    def test_task_block_create_no_task_access(self):
-        self.client.force_authenticate(user=self.user_2)
-        response = self.client.post(
-            reverse("task_block_list", kwargs={"pk": str(self.task_1.id)}),
-            {
-                "task": self.task_1.id,
-                "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                "content": '{"markdown":"SHOULD NOT BE CREATED"}',
-                "position": 1,
-                "created_by": self.user_2.id,
-            },
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_task_block_create_not_owner(self):
+    def test_block_list_empty(self):
         self.client.force_authenticate(user=self.user)
+        response = self.client.get(
+            reverse("task_block_list", kwargs={"task_id": str(self.task_4.id)})
+        )
+        results = response.json().get("results")
+        self.assertEqual(len(results), 0)
+
+    def test_block_list_reorder(self):
+        self.client.force_authenticate(user=self.user_3)
         response = self.client.post(
-            reverse("task_block_list", kwargs={"pk": self.task_3.id}),
-            {
-                "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                "content": '{"markdown":"NEW BLOCK CONTENT"}',
-                "position": 3,
-                "created_by": self.user.id,
-            },
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-    def test_task_block_reorder_on_create(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(
-            reverse("task_block_list", kwargs={"pk": self.task_1.id}),
-            {
-                "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                "content": '{"markdown":"NEW BLOCK CONTENT"}',
-                "position": 0,
-            },
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
+            ),
+            data=[
+                {
+                    "id": self.block_3.id,
+                    "block_type": self.block_3.block_type,
+                    "position": 1,
+                },
+                {
+                    "id": self.block_4.id,
+                    "block_type": self.block_4.block_type,
+                    "position": 0,
+                },
+            ],
+            format="json",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.block_1.refresh_from_db()
-        # Existing block was 0, should be 1 now.
-        self.assertEqual(self.block_1.position, 1)
+        results = response.json().get("results")
+        task_blocks = self.task_3.blocks.order_by("position")
 
-    def test_task_block_update_no_access(self):
-        self.client.force_authenticate(user=self.user_2)
-        response = self.client.put(
-            reverse("task_block_detail", kwargs={"pk": self.block_1.id}),
-            {"content": '{"markdown": "Will not be updated"}'},
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_task_block_update_not_owner(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.put(
-            reverse("task_block_detail", kwargs={"pk": self.block_4.id}),
-            {"content": '{"markdown": "Block 4 Updated Content"}'},
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.block_4.refresh_from_db()
         self.assertEqual(
-            self.block_4.content, {"markdown": "Block 4 Updated Content"}
-        )
+            task_blocks.count(), 2
+        )  # make sure block_4 was deleted
+        self.assertEqual(results[0].get("id"), str(self.block_4.id))
+        self.assertEqual(results[0].get("content"), self.block_4.content)
+        self.assertEqual(results[1].get("id"), str(self.block_3.id))
+        self.assertEqual(results[1].get("content"), self.block_3.content)
 
-    def test_task_block_reorder_on_update(self):
-        self.client.force_authenticate(user=self.user_3)
-        response = self.client.put(
-            reverse("task_block_detail", kwargs={"pk": self.block_4.id}),
-            {"position": 0},
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.block_3.refresh_from_db()
-        self.block_4.refresh_from_db()
-        # was 1 should be 0
-        self.assertEqual(self.block_4.position, 0)
-        self.assertEqual(self.block_3.position, 1)
-
-    def test_task_block_delete_no_access(self):
-        self.client.force_authenticate(user=self.user_2)
-        response = self.client.delete(
-            reverse("task_block_detail", kwargs={"pk": self.block_1.id})
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_task_block_delete_not_owner(self):
+    def test_block_list_create(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.delete(
-            reverse("task_block_detail", kwargs={"pk": self.block_4.id})
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_4.id)}
+            ),
+            data=[
+                {
+                    "id": None,
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 0,
+                    "content": "New Block Content Here",
+                },
+                {
+                    "id": None,
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 1,
+                    "content": "Other block",
+                },
+            ],
+            format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        results = response.json()["results"]
+        task_blocks = self.task_4.blocks.all()
+        self.assertEqual(task_blocks.count(), 2)
+        self.assertEqual(results[0].get("content"), "New Block Content Here")
 
-    def test_task_block_reorder_on_delete(self):
-        self.client.force_authenticate(user=self.user_3)
-        response = self.client.delete(
-            reverse("task_block_detail", kwargs={"pk": self.block_3.id})
+    def test_block_list_create_reorder(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_1.id)}
+            ),
+            data=[
+                {
+                    "id": None,
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 0,
+                    "content": "New Block Content Here",
+                },
+                {
+                    "id": self.block_1.id,
+                    "block_type": self.block_1.block_type,
+                    "position": 1,
+                    "content": self.block_1.content,
+                },
+            ],
+            format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.block_4.refresh_from_db()
-        # was 1 should be 0
-        self.assertEqual(self.block_4.position, 0)
+        results = response.json().get("results")
+        task_blocks = self.task_1.blocks.all().order_by("position")
+        self.assertEqual(task_blocks.count(), 2)
+        self.assertEqual(results[0].get("content"), "New Block Content Here")
+        self.assertEqual(results[1].get("content"), self.block_1.content)
+
+    def test_block_list_update(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_1.id)}
+            ),
+            data=[
+                {
+                    "id": self.block_1.id,
+                    "block_type": self.block_1.block_type,
+                    "position": self.block_1.position,
+                    "content": self.block_1.content,
+                },
+                {
+                    "id": None,
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 1,
+                    "content": "Other block",
+                },
+            ],
+            format="json",
+        )
+
+        results = response.json().get("results")
+
+        task_blocks = self.task_1.blocks.all()
+
+        self.assertEqual(task_blocks.count(), 2)
+        self.assertEqual(results[0].get("id"), str(self.block_1.id))
+        self.assertEqual(results[0].get("content"), self.block_1.content)
+        self.assertEqual(results[1].get("content"), "Other block")
+
+    def test_block_list_update_reorder(self):
+        self.client.force_authenticate(user=self.user_3)
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
+            ),
+            data=[
+                {
+                    "id": self.block_4.id,
+                    "block_type": self.block_4.block_type,
+                    "position": 0,
+                    "content": self.block_4.content,
+                },
+                {
+                    "id": self.block_3.id,
+                    "block_type": self.block_3.block_type,
+                    "position": 1,
+                    "content": self.block_3.content,
+                },
+            ],
+            format="json",
+        )
+
+        results = response.json().get("results")
+        task_blocks = self.task_3.blocks.order_by("position")
+
+        self.assertEqual(task_blocks.count(), 2)
+        self.assertEqual(results[0].get("id"), str(self.block_4.id))
+        self.assertEqual(results[0].get("content"), self.block_4.content)
+        self.assertEqual(results[1].get("id"), str(self.block_3.id))
+        self.assertEqual(results[1].get("content"), self.block_3.content)
+
+    def test_block_list_create_and_update(self):
+        self.client.force_authenticate(user=self.user_3)
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
+            ),
+            data=[
+                {
+                    "id": None,
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 0,
+                    "content": "# some content",
+                },
+                {
+                    "id": self.block_4.id,
+                    "block_type": self.block_4.block_type,
+                    "position": 1,
+                    "content": self.block_4.content,
+                },
+            ],
+            format="json",
+        )
+
+        results = response.json().get("results")
+        task_blocks = self.task_3.blocks.order_by("position")
+
+        self.assertEqual(task_blocks.count(), 2)
+        self.assertEqual(results[0].get("content"), "# some content")
+        self.assertEqual(results[1].get("id"), str(self.block_4.id))
+        self.assertEqual(results[1].get("content"), self.block_4.content)
+
+    def test_block_list_delete_empty_post(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_1.id)}
+            ),
+            data=[],  # empty data to remove all blocks
+            format="json",
+        )
+
+        task_blocks_count = self.task_1.blocks.order_by("position").count()
+        self.assertEqual(task_blocks_count, 0)
+
+    def test_block_list_delete_keep_other_blocks(self):
+        self.client.force_authenticate(user=self.user_3)
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
+            ),
+            data=[
+                # Keep block_4 data out of POST
+                {
+                    "id": self.block_3.id,
+                    "block_type": self.block_3.block_type,
+                    "position": 1,
+                    "content": self.block_3.content,
+                },
+            ],
+            format="json",
+        )
+
+        results = response.json().get("results")
+        task_blocks = self.task_3.blocks.order_by("position")
+
+        self.assertEqual(
+            task_blocks.count(), 1
+        )  # make sure block_4 was deleted
+        self.assertEqual(results[0].get("id"), str(self.block_3.id))
+        self.assertEqual(results[0].get("content"), self.block_3.content)
+
+    def test_block_list_delete_and_create(self):
+        self.client.force_authenticate(user=self.user_3)
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
+            ),
+            data=[
+                # Keep block_4 data out of POST
+                {
+                    "id": self.block_3.id,
+                    "block_type": self.block_3.block_type,
+                    "position": 1,
+                    "content": self.block_3.content,
+                },
+                {
+                    "id": None,
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 0,
+                    "content": "# some content",
+                },
+            ],
+            format="json",
+        )
+
+        results = response.json().get("results")
+        task_blocks = self.task_3.blocks.order_by("position")
+
+        self.assertEqual(
+            task_blocks.count(), 2
+        )  # make sure block_4 was deleted
+        self.assertEqual(results[0].get("content"), "# some content")
+        self.assertEqual(results[1].get("id"), str(self.block_3.id))
+        self.assertEqual(results[1].get("content"), self.block_3.content)
+
+    def test_block_list_delete_create_and_update(self):
+        self.client.force_authenticate(user=self.user_3)
+        response = self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
+            ),
+            data=[
+                # Keep block_4 data out of POST
+                {
+                    "id": self.block_3.id,
+                    "block_type": self.block_3.block_type,
+                    "position": 1,
+                    "content": "New Content",
+                },
+                {
+                    "id": None,  # Create new block
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 0,
+                    "content": "# some content",
+                },
+            ],
+            format="json",
+        )
+
+        results = response.json().get("results")
+        task_blocks = self.task_3.blocks.order_by("position")
+
+        self.assertEqual(
+            task_blocks.count(), 2
+        )  # make sure block_4 was deleted
+        self.assertEqual(results[0].get("content"), "# some content")
+        self.assertEqual(results[1].get("id"), str(self.block_3.id))
+        self.assertEqual(results[1].get("content"), "New Content")
+
+    def test_block_create_invalid_position(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_4.id)}
+            ),
+            data=[
+                {
+                    "id": None,  # new block,
+                    "block_type": TaskBlock.BlockTypeChoices.CHECKLIST,
+                    "position": 0,  # Invalid position
+                    "content": "# some content",
+                },
+                {
+                    "id": None,  # new block,
+                    "block_type": TaskBlock.BlockTypeChoices.CHECKLIST,
+                    "position": -1,  # Invalid position
+                    "content": "# some content",
+                },
+            ],
+            format="json",
+        )
+
+        existing_blocks = TaskBlock.objects.filter(task=self.task_4.id)
+
+        self.assertEqual(len(existing_blocks), 0)
+
+    def test_block_update_partial_invalid(self):
+        # Nothing will be created if even one block is invalid
+
+        self.client.force_authenticate(user=self.user_2)
+        self.client.post(
+            reverse(
+                "task_block_list", kwargs={"task_id": str(self.task_2.id)}
+            ),
+            data=[
+                {
+                    "id": self.block_2.id,
+                    "block_type": self.block_2.block_type,
+                    "position": 1,
+                    "content": None,  # Invalid content
+                },
+                {
+                    "id": None,  # new block,
+                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                    "position": 2,
+                    "content": "# some content",
+                },
+            ],
+            format="json",
+        )
+
+        existing_blocks = TaskBlock.objects.filter(task=self.task_2.id)
+
+        self.assertEqual(len(existing_blocks), 1)  # Nothing was created
+        self.assertEqual(  # Nothing was updated
+            existing_blocks[0].content, "Block 2 Content"
+        )
