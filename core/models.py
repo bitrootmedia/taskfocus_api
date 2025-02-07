@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.utils.timezone import now
 from simple_history.models import HistoricalRecords
 
@@ -716,3 +717,19 @@ class CardItem(models.Model):
                 return label.format(self.comment[:50])
 
         return label.format(f"id:{self.id}")
+
+
+class Beacon(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=Q(confirmed_at__isnull=True),
+                name="unique_unconfirmed_beacon_per_user",
+            )
+        ]

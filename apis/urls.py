@@ -195,4 +195,5 @@ urlpatterns = [
     path(
         "card-item-move", views.CardItemMove.as_view(), name="card_item_move"
     ),
+    path("sideapp/home", views.SideAppHomeView.as_view(), name="sideapp_home"),
 ]

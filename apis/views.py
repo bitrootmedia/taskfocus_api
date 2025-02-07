@@ -103,6 +103,7 @@ from core.models import (
     Board,
     Card,
     CardItem,
+    Beacon,
 )
 from django.db.models import Q, F, Sum
 from .permissions import (
@@ -1762,3 +1763,49 @@ class CardItemMove(APIView):  # Change Item position (or card)
                 )
 
         return Response(status=status.HTTP_200_OK)
+
+
+class SideAppHomeView(APIView):
+    def post(self, request):
+        response = {"message": "under construction"}
+        return JsonResponse(response)
+
+    def get(self, request):
+        user = request.user
+
+        buttons = [
+            {
+                "id": "done",
+                "label": "Done for today",
+            },
+            {
+                "id": "brb",
+                "label": "Be right back",
+            },
+            {
+                "id": "afk",
+                "label": "Away from keyboard",
+            },
+        ]
+
+        response = {"instant_actions": buttons, "currently_working_on": None}
+
+        task_work_session = TaskWorkSession.objects.filter(
+            user=user, stopped_at__isnull=True
+        ).last()
+        if task_work_session:
+            response["currently_working_on"] = {
+                "id": f"{task_work_session.task.id}",
+                "title": task_work_session.task.title,
+            }
+
+        beacon = Beacon.objects.filter(
+            user=user, confirmed_at__isnull=True
+        ).first()
+        if beacon:
+            response["beacon"] = {"id": beacon.id}
+
+        message = "This is a test message"
+        response["message"] = message
+
+        return JsonResponse(response)
