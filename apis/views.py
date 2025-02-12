@@ -1767,8 +1767,23 @@ class CardItemMove(APIView):  # Change Item position (or card)
 
 class SideAppHomeView(APIView):
     def post(self, request):
-        response = {"message": "under construction"}
-        return JsonResponse(response)
+        data = json.loads(request.body)
+        beacon_id = data.get("beacon_id")
+        if beacon_id:
+            beacon = Beacon.objects.filter(
+                user=request.user, id=beacon_id
+            ).first()
+            if beacon:
+                beacon.confirmed_at = now()
+                beacon.save()
+
+        quick_action = data.get("quick_action")
+        if quick_action:
+            Log.objects.create(
+                user=request.user, message=f"Debug {quick_action}"
+            )
+
+        return JsonResponse({"status": "OK"})
 
     def get(self, request):
         user = request.user
@@ -1805,7 +1820,8 @@ class SideAppHomeView(APIView):
         if beacon:
             response["beacon"] = {"id": beacon.id}
 
-        message = "This is a test message"
-        response["message"] = message
+        message = request.user.config.get("sideapp_message")
+        if message:
+            response["message"] = message
 
         return JsonResponse(response)
