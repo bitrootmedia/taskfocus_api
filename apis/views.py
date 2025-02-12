@@ -1778,9 +1778,12 @@ class SideAppHomeView(APIView):
                 beacon.save()
         quick_action = data.get("quick_action")
         if quick_action:
-            Log.objects.create(
-                user=request.user, message=f"Debug {quick_action}"
-            )
+            try:
+                Log.objects.create(
+                    user=request.user, message=f"Debug {quick_action}"
+                )
+            except Exception as ex:
+                return JsonResponse({"error": f"{ex}"})
 
         return JsonResponse({"status": "OK"})
 
