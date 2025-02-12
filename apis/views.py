@@ -1776,7 +1776,6 @@ class SideAppHomeView(APIView):
             if beacon:
                 beacon.confirmed_at = now()
                 beacon.save()
-
         quick_action = data.get("quick_action")
         if quick_action:
             Log.objects.create(
