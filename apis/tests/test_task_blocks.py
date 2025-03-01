@@ -142,8 +142,10 @@ class TaskBlocksTestsV2(APITestCase):
             },
             format="json",
         )
-        created_block = TaskBlock.objects.get(task=self.task_1.id, position=1)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        created_block = TaskBlock.objects.get(task=self.task_1.id, position=1)
+        self.assertEqual(created_block.created_by, self.user)
 
         mock_websocket_send.assert_called_once_with(
             channel=f"{self.task_1.id}",
@@ -170,8 +172,9 @@ class TaskBlocksTestsV2(APITestCase):
             format="json",
         )
 
-        created_block = TaskBlock.objects.get(task=self.task_3.id, position=0)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        created_block = TaskBlock.objects.get(task=self.task_3.id, position=0)
+        self.assertEqual(created_block.created_by, self.user)
 
         mock_websocket_send.assert_called_once_with(
             channel=f"{self.task_3.id}",
