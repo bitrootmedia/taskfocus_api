@@ -180,6 +180,8 @@ class TaskBlock(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
+    is_archived = models.BooleanField(default=False)
+
     history = HistoricalRecords()
 
 
