@@ -1,27 +1,54 @@
 import json
+import mimetypes
 import pathlib
 import time
 import uuid
-import mimetypes
 from collections import defaultdict
 
+from django.core.files.storage import default_storage
 from django.db import transaction
+from django.db.models import Q, F, Sum
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import ListAPIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import OrderingFilter, SearchFilter
-from django.core.files.storage import default_storage
+from rest_framework.generics import ListAPIView, get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from core.mixins import TaskAccessMixin
+from core.models import (
+    Project,
+    Task,
+    Log,
+    Comment,
+    Attachment,
+    ProjectAccess,
+    User,
+    TaskWorkSession,
+    TaskAccess,
+    NotificationAck,
+    UserTaskQueue,
+    Reminder,
+    Notification,
+    Team,
+    PrivateNote,
+    TaskBlock,
+    Pin,
+    Note,
+    BoardUser,
+    Board,
+    Card,
+    CardItem,
+)
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
-from core.utils.time_from_seconds import time_from_seconds
 from core.utils.permissions import user_can_see_task
+from core.utils.time_from_seconds import time_from_seconds
 from core.utils.websockets import WebsocketHelper
 from .filters import (
     ProjectFilter,
@@ -37,6 +64,16 @@ from .filters import (
     PrivateNoteFilter,
     NoteFilter,
     BoardFilter,
+)
+from .paginations import CustomPaginationPageSize1k
+from .permissions import (
+    HasProjectAccess,
+    HasTaskAccess,
+    IsAuthorOrReadOnly,
+    IsOwnerOrReadOnly,
+    IsProjectOwner,
+    IsTaskOwner,
+    IsPrivateNoteOwner,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -67,7 +104,6 @@ from .serializers import (
     PrivateNoteListSerializer,
     PrivateNoteDetailSerializer,
     TaskBlockListSerializer,
-    TaskBlockDetailSerializer,
     PinDetailSerializer,
     WorkSessionsBreakdownInputSerializer,
     WorkSessionsWSBSerializer,
@@ -78,44 +114,10 @@ from .serializers import (
     CardItemSerializer,
     BoardUserSerializer,
     TaskBlockListUpdateSerializer,
+    TaskBlockCreateSerializer,
+    TaskBlockUpdateSerializer,
+    TaskBlockWebsocketSerializer,
 )
-
-from core.models import (
-    Project,
-    Task,
-    Log,
-    Comment,
-    Attachment,
-    ProjectAccess,
-    User,
-    TaskWorkSession,
-    TaskAccess,
-    NotificationAck,
-    UserTaskQueue,
-    Reminder,
-    Notification,
-    Team,
-    PrivateNote,
-    TaskBlock,
-    Pin,
-    Note,
-    BoardUser,
-    Board,
-    Card,
-    CardItem,
-)
-from django.db.models import Q, F, Sum
-from .permissions import (
-    HasProjectAccess,
-    HasTaskAccess,
-    IsAuthorOrReadOnly,
-    IsOwnerOrReadOnly,
-    IsProjectOwner,
-    IsTaskOwner,
-    IsPrivateNoteOwner,
-    BlockUserHasTaskAccess,
-)
-from .paginations import CustomPaginationPageSize1k
 
 
 class UserList(generics.ListAPIView):
