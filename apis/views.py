@@ -400,7 +400,7 @@ class TaskBlockUpdate(generics.UpdateAPIView, TaskAccessMixin):
 
 
 class TaskBlockDelete(generics.DestroyAPIView, TaskAccessMixin):
-    queryset = Task.objects.all()
+    permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
@@ -432,6 +432,8 @@ class TaskBlockDelete(generics.DestroyAPIView, TaskAccessMixin):
 
 
 class TaskBlockMove(APIView, TaskAccessMixin):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request, *args, **kwargs):
         task = self.get_task(self.request.data.get("task"))
         block = get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
