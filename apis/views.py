@@ -113,7 +113,6 @@ from .serializers import (
     CardSerializer,
     CardItemSerializer,
     BoardUserSerializer,
-    TaskBlockListUpdateSerializer,
     TaskBlockCreateSerializer,
     TaskBlockUpdateSerializer,
     TaskBlockWebsocketSerializer,
@@ -496,102 +495,6 @@ class TaskBlockMove(APIView, TaskAccessMixin):
             )
 
         return Response(status=status.HTTP_200_OK)
-
-
-class TaskBlockList(APIView):
-    http_method_names = ["get", "post"]
-
-    def get_task(self):
-        task = Task.objects.filter(pk=self.kwargs.get("task_id", 0)).first()
-        if not task:
-            raise PermissionDenied()
-
-        has_task_access = HasTaskAccess().has_object_permission(
-            self.request, self, task
-        )
-        if not has_task_access:
-            raise PermissionDenied()
-
-        return task
-
-    def get(self, request, task_id):
-        task = self.get_task()
-        blocks = (
-            TaskBlock.objects.filter(task=task).order_by("position").distinct()
-        )
-        serializer = TaskBlockListSerializer(blocks, many=True)
-        return Response(
-            data={"results": serializer.data}, status=status.HTTP_200_OK
-        )
-
-    def post(self, request, task_id):
-        # I'm leaving the 'blocks_failed_to_validate' path commented in case we do want to
-        #  save all valid blocks on save (even if invalid are present in sent data)
-
-        task = self.get_task()
-
-        existing_blocks = TaskBlock.objects.filter(task=task).order_by(
-            "position"
-        )
-        existing_blocks_map = {block.id: block for block in existing_blocks}
-
-        sent_blocks = TaskBlockListUpdateSerializer(
-            data=request.data, many=True
-        )
-        if not sent_blocks.is_valid():
-            all_errors = [
-                {
-                    **errors,
-                    "block_position": sent_blocks.initial_data[idx].get(
-                        "position"
-                    ),
-                }
-                for idx, errors in enumerate(sent_blocks.errors)
-                if errors
-            ]
-            return JsonResponse(
-                {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        current_block_ids = []
-        # blocks_failed_to_validate = {}  # block_id: error_message
-
-        for block_data in sent_blocks.validated_data:
-            if block_id := block_data.get("id"):
-                block = existing_blocks_map.get(block_id)
-            else:
-                block = None
-
-            serializer = TaskBlockListUpdateSerializer(
-                instance=block, data=block_data
-            )
-            serializer.is_valid(raise_exception=True)
-
-            # if not serializer.is_valid():
-            #     blocks_failed_to_validate[block.id] = str(serializer.errors)
-            #     continue
-
-            block_instance = serializer.save(
-                created_by=getattr(
-                    block, "created_by", request.user
-                ),  # set user if none
-                task=task,
-            )
-            current_block_ids.append(block_instance.pk)
-
-        # blocks_to_keep_ids = current_block_ids + list(blocks_failed_to_validate.keys())
-        # existing_blocks.exclude(id__in=blocks_to_keep_ids).delete()
-
-        existing_blocks.exclude(id__in=current_block_ids).delete()
-
-        return JsonResponse(
-            {
-                "results": TaskBlockListSerializer(
-                    TaskBlock.objects.filter(task=task).order_by("position"),
-                    many=True,
-                ).data,
-            }
-        )
 
 
 class LogList(generics.ListAPIView):
