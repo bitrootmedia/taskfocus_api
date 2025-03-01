@@ -349,14 +349,13 @@ class Comment(models.Model):
         super().save(*args, **kwargs)
 
         if self.task:
-            ws = WebsocketHelper()
             data = {
                 "id": f"{self.id}",
                 "content": self.content,
                 "task_id": f"{self.task.id}" if self.task else None,
                 "project_id": f"{self.project.id}" if self.project else None,
             }
-            ws.send(
+            WebsocketHelper.send(
                 channel=f"{self.task.id}",
                 event_name="comment_created",
                 data=data,

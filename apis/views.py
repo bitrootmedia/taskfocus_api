@@ -801,8 +801,7 @@ class TaskStartWorkView(APIView):
             message=f"User {request.user} started working on this task.",
         )
 
-        ws = WebsocketHelper()
-        ws.send(
+        WebsocketHelper.send(
             f"USR_{request.user.id}",
             "current_task_update",
             data={"task_id": f"{task.id}"},
