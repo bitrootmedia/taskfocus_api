@@ -333,6 +333,171 @@ class TaskTotalTime(generics.RetrieveAPIView):
     queryset = Task.objects.all()
 
 
+class TaskBlockListV2(generics.ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskBlockListSerializer
+
+    def get_queryset(self):
+        task = Task.objects.filter(pk=self.kwargs.get("task", 0)).first()
+        if not task:
+            raise PermissionDenied()
+
+        has_task_access = HasTaskAccess().has_object_permission(
+            self.request, self, task
+        )
+        if not has_task_access:
+            raise PermissionDenied()
+
+        return (
+            task.blocks.filter(is_archived=False)
+            .order_by("position")
+            .distinct()
+        )
+
+
+class TaskBlockCreate(generics.CreateAPIView, TaskAccessMixin):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskBlockCreateSerializer
+
+    def perform_create(self, serializer):
+        task = self.get_task(self.request.data.get("task"))
+        new_block = serializer.save(task=task, created_by=self.request.user)
+
+        # Move all following blocks one level
+        blocks_to_move = task.blocks.exclude(id=new_block.id).filter(
+            is_archived=False, position__gte=new_block.position
+        )
+        blocks_to_move.update(position=F("position") + 1)
+
+        WebsocketHelper.send(
+            channel=f"{task.id}",
+            event_name="block_created",
+            data={
+                "changed_positions": {
+                    str(block.id): block.position
+                    for block in task.blocks.filter(id__in=blocks_to_move)
+                },
+                "created_block": TaskBlockWebsocketSerializer(new_block).data,
+            },
+        )
+
+
+class TaskBlockUpdate(generics.UpdateAPIView, TaskAccessMixin):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskBlockUpdateSerializer
+
+    def get_object(self):
+        return get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
+
+    def perform_update(self, serializer):
+        task = self.get_task(self.request.data.get("task"))
+        block = serializer.save()
+
+        WebsocketHelper.send(
+            channel=f"{task.id}",
+            event_name="block_updated",
+            data={"updated_block": TaskBlockWebsocketSerializer(block).data},
+        )
+
+
+class TaskBlockDelete(generics.DestroyAPIView, TaskAccessMixin):
+    queryset = Task.objects.all()
+
+    def get_object(self):
+        return get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
+
+    def perform_destroy(self, block):
+        task = self.get_task(self.request.data.get("task"))
+        block.is_archived = True
+        block.save()
+
+        # Move all following blocks position back one level
+        blocks_to_move = task.blocks.filter(
+            is_archived=False, position__gt=block.position
+        )
+        blocks_to_move_ids = [block.id for block in blocks_to_move]
+
+        blocks_to_move.update(position=F("position") - 1)
+
+        WebsocketHelper.send(
+            channel=f"{task.id}",
+            event_name="block_archived",
+            data={
+                "archived_block": str(block.id),
+                "changed_positions": {
+                    str(block.id): block.position
+                    for block in task.blocks.filter(id__in=blocks_to_move_ids)
+                },
+            },
+        )
+
+
+class TaskBlockMove(APIView, TaskAccessMixin):
+    def post(self, request, *args, **kwargs):
+        task = self.get_task(self.request.data.get("task"))
+        block = get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
+        new_position = self.request.data.get("position")
+
+        try:
+            new_position = int(new_position)
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        blocks_count = (
+            task.blocks.filter(is_archived=False)
+            .order_by("position")
+            .distinct()
+            .count()
+        )
+        if new_position > blocks_count:
+            new_position = blocks_count - 1
+
+        if new_position < 0:
+            new_position = 0
+
+        with transaction.atomic():
+            old_position = block.position
+
+            block.position = new_position
+            block.save()
+
+            if old_position < new_position:
+                blocks_to_move = task.blocks.filter(
+                    is_archived=False,
+                    position__gt=old_position,
+                    position__lte=new_position,
+                )
+                blocks_to_move_ids = [block.id for block in blocks_to_move]
+                blocks_to_move.exclude(id=block.id).update(
+                    position=F("position") - 1
+                )
+            else:
+                blocks_to_move = task.blocks.filter(
+                    is_archived=False,
+                    position__lt=old_position,
+                    position__gte=new_position,
+                )
+                blocks_to_move_ids = [block.id for block in blocks_to_move]
+                blocks_to_move.exclude(id=block.id).update(
+                    position=F("position") + 1
+                )
+
+            WebsocketHelper.send(
+                channel=f"{task.id}",
+                event_name="block_moved",
+                data={
+                    "changed_positions": {
+                        str(block.id): block.position
+                        for block in task.blocks.filter(
+                            id__in=blocks_to_move_ids
+                        )
+                    },
+                },
+            )
+
+        return Response(status=status.HTTP_200_OK)
+
+
 class TaskBlockList(APIView):
     http_method_names = ["get", "post"]
 
