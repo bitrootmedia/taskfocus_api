@@ -1,11 +1,14 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apis.serializers import TaskBlockWebsocketSerializer
 from core.models import Project, User, ProjectAccess, Task, TaskBlock
 
 
-class TaskBlocksTests(APITestCase):
+class TaskBlocksTestsV2(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create(username="user1")
@@ -65,9 +68,17 @@ class TaskBlocksTests(APITestCase):
         cls.block_4 = TaskBlock.objects.create(
             task=cls.task_3,
             block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-            content="Block 3 Content",
+            content="Block 4 Content",
             created_by=cls.user_3,
             position=1,
+        )
+
+        cls.block_5 = TaskBlock.objects.create(
+            task=cls.task_3,
+            block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
+            content="Block 5 Content",
+            created_by=cls.user_3,
+            position=2,
         )
 
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
@@ -78,376 +89,297 @@ class TaskBlocksTests(APITestCase):
             description="Task 4 Description",
         )
 
-    def test_task_block_list_no_task_access(self):
-        self.client.force_authenticate(user=self.user_2)
-        response = self.client.get(
-            reverse("task_block_list", kwargs={"task_id": str(self.task_1.id)})
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_block_list_ordered(self):
+    def test_task_block_list(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(
-            reverse("task_block_list", kwargs={"task_id": str(self.task_3.id)})
+            reverse("task_block_list", kwargs={"task": str(self.task_3.id)})
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.json().get("results")
         self.assertEqual(results[0].get("id"), str(self.block_3.id))
         self.assertEqual(results[1].get("id"), str(self.block_4.id))
 
+    def test_task_block_list_task_doesnt_exist(self):
+        self.client.force_authenticate(user=self.user_2)
+        response = self.client.get(
+            reverse(
+                "task_block_list",
+                kwargs={
+                    "task": str(  # random uuid
+                        "0508f0aa-8cdd-4d63-b67f-ab2fcc90cb3f"
+                    )
+                },
+            )
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_task_block_list_no_task_access(self):
+        self.client.force_authenticate(user=self.user_2)
+        response = self.client.get(
+            reverse("task_block_list", kwargs={"task": str(self.task_1.id)})
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_block_list_empty(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(
-            reverse("task_block_list", kwargs={"task_id": str(self.task_4.id)})
+            reverse("task_block_list", kwargs={"task": str(self.task_4.id)})
         )
         results = response.json().get("results")
         self.assertEqual(len(results), 0)
 
-    def test_block_list_reorder(self):
+    # Mock Pusher Websocket call
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_create_no_move(self, mock_websocket_send):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse("task_block_create"),
+            {
+                "task": str(self.task_1.id),
+                "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                "content": "New Block Content",
+                "position": 1,
+            },
+            format="json",
+        )
+        created_block = TaskBlock.objects.get(task=self.task_1.id, position=1)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_1.id}",
+            event_name="block_created",
+            data={
+                "changed_positions": {},
+                "created_block": TaskBlockWebsocketSerializer(
+                    instance=created_block
+                ).data,
+            },
+        )
+
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_create_with_move(self, mock_websocket_send):
         self.client.force_authenticate(user=self.user_3)
         response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
-            ),
-            data=[
-                {
-                    "id": self.block_3.id,
-                    "block_type": self.block_3.block_type,
-                    "position": 1,
-                },
-                {
-                    "id": self.block_4.id,
-                    "block_type": self.block_4.block_type,
-                    "position": 0,
-                },
-            ],
+            reverse("task_block_create"),
+            {
+                "task": str(self.task_3.id),
+                "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                "content": "New Block Content",
+                "position": 0,
+            },
             format="json",
         )
 
-        results = response.json().get("results")
-        task_blocks = self.task_3.blocks.order_by("position")
+        created_block = TaskBlock.objects.get(task=self.task_3.id, position=0)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_3.id}",
+            event_name="block_created",
+            data={
+                # Assure blocks moved
+                "changed_positions": {
+                    str(self.block_3.id): 1,
+                    str(self.block_4.id): 2,
+                    str(self.block_5.id): 3,
+                },
+                "created_block": TaskBlockWebsocketSerializer(
+                    instance=created_block
+                ).data,
+            },
+        )
+
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_create_with_move_in_the_middle(self, mock_websocket_send):
+        self.client.force_authenticate(user=self.user_3)
+        response = self.client.post(
+            reverse("task_block_create"),
+            {
+                "task": str(self.task_3.id),
+                "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                "content": "New Block Content",
+                "position": 1,
+            },
+            format="json",
+        )
+
+        created_block = TaskBlock.objects.get(task=self.task_3.id, position=1)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_3.id}",
+            event_name="block_created",
+            data={
+                # Assure blocks moved
+                "changed_positions": {
+                    str(self.block_4.id): 2,
+                    str(self.block_5.id): 3,
+                },
+                "created_block": TaskBlockWebsocketSerializer(
+                    instance=created_block
+                ).data,
+            },
+        )
+
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_update(self, mock_websocket_send):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.put(
+            reverse("task_block_update"),
+            {
+                "task": str(self.task_1.id),
+                "block": str(self.block_1.id),
+                "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
+                "content": "Block 1 Content UPDATED",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            task_blocks.count(), 2
-        )  # make sure block_4 was deleted
-        self.assertEqual(results[0].get("id"), str(self.block_4.id))
-        self.assertEqual(results[0].get("content"), self.block_4.content)
-        self.assertEqual(results[1].get("id"), str(self.block_3.id))
-        self.assertEqual(results[1].get("content"), self.block_3.content)
-
-    def test_block_list_create(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_4.id)}
-            ),
-            data=[
-                {
-                    "id": None,
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 0,
-                    "content": "New Block Content Here",
-                },
-                {
-                    "id": None,
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 1,
-                    "content": "Other block",
-                },
-            ],
-            format="json",
+            response.json().get("content"), "Block 1 Content UPDATED"
         )
-        results = response.json()["results"]
-        task_blocks = self.task_4.blocks.all()
-        self.assertEqual(task_blocks.count(), 2)
-        self.assertEqual(results[0].get("content"), "New Block Content Here")
+        self.block_1.refresh_from_db()
 
-    def test_block_list_create_reorder(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_1.id)}
-            ),
-            data=[
-                {
-                    "id": None,
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 0,
-                    "content": "New Block Content Here",
-                },
-                {
-                    "id": self.block_1.id,
-                    "block_type": self.block_1.block_type,
-                    "position": 1,
-                    "content": self.block_1.content,
-                },
-            ],
-            format="json",
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_1.id}",
+            event_name="block_updated",
+            data={
+                "updated_block": TaskBlockWebsocketSerializer(
+                    instance=self.block_1
+                ).data
+            },
         )
-        results = response.json().get("results")
-        task_blocks = self.task_1.blocks.all().order_by("position")
-        self.assertEqual(task_blocks.count(), 2)
-        self.assertEqual(results[0].get("content"), "New Block Content Here")
-        self.assertEqual(results[1].get("content"), self.block_1.content)
 
-    def test_block_list_update(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_1.id)}
-            ),
-            data=[
-                {
-                    "id": self.block_1.id,
-                    "block_type": self.block_1.block_type,
-                    "position": self.block_1.position,
-                    "content": self.block_1.content,
-                },
-                {
-                    "id": None,
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 1,
-                    "content": "Other block",
-                },
-            ],
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_delete(self, mock_websocket_send):
+        self.client.force_authenticate(user=self.user_3)
+        response = self.client.delete(
+            reverse("task_block_delete"),
+            {
+                "task": str(self.task_3.id),
+                "block": str(self.block_3.id),
+            },
             format="json",
         )
 
-        results = response.json().get("results")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-        task_blocks = self.task_1.blocks.all()
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_3.id}",
+            event_name="block_archived",
+            data={
+                "archived_block": str(self.block_3.id),
+                "changed_positions": {
+                    str(self.block_4.id): 0,
+                    str(self.block_5.id): 1,
+                },
+            },
+        )
 
-        self.assertEqual(task_blocks.count(), 2)
-        self.assertEqual(results[0].get("id"), str(self.block_1.id))
-        self.assertEqual(results[0].get("content"), self.block_1.content)
-        self.assertEqual(results[1].get("content"), "Other block")
-
-    def test_block_list_update_reorder(self):
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_move_up(self, mock_websocket_send):
         self.client.force_authenticate(user=self.user_3)
         response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
-            ),
-            data=[
-                {
-                    "id": self.block_4.id,
-                    "block_type": self.block_4.block_type,
-                    "position": 0,
-                    "content": self.block_4.content,
-                },
-                {
-                    "id": self.block_3.id,
-                    "block_type": self.block_3.block_type,
-                    "position": 1,
-                    "content": self.block_3.content,
-                },
-            ],
+            reverse("task_block_move"),
+            {
+                "task": str(self.task_3.id),
+                "block": str(self.block_3.id),
+                "position": 2,
+            },
             format="json",
         )
 
-        results = response.json().get("results")
-        task_blocks = self.task_3.blocks.order_by("position")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(task_blocks.count(), 2)
-        self.assertEqual(results[0].get("id"), str(self.block_4.id))
-        self.assertEqual(results[0].get("content"), self.block_4.content)
-        self.assertEqual(results[1].get("id"), str(self.block_3.id))
-        self.assertEqual(results[1].get("content"), self.block_3.content)
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_3.id}",
+            event_name="block_moved",
+            data={
+                "changed_positions": {
+                    str(self.block_4.id): 0,
+                    str(self.block_5.id): 1,
+                    str(self.block_3.id): 2,
+                }
+            },
+        )
 
-    def test_block_list_create_and_update(self):
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_move_up_over_top_position(self, mock_websocket_send):
         self.client.force_authenticate(user=self.user_3)
         response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
-            ),
-            data=[
-                {
-                    "id": None,
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 0,
-                    "content": "# some content",
-                },
-                {
-                    "id": self.block_4.id,
-                    "block_type": self.block_4.block_type,
-                    "position": 1,
-                    "content": self.block_4.content,
-                },
-            ],
+            reverse("task_block_move"),
+            {
+                "task": str(self.task_3.id),
+                "block": str(self.block_3.id),
+                "position": 25,
+            },
             format="json",
         )
 
-        results = response.json().get("results")
-        task_blocks = self.task_3.blocks.order_by("position")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(task_blocks.count(), 2)
-        self.assertEqual(results[0].get("content"), "# some content")
-        self.assertEqual(results[1].get("id"), str(self.block_4.id))
-        self.assertEqual(results[1].get("content"), self.block_4.content)
-
-    def test_block_list_delete_empty_post(self):
-        self.client.force_authenticate(user=self.user)
-        self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_1.id)}
-            ),
-            data=[],  # empty data to remove all blocks
-            format="json",
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_3.id}",
+            event_name="block_moved",
+            data={
+                "changed_positions": {
+                    str(self.block_4.id): 0,
+                    str(self.block_5.id): 1,
+                    str(self.block_3.id): 2,
+                }
+            },
         )
 
-        task_blocks_count = self.task_1.blocks.order_by("position").count()
-        self.assertEqual(task_blocks_count, 0)
-
-    def test_block_list_delete_keep_other_blocks(self):
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_move_down(self, mock_websocket_send):
         self.client.force_authenticate(user=self.user_3)
         response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
-            ),
-            data=[
-                # Keep block_4 data out of POST
-                {
-                    "id": self.block_3.id,
-                    "block_type": self.block_3.block_type,
-                    "position": 1,
-                    "content": self.block_3.content,
-                },
-            ],
+            reverse("task_block_move"),
+            {
+                "task": str(self.task_3.id),
+                "block": str(self.block_5.id),
+                "position": 0,
+            },
             format="json",
         )
 
-        results = response.json().get("results")
-        task_blocks = self.task_3.blocks.order_by("position")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(
-            task_blocks.count(), 1
-        )  # make sure block_4 was deleted
-        self.assertEqual(results[0].get("id"), str(self.block_3.id))
-        self.assertEqual(results[0].get("content"), self.block_3.content)
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_3.id}",
+            event_name="block_moved",
+            data={
+                "changed_positions": {
+                    str(self.block_5.id): 0,
+                    str(self.block_3.id): 1,
+                    str(self.block_4.id): 2,
+                }
+            },
+        )
 
-    def test_block_list_delete_and_create(self):
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_move_down_below_zero(self, mock_websocket_send):
         self.client.force_authenticate(user=self.user_3)
         response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
-            ),
-            data=[
-                # Keep block_4 data out of POST
-                {
-                    "id": self.block_3.id,
-                    "block_type": self.block_3.block_type,
-                    "position": 1,
-                    "content": self.block_3.content,
-                },
-                {
-                    "id": None,
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 0,
-                    "content": "# some content",
-                },
-            ],
+            reverse("task_block_move"),
+            {
+                "task": str(self.task_3.id),
+                "block": str(self.block_5.id),
+                "position": -25,
+            },
             format="json",
         )
 
-        results = response.json().get("results")
-        task_blocks = self.task_3.blocks.order_by("position")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(
-            task_blocks.count(), 2
-        )  # make sure block_4 was deleted
-        self.assertEqual(results[0].get("content"), "# some content")
-        self.assertEqual(results[1].get("id"), str(self.block_3.id))
-        self.assertEqual(results[1].get("content"), self.block_3.content)
-
-    def test_block_list_delete_create_and_update(self):
-        self.client.force_authenticate(user=self.user_3)
-        response = self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_3.id)}
-            ),
-            data=[
-                # Keep block_4 data out of POST
-                {
-                    "id": self.block_3.id,
-                    "block_type": self.block_3.block_type,
-                    "position": 1,
-                    "content": "New Content",
-                },
-                {
-                    "id": None,  # Create new block
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 0,
-                    "content": "# some content",
-                },
-            ],
-            format="json",
-        )
-
-        results = response.json().get("results")
-        task_blocks = self.task_3.blocks.order_by("position")
-
-        self.assertEqual(
-            task_blocks.count(), 2
-        )  # make sure block_4 was deleted
-        self.assertEqual(results[0].get("content"), "# some content")
-        self.assertEqual(results[1].get("id"), str(self.block_3.id))
-        self.assertEqual(results[1].get("content"), "New Content")
-
-    def test_block_create_invalid_position(self):
-        self.client.force_authenticate(user=self.user)
-        self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_4.id)}
-            ),
-            data=[
-                {
-                    "id": None,  # new block,
-                    "block_type": TaskBlock.BlockTypeChoices.CHECKLIST,
-                    "position": 0,  # Invalid position
-                    "content": "# some content",
-                },
-                {
-                    "id": None,  # new block,
-                    "block_type": TaskBlock.BlockTypeChoices.CHECKLIST,
-                    "position": -1,  # Invalid position
-                    "content": "# some content",
-                },
-            ],
-            format="json",
-        )
-
-        existing_blocks = TaskBlock.objects.filter(task=self.task_4.id)
-
-        self.assertEqual(len(existing_blocks), 0)
-
-    def test_block_update_partial_invalid(self):
-        # Nothing will be created if even one block is invalid
-
-        self.client.force_authenticate(user=self.user_2)
-        self.client.post(
-            reverse(
-                "task_block_list", kwargs={"task_id": str(self.task_2.id)}
-            ),
-            data=[
-                {
-                    "id": self.block_2.id,
-                    "block_type": self.block_2.block_type,
-                    "position": 1,
-                    "content": None,  # Invalid content
-                },
-                {
-                    "id": None,  # new block,
-                    "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                    "position": 2,
-                    "content": "# some content",
-                },
-            ],
-            format="json",
-        )
-
-        existing_blocks = TaskBlock.objects.filter(task=self.task_2.id)
-
-        self.assertEqual(len(existing_blocks), 1)  # Nothing was created
-        self.assertEqual(  # Nothing was updated
-            existing_blocks[0].content, "Block 2 Content"
+        mock_websocket_send.assert_called_once_with(
+            channel=f"{self.task_3.id}",
+            event_name="block_moved",
+            data={
+                "changed_positions": {
+                    str(self.block_5.id): 0,
+                    str(self.block_3.id): 1,
+                    str(self.block_4.id): 2,
+                }
+            },
         )
