@@ -158,7 +158,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_create_with_move(self, mock_websocket_send):
-        self.client.force_authenticate(user=self.user_3)
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(
             reverse("task_block_create"),
             {
@@ -191,7 +191,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_create_with_move_in_the_middle(self, mock_websocket_send):
-        self.client.force_authenticate(user=self.user_3)
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(
             reverse("task_block_create"),
             {
@@ -252,7 +252,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_delete(self, mock_websocket_send):
-        self.client.force_authenticate(user=self.user_3)
+        self.client.force_authenticate(user=self.user)
         response = self.client.delete(
             reverse("task_block_delete"),
             {
@@ -278,7 +278,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_move_up(self, mock_websocket_send):
-        self.client.force_authenticate(user=self.user_3)
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(
             reverse("task_block_move"),
             {
@@ -305,7 +305,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_move_up_over_top_position(self, mock_websocket_send):
-        self.client.force_authenticate(user=self.user_3)
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(
             reverse("task_block_move"),
             {
@@ -332,7 +332,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_move_down(self, mock_websocket_send):
-        self.client.force_authenticate(user=self.user_3)
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(
             reverse("task_block_move"),
             {
@@ -359,7 +359,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_move_down_below_zero(self, mock_websocket_send):
-        self.client.force_authenticate(user=self.user_3)
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(
             reverse("task_block_move"),
             {
