@@ -1769,6 +1769,7 @@ class SideAppHomeView(APIView):
     def post(self, request):
         data = json.loads(request.body)
         beacon_id = data.get("beacon_id")
+
         if beacon_id:
             beacon = Beacon.objects.filter(
                 user=request.user, id=beacon_id
@@ -1776,7 +1777,9 @@ class SideAppHomeView(APIView):
             if beacon:
                 beacon.confirmed_at = now()
                 beacon.save()
+
         quick_action = data.get("quick_action")
+
         if quick_action:
             Log.objects.create(
                 user=request.user, message=f"Debug {quick_action}"
