@@ -7,7 +7,6 @@ from collections import defaultdict
 
 from django.core.files.storage import default_storage
 from django.db import transaction
-from django.db.models import Q, F, Sum
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
@@ -21,30 +20,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.mixins import TaskAccessMixin
-from core.models import (
-    Project,
-    Task,
-    Log,
-    Comment,
-    Attachment,
-    ProjectAccess,
-    User,
-    TaskWorkSession,
-    TaskAccess,
-    NotificationAck,
-    UserTaskQueue,
-    Reminder,
-    Notification,
-    Team,
-    PrivateNote,
-    TaskBlock,
-    Pin,
-    Note,
-    BoardUser,
-    Board,
-    Card,
-    CardItem,
-)
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
 from core.utils.permissions import user_can_see_task
@@ -66,15 +41,7 @@ from .filters import (
     BoardFilter,
 )
 from .paginations import CustomPaginationPageSize1k
-from .permissions import (
-    HasProjectAccess,
-    HasTaskAccess,
-    IsAuthorOrReadOnly,
-    IsOwnerOrReadOnly,
-    IsProjectOwner,
-    IsTaskOwner,
-    IsPrivateNoteOwner,
-)
+
 from .serializers import (
     ProjectListSerializer,
     ProjectListReadOnlySerializer,
@@ -116,7 +83,6 @@ from .serializers import (
     TaskBlockCreateSerializer,
     TaskBlockUpdateSerializer,
     TaskBlockWebsocketSerializer,
-    TaskBlockListUpdateSerializer,
 )
 
 from core.models import (
@@ -153,7 +119,6 @@ from .permissions import (
     IsProjectOwner,
     IsTaskOwner,
     IsPrivateNoteOwner,
-    BlockUserHasTaskAccess,
 )
 
 
