@@ -22,7 +22,7 @@ class TaskBlocksTestsV2(APITestCase):
         cls.block_1 = TaskBlock.objects.create(
             task=cls.task_1,
             block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-            content="Block 1 Content",
+            content='{"markdown":"Block 1 Content"}',
             created_by=cls.user,
         )
 
@@ -41,7 +41,7 @@ class TaskBlocksTestsV2(APITestCase):
         cls.block_2 = TaskBlock.objects.create(
             task=cls.task_2,
             block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-            content="Block 2 Content",
+            content='{"markdown":"Block 2 Content"}',
             created_by=cls.user_2,
         )
 
@@ -61,14 +61,14 @@ class TaskBlocksTestsV2(APITestCase):
         cls.block_3 = TaskBlock.objects.create(
             task=cls.task_3,
             block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-            content="Block 3 Content",
+            content='{"markdown":"Block 3 Content"}',
             created_by=cls.user_3,
         )
 
         cls.block_4 = TaskBlock.objects.create(
             task=cls.task_3,
             block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-            content="Block 4 Content",
+            content='{"markdown":"Block 4 Content"}',
             created_by=cls.user_3,
             position=1,
         )
@@ -76,7 +76,7 @@ class TaskBlocksTestsV2(APITestCase):
         cls.block_5 = TaskBlock.objects.create(
             task=cls.task_3,
             block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-            content="Block 5 Content",
+            content='{"markdown":"Block 5 Content"}',
             created_by=cls.user_3,
             position=2,
         )
@@ -137,7 +137,7 @@ class TaskBlocksTestsV2(APITestCase):
             {
                 "task": str(self.task_1.id),
                 "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                "content": "New Block Content",
+                "content": '{"markdown":"New Block Content"}',
                 "position": 1,
             },
             format="json",
@@ -166,7 +166,7 @@ class TaskBlocksTestsV2(APITestCase):
             {
                 "task": str(self.task_3.id),
                 "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                "content": "New Block Content",
+                "content": '{"markdown":"New Block Content"}',
                 "position": 0,
             },
             format="json",
@@ -200,7 +200,7 @@ class TaskBlocksTestsV2(APITestCase):
             {
                 "task": str(self.task_3.id),
                 "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                "content": "New Block Content",
+                "content": '{"markdown":"New Block Content"}',
                 "position": 1,
             },
             format="json",
@@ -225,6 +225,21 @@ class TaskBlocksTestsV2(APITestCase):
         )
 
     @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_create_invalid_data(self, mock_websocket_send):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse("task_block_create"),
+            {
+                "task": str(self.task_3.id),
+                "content": "",
+                "position": 1,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_websocket_send.assert_not_called()
+
+    @patch("core.utils.websockets.WebsocketHelper.send")
     def test_block_update(self, mock_websocket_send):
         self.client.force_authenticate(user=self.user)
         response = self.client.put(
@@ -233,13 +248,14 @@ class TaskBlocksTestsV2(APITestCase):
                 "task": str(self.task_1.id),
                 "block": str(self.block_1.id),
                 "block_type": TaskBlock.BlockTypeChoices.MARKDOWN,
-                "content": "Block 1 Content UPDATED",
+                "content": '{"markdown":"Block 1 Content UPDATED"}',
             },
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            response.json().get("content"), "Block 1 Content UPDATED"
+            response.json().get("content"),
+            '{"markdown":"Block 1 Content UPDATED"}',
         )
         self.block_1.refresh_from_db()
 
@@ -386,3 +402,19 @@ class TaskBlocksTestsV2(APITestCase):
                 }
             },
         )
+
+    @patch("core.utils.websockets.WebsocketHelper.send")
+    def test_block_move_block_does_not_exists(self, mock_websocket_send):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse("task_block_move"),
+            {
+                "task": str(self.task_3.id),
+                "block": str("bad-uuid-here"),
+                "position": -25,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        mock_websocket_send.assert_not_called()
