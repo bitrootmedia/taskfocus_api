@@ -1,27 +1,54 @@
 import json
+import mimetypes
 import pathlib
 import time
 import uuid
-import mimetypes
 from collections import defaultdict
 
+from django.core.files.storage import default_storage
 from django.db import transaction
+from django.db.models import Q, F, Sum
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import ListAPIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import OrderingFilter, SearchFilter
-from django.core.files.storage import default_storage
+from rest_framework.generics import ListAPIView, get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from core.mixins import TaskAccessMixin
+from core.models import (
+    Project,
+    Task,
+    Log,
+    Comment,
+    Attachment,
+    ProjectAccess,
+    User,
+    TaskWorkSession,
+    TaskAccess,
+    NotificationAck,
+    UserTaskQueue,
+    Reminder,
+    Notification,
+    Team,
+    PrivateNote,
+    TaskBlock,
+    Pin,
+    Note,
+    BoardUser,
+    Board,
+    Card,
+    CardItem,
+)
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
-from core.utils.time_from_seconds import time_from_seconds
 from core.utils.permissions import user_can_see_task
+from core.utils.time_from_seconds import time_from_seconds
 from core.utils.websockets import WebsocketHelper
 from .filters import (
     ProjectFilter,
@@ -37,6 +64,16 @@ from .filters import (
     PrivateNoteFilter,
     NoteFilter,
     BoardFilter,
+)
+from .paginations import CustomPaginationPageSize1k
+from .permissions import (
+    HasProjectAccess,
+    HasTaskAccess,
+    IsAuthorOrReadOnly,
+    IsOwnerOrReadOnly,
+    IsProjectOwner,
+    IsTaskOwner,
+    IsPrivateNoteOwner,
 )
 from .serializers import (
     ProjectListSerializer,
@@ -67,7 +104,6 @@ from .serializers import (
     PrivateNoteListSerializer,
     PrivateNoteDetailSerializer,
     TaskBlockListSerializer,
-    TaskBlockDetailSerializer,
     PinDetailSerializer,
     WorkSessionsBreakdownInputSerializer,
     WorkSessionsWSBSerializer,
@@ -77,6 +113,9 @@ from .serializers import (
     CardSerializer,
     CardItemSerializer,
     BoardUserSerializer,
+    TaskBlockCreateSerializer,
+    TaskBlockUpdateSerializer,
+    TaskBlockWebsocketSerializer,
     TaskBlockListUpdateSerializer,
 )
 
@@ -116,7 +155,6 @@ from .permissions import (
     IsPrivateNoteOwner,
     BlockUserHasTaskAccess,
 )
-from .paginations import CustomPaginationPageSize1k
 
 
 class UserList(generics.ListAPIView):
@@ -332,11 +370,12 @@ class TaskTotalTime(generics.RetrieveAPIView):
     queryset = Task.objects.all()
 
 
-class TaskBlockList(APIView):
-    http_method_names = ["get", "post"]
+class TaskBlockListV2(generics.ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskBlockListSerializer
 
-    def get_task(self):
-        task = Task.objects.filter(pk=self.kwargs.get("task_id", 0)).first()
+    def get_queryset(self):
+        task = Task.objects.filter(pk=self.kwargs.get("task", 0)).first()
         if not task:
             raise PermissionDenied()
 
@@ -346,86 +385,156 @@ class TaskBlockList(APIView):
         if not has_task_access:
             raise PermissionDenied()
 
-        return task
-
-    def get(self, request, task_id):
-        task = self.get_task()
-        blocks = (
-            TaskBlock.objects.filter(task=task).order_by("position").distinct()
-        )
-        serializer = TaskBlockListSerializer(blocks, many=True)
-        return Response(
-            data={"results": serializer.data}, status=status.HTTP_200_OK
+        return (
+            task.blocks.filter(is_archived=False)
+            .order_by("position")
+            .distinct()
         )
 
-    def post(self, request, task_id):
-        # I'm leaving the 'blocks_failed_to_validate' path commented in case we do want to
-        #  save all valid blocks on save (even if invalid are present in sent data)
 
-        task = self.get_task()
+class TaskBlockCreate(generics.CreateAPIView, TaskAccessMixin):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskBlockCreateSerializer
 
-        existing_blocks = TaskBlock.objects.filter(task=task).order_by(
-            "position"
+    def perform_create(self, serializer):
+        task = self.get_task(self.request.data.get("task"))
+        new_block = serializer.save(task=task, created_by=self.request.user)
+
+        # Move all following blocks one level
+        blocks_to_move = task.blocks.exclude(id=new_block.id).filter(
+            is_archived=False, position__gte=new_block.position
         )
-        existing_blocks_map = {block.id: block for block in existing_blocks}
+        blocks_to_move.update(position=F("position") + 1)
 
-        sent_blocks = TaskBlockListUpdateSerializer(
-            data=request.data, many=True
+        WebsocketHelper.send(
+            channel=f"{task.id}",
+            event_name="block_created",
+            data={
+                "changed_positions": {
+                    str(block.id): block.position
+                    for block in task.blocks.filter(id__in=blocks_to_move)
+                },
+                "created_block": TaskBlockWebsocketSerializer(new_block).data,
+            },
         )
-        if not sent_blocks.is_valid():
-            all_errors = [
-                {
-                    **errors,
-                    "block_position": sent_blocks.initial_data[idx].get(
-                        "position"
-                    ),
-                }
-                for idx, errors in enumerate(sent_blocks.errors)
-                if errors
-            ]
-            return JsonResponse(
-                {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST
-            )
 
-        current_block_ids = []
-        # blocks_failed_to_validate = {}  # block_id: error_message
 
-        for block_data in sent_blocks.validated_data:
-            if block_id := block_data.get("id"):
-                block = existing_blocks_map.get(block_id)
+class TaskBlockUpdate(generics.UpdateAPIView, TaskAccessMixin):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TaskBlockUpdateSerializer
+
+    def get_object(self):
+        return get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
+
+    def perform_update(self, serializer):
+        task = self.get_task(self.request.data.get("task"))
+        block = serializer.save()
+
+        WebsocketHelper.send(
+            channel=f"{task.id}",
+            event_name="block_updated",
+            data={"updated_block": TaskBlockWebsocketSerializer(block).data},
+        )
+
+
+class TaskBlockDelete(generics.DestroyAPIView, TaskAccessMixin):
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        return get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
+
+    def perform_destroy(self, block):
+        task = self.get_task(self.request.data.get("task"))
+        block.is_archived = True
+        block.save()
+
+        # Move all following blocks position back one level
+        blocks_to_move = task.blocks.filter(
+            is_archived=False, position__gt=block.position
+        )
+        blocks_to_move_ids = [block.id for block in blocks_to_move]
+
+        blocks_to_move.update(position=F("position") - 1)
+
+        WebsocketHelper.send(
+            channel=f"{task.id}",
+            event_name="block_archived",
+            data={
+                "archived_block": str(block.id),
+                "changed_positions": {
+                    str(block.id): block.position
+                    for block in task.blocks.filter(id__in=blocks_to_move_ids)
+                },
+            },
+        )
+
+
+class TaskBlockMove(APIView, TaskAccessMixin):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        task = self.get_task(self.request.data.get("task"))
+        block = get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
+        new_position = self.request.data.get("position")
+
+        try:
+            new_position = int(new_position)
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        blocks_count = (
+            task.blocks.filter(is_archived=False)
+            .order_by("position")
+            .distinct()
+            .count()
+        )
+        if new_position > blocks_count:
+            new_position = blocks_count - 1
+
+        if new_position < 0:
+            new_position = 0
+
+        with transaction.atomic():
+            old_position = block.position
+
+            block.position = new_position
+            block.save()
+
+            if old_position < new_position:
+                blocks_to_move = task.blocks.filter(
+                    is_archived=False,
+                    position__gt=old_position,
+                    position__lte=new_position,
+                )
+                blocks_to_move_ids = [block.id for block in blocks_to_move]
+                blocks_to_move.exclude(id=block.id).update(
+                    position=F("position") - 1
+                )
             else:
-                block = None
+                blocks_to_move = task.blocks.filter(
+                    is_archived=False,
+                    position__lt=old_position,
+                    position__gte=new_position,
+                )
+                blocks_to_move_ids = [block.id for block in blocks_to_move]
+                blocks_to_move.exclude(id=block.id).update(
+                    position=F("position") + 1
+                )
 
-            serializer = TaskBlockListUpdateSerializer(
-                instance=block, data=block_data
+            WebsocketHelper.send(
+                channel=f"{task.id}",
+                event_name="block_moved",
+                data={
+                    "changed_positions": {
+                        str(block.id): block.position
+                        for block in task.blocks.filter(
+                            id__in=blocks_to_move_ids
+                        )
+                    },
+                },
             )
-            serializer.is_valid(raise_exception=True)
 
-            # if not serializer.is_valid():
-            #     blocks_failed_to_validate[block.id] = str(serializer.errors)
-            #     continue
-
-            block_instance = serializer.save(
-                created_by=getattr(
-                    block, "created_by", request.user
-                ),  # set user if none
-                task=task,
-            )
-            current_block_ids.append(block_instance.pk)
-
-        # blocks_to_keep_ids = current_block_ids + list(blocks_failed_to_validate.keys())
-        # existing_blocks.exclude(id__in=blocks_to_keep_ids).delete()
-
-        existing_blocks.exclude(id__in=current_block_ids).delete()
-
-        return JsonResponse(
-            {
-                "results": TaskBlockListSerializer(
-                    TaskBlock.objects.filter(task=task).order_by("position"),
-                    many=True,
-                ).data,
-            }
-        )
+        return Response(status=status.HTTP_200_OK)
 
 
 class LogList(generics.ListAPIView):
@@ -800,8 +909,7 @@ class TaskStartWorkView(APIView):
             message=f"User {request.user} started working on this task.",
         )
 
-        ws = WebsocketHelper()
-        ws.send(
+        WebsocketHelper.send(
             f"USR_{request.user.id}",
             "current_task_update",
             data={"task_id": f"{task.id}"},
