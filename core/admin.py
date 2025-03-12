@@ -26,6 +26,7 @@ from .models import (
     BoardUser,
     Card,
     CardItem,
+    Beacon,
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
@@ -268,3 +269,8 @@ class CardAdmin(admin.ModelAdmin):
 @admin.register(CardItem)
 class CardItemAdmin(admin.ModelAdmin):
     list_display = ("task", "card")
+
+
+@admin.register(Beacon)
+class BeaconAdmin(admin.ModelAdmin):
+    list_display = ("user", "created_at", "confirmed_at")

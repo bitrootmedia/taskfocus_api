@@ -2,6 +2,11 @@ from pathlib import Path
 import environ
 import os
 
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+import logging
+
+logger = logging.getLogger(__name__)
 env = environ.Env(DEBUG=(bool, False))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -153,3 +158,80 @@ PUSHER_APP_ID = env("PUSHER_APP_ID", default="")
 PUSHER_HOST = env("PUSHER_HOST", default="")
 PUSHER_APP_SECRET = env("PUSHER_APP_SECRET", default="")
 PUSHER_APP_KEY = env("PUSHER_APP_KEY", default="")
+
+
+LOGGING_LEVEL = env.str("LOGGING_LEVEL", default="WARNING")
+LOGGING_FORMATTER = "verbose"
+LOGGING_HANDLERS = ["console", "file"]
+LOGGING_FILENAME = env.str("LOGGING_FILENAME", default="/tmp/django.log")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": LOGGING_FORMATTER,
+        },
+        "file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "when": "d",
+            "backupCount": 9,
+            "filename": LOGGING_FILENAME,
+            "formatter": LOGGING_FORMATTER,
+            "level": LOGGING_LEVEL,
+        },
+    },
+    "loggers": {
+        "": {
+            "handlers": LOGGING_HANDLERS,
+            "level": LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "django": {
+            "handlers": LOGGING_HANDLERS,
+            "level": LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": LOGGING_HANDLERS,
+            "level": LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": LOGGING_HANDLERS,
+            "level": LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "sentry_sdk.errors": {
+            "handlers": LOGGING_HANDLERS,
+            "level": LOGGING_LEVEL,
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": LOGGING_HANDLERS,
+        "level": LOGGING_LEVEL,
+    },
+}
+
+SENTRY_DSN = env.str("SENTRY_DSN", default=None)
+SENTRY_ENVIRONMENT = env.str("SENTRY_ENVIRONMENT", default="production")
+if SENTRY_DSN is not None:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=0.0,
+    )
+else:
+    sentry_sdk.init(None)
+    logger.warning("WARNING Sentry disabled.")

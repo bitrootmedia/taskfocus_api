@@ -116,6 +116,44 @@ from .serializers import (
     TaskBlockCreateSerializer,
     TaskBlockUpdateSerializer,
     TaskBlockWebsocketSerializer,
+    TaskBlockListUpdateSerializer,
+)
+
+from core.models import (
+    Project,
+    Task,
+    Log,
+    Comment,
+    Attachment,
+    ProjectAccess,
+    User,
+    TaskWorkSession,
+    TaskAccess,
+    NotificationAck,
+    UserTaskQueue,
+    Reminder,
+    Notification,
+    Team,
+    PrivateNote,
+    TaskBlock,
+    Pin,
+    Note,
+    BoardUser,
+    Board,
+    Card,
+    CardItem,
+    Beacon,
+)
+from django.db.models import Q, F, Sum
+from .permissions import (
+    HasProjectAccess,
+    HasTaskAccess,
+    IsAuthorOrReadOnly,
+    IsOwnerOrReadOnly,
+    IsProjectOwner,
+    IsTaskOwner,
+    IsPrivateNoteOwner,
+    BlockUserHasTaskAccess,
 )
 
 
@@ -1833,3 +1871,67 @@ class CardItemMove(APIView):  # Change Item position (or card)
                 )
 
         return Response(status=status.HTTP_200_OK)
+
+
+class SideAppHomeView(APIView):
+    def post(self, request):
+        data = json.loads(request.body)
+        beacon_id = data.get("beacon_id")
+
+        if beacon_id:
+            beacon = Beacon.objects.filter(
+                user=request.user, id=beacon_id
+            ).first()
+            if beacon:
+                beacon.confirmed_at = now()
+                beacon.save()
+
+        quick_action = data.get("quick_action")
+
+        if quick_action:
+            Log.objects.create(
+                user=request.user, message=f"Debug {quick_action}"
+            )
+
+        return JsonResponse({"status": "OK"})
+
+    def get(self, request):
+        user = request.user
+
+        buttons = [
+            {
+                "id": "done",
+                "label": "Done for today",
+            },
+            {
+                "id": "brb",
+                "label": "Be right back",
+            },
+            {
+                "id": "afk",
+                "label": "Away from keyboard",
+            },
+        ]
+
+        response = {"instant_actions": buttons, "currently_working_on": None}
+
+        task_work_session = TaskWorkSession.objects.filter(
+            user=user, stopped_at__isnull=True
+        ).last()
+        if task_work_session:
+            response["currently_working_on"] = {
+                "id": f"{task_work_session.task.id}",
+                "title": task_work_session.task.title,
+            }
+
+        beacon = Beacon.objects.filter(
+            user=user, confirmed_at__isnull=True
+        ).first()
+        if beacon:
+            response["beacon"] = {"id": beacon.id}
+
+        message = request.user.config.get("sideapp_message")
+        if message:
+            response["message"] = message
+
+        return JsonResponse(response)
