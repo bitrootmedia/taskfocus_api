@@ -406,7 +406,7 @@ class TaskBlockDelete(generics.DestroyAPIView, TaskAccessMixin):
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
-        return get_object_or_404(TaskBlock, pk=self.request.data.get("block"))
+        return get_object_or_404(TaskBlock, id=self.request.data.get("block"))
 
     def perform_destroy(self, block):
         task = self.get_task(self.request.data.get("task"))
