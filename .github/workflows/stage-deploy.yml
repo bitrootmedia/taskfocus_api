@@ -37,9 +37,6 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install requirements
-      run: pip install -r requirements.txt
-
     - name: Deploy to server
       uses: appleboy/scp-action@master
       with:   
@@ -50,6 +47,17 @@ jobs:
         overwrite: true
         source: "./*"
         target: "/home/deploy/taskfocus_api"
+
+    - name: Install requirements
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.STAGE_HOST }}
+        username: ${{ secrets.STAGE_USERNAME }}
+        key: ${{ secrets.STAGE_KEY }}
+        port: ${{ secrets.STAGE_PORT }}
+        # Assumes venv already exists and user has access to binaries
+        script: |
+          source /home/deploy/taskfocus_api/venv/bin/activate && pip install -r /home/deploy/taskfocus_api/requirements.txt
 
     - name: Apply migrations
       uses: appleboy/ssh-action@master

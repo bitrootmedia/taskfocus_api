@@ -240,29 +240,28 @@ class TaskBlockListSerializer(serializers.ModelSerializer):
         read_only_fields = ("created_by",)
 
 
-class TaskBlockListUpdateSerializer(serializers.ModelSerializer):
-    id = serializers.UUIDField(
-        allow_null=True
-    )  # allow to pass id to the serializer
-    position = serializers.IntegerField(allow_null=False, min_value=0)
-    block_type = serializers.ChoiceField(choices=TaskBlock.BlockTypeChoices)
+class TaskBlockWebsocketSerializer(TaskBlockListSerializer):
+    id = serializers.UUIDField(format="hex_verbose")
+    created_by = serializers.UUIDField(format="hex_verbose")
 
+
+class TaskBlockCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskBlock
         fields = (
-            "id",
+            "task",
             "block_type",
             "position",
             "content",
         )
 
 
-class TaskBlockDetailSerializer(serializers.ModelSerializer):
+class TaskBlockUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskBlock
         fields = (
-            "id",
-            "position",
+            "task",
+            "block_type",
             "content",
         )
 
