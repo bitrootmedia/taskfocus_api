@@ -50,22 +50,22 @@ urlpatterns = [
         name="task_block_list",
     ),
     path(
-        "task-block-create/",
+        "task-block-create",
         views.TaskBlockCreate.as_view(),
         name="task_block_create",
     ),
     path(
-        "task-block-update/",
+        "task-block-update",
         views.TaskBlockUpdate.as_view(),
         name="task_block_update",
     ),
     path(
-        "task-block-delete/",
+        "task-block-delete",
         views.TaskBlockDelete.as_view(),
         name="task_block_delete",
     ),
     path(
-        "task-block-move/",
+        "task-block-move",
         views.TaskBlockMove.as_view(),
         name="task_block_move",
     ),
