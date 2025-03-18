@@ -242,6 +242,7 @@ class TaskBlockListSerializer(serializers.ModelSerializer):
 
 class TaskBlockWebsocketSerializer(TaskBlockListSerializer):
     id = serializers.UUIDField(format="hex_verbose")
+    created_by = serializers.CharField(source="created_by.id", read_only=True)
 
 
 class TaskBlockCreateSerializer(serializers.ModelSerializer):
