@@ -4,6 +4,8 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+
+
 urlpatterns = []
 
 if settings.DEBUG:
@@ -24,5 +26,6 @@ urlpatterns += [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
+    path('messenger/', include('messenger.urls')),
     path("", admin.site.urls),
 ]
