@@ -3,7 +3,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from core.models import User, Project, ProjectAccess
-from apps.messenger.models import Thread, Message, MessageAck
+from apps.messenger.models import Thread, Message, MessageAck, DirectThread, DirectMessage
 
 
 @pytest.fixture
@@ -78,3 +78,33 @@ def create_thread_with_messages(db, create_users, thread, project):
         return user1, user2, thread, messages
 
     return _create_thread_with_messages
+
+
+@pytest.fixture
+def other_user(db):
+    return User.objects.create_user(username="otheruser", password="password")
+
+
+@pytest.fixture
+def no_thread_user(db):
+    return User.objects.create_user(username="no_thread_user", password="password")
+
+
+@pytest.fixture
+def no_thread_user_auth_client(client, no_thread_user):
+    client.force_authenticate(user=no_thread_user)
+    token, created = Token.objects.get_or_create(user=no_thread_user)
+    client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
+    return client
+
+
+@pytest.fixture
+def direct_thread(db, user, other_user):
+    direct_thread = DirectThread.objects.create()
+    direct_thread.users.set([user, other_user])
+    return direct_thread
+
+
+@pytest.fixture
+def direct_message(db, direct_thread, user):
+    return DirectMessage.objects.create(thread=direct_thread, sender=user, content="Test message")

@@ -39,3 +39,29 @@ class MessageAck(models.Model):
 
     class Meta:
         unique_together = ("message", "user")
+
+
+class DirectThread(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    users = models.ManyToManyField(User, related_name="threads")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class DirectMessage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    thread = models.ForeignKey("DirectThread", on_delete=models.CASCADE, related_name="direct_messages")
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class DirectMessageAck(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    message = models.ForeignKey(DirectMessage, on_delete=models.CASCADE, related_name="acks")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    seen_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("message", "user")

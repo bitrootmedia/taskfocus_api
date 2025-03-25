@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import OuterRef, Exists
+from django.db.models import OuterRef, Exists, Q, Count
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -11,9 +11,16 @@ from rest_framework.decorators import action
 from core.models import Project, Task
 from core.utils.websockets import WebsocketHelper
 
-from .models import Thread, Message, MessageAck
+from .models import Thread, Message, MessageAck, DirectThread, DirectMessage, DirectMessageAck
 from .pagination import StandardResultsSetPagination
-from .serializers import ThreadSerializer, MessageSerializer, MessageAckSerializer
+from .serializers import (
+    ThreadSerializer,
+    MessageSerializer,
+    MessageAckSerializer,
+    DirectThreadSerializer,
+    DirectMessageSerializer,
+    DirectMessageAckSerializer,
+)
 
 
 class ThreadViewSet(ReadOnlyModelViewSet):
@@ -112,4 +119,69 @@ class MessageAckViewSet(ViewSet):
         new_acks = [MessageAck(user=user, message_id=msg_id) for msg_id in message_ids if msg_id not in existing_acks]
 
         MessageAck.objects.bulk_create(new_acks, ignore_conflicts=True)
+        return Response({"status": "Messages acknowledged"}, status=status.HTTP_200_OK)
+
+
+class DirectThreadViewSet(ReadOnlyModelViewSet):
+    serializer_class = DirectThreadSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return DirectThread.objects.filter(users=user)
+
+    @action(detail=False, methods=["get"], url_path="with-unseen-count")
+    def list_with_unseen_count(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class DirectMessageViewSet(ModelViewSet):
+    serializer_class = DirectMessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        thread_id = self.kwargs.get("thread_id")
+        return DirectMessage.objects.filter(thread_id=thread_id, thread__users=user).order_by("-created_at")
+
+    @staticmethod
+    def _send_message_to_channel(direct_message, direct_thread):
+        ws = WebsocketHelper()
+        ws.send(
+            f"direct_thread_{direct_thread.id}",
+            "message_added",
+            data={"content": f"{direct_message.content}", "user": f"{direct_message.sender.id}"},
+        )
+
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        thread_id = self.kwargs.get("thread_id")
+        data = request.data.copy()
+        data["sender"] = user.id
+        data["thread"] = thread_id
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            direct_message = serializer.save()
+            self._send_message_to_channel(direct_message, direct_message.thread)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["post"], url_path="ack")
+    def ack_messages(self, request, thread_id=None):
+        user = request.user
+        serializer = DirectMessageAckSerializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        message_ids = [item["message"] for item in serializer.validated_data]
+
+        existing_acks = set(
+            DirectMessageAck.objects.filter(user=user, message_id__in=message_ids).values_list("message_id", flat=True)
+        )
+
+        new_acks = [
+            DirectMessageAck(user=user, message_id=msg_id) for msg_id in message_ids if msg_id not in existing_acks
+        ]
+
+        DirectMessageAck.objects.bulk_create(new_acks, ignore_conflicts=True)
         return Response({"status": "Messages acknowledged"}, status=status.HTTP_200_OK)
