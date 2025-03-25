@@ -1843,16 +1843,28 @@ class CardItemMove(APIView):  # Change Item position (or card)
 
 class SideAppHomeView(APIView):
     def post(self, request):
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except json.decoder.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid request body. Use POST JSON"}, status=400
+            )
+
         beacon_id = data.get("beacon_id")
 
         if beacon_id:
-            beacon = Beacon.objects.filter(
-                user=request.user, id=beacon_id
-            ).first()
+            try:
+                beacon = Beacon.objects.filter(
+                    user=request.user, id=beacon_id
+                ).first()
+            except Exception as ex:
+                return JsonResponse({"error": str(ex)}, status=400)
+
             if beacon:
                 beacon.confirmed_at = now()
                 beacon.save()
+            else:
+                print(f"Beacon not found [{beacon_id}]")
 
         quick_action = data.get("quick_action")
 
