@@ -47,7 +47,7 @@ def test_user_cannot_get_unread_count_without_permission(auth_client, thread, me
 
 
 @pytest.mark.django_db
-@patch("messenger.api.WebsocketHelper")
+@patch("apps.messenger.api.WebsocketHelper")
 def test_user_can_create_message(mock_websocket_helper, auth_client, thread, user):
     mock_ws_instance = mock_websocket_helper.return_value
     url = reverse("message-list", kwargs={"thread_id": thread.id})

@@ -26,6 +26,6 @@ urlpatterns += [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
-    path('messenger/', include('messenger.urls')),
+    path('messenger/', include('apps.messenger.urls')),
     path("", admin.site.urls),
 ]

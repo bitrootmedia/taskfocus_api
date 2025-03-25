@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     # local
     "apis",
     "core",
-    "messenger",
+    "apps.messenger",
 ]
 
 MIDDLEWARE = [

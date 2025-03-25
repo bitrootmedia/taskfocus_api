@@ -2,7 +2,7 @@ import uuid
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from messenger.models import Thread
+from apps.messenger.models import Thread
 
 from core.models import User
 

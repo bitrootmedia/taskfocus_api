@@ -1,11 +1,9 @@
-from uuid import uuid4
-
 import pytest
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from core.models import User, Project, ProjectAccess
-from messenger.models import Thread, Message, MessageAck
+from apps.messenger.models import Thread, Message, MessageAck
 
 
 @pytest.fixture

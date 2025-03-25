@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from messenger.models import MessageAck
+from apps.messenger.models import MessageAck
 
 
 @pytest.mark.django_db
