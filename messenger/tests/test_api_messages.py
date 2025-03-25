@@ -47,7 +47,7 @@ def test_user_cannot_get_unread_count_without_permission(auth_client, thread, me
 
 
 @pytest.mark.django_db
-@patch('messenger.api.WebsocketHelper')
+@patch("messenger.api.WebsocketHelper")
 def test_user_can_create_message(mock_websocket_helper, auth_client, thread, user):
     mock_ws_instance = mock_websocket_helper.return_value
     url = reverse("message-list", kwargs={"thread_id": thread.id})
@@ -56,9 +56,7 @@ def test_user_can_create_message(mock_websocket_helper, auth_client, thread, use
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["content"] == "New message"
     mock_ws_instance.send.assert_called_once_with(
-        f"thread_{thread.id}",
-        "message_added",
-        data={"content": "New message", "user": f"{user.id}"}
+        f"thread_{thread.id}", "message_added", data={"content": "New message", "user": f"{user.id}"}
     )
 
 

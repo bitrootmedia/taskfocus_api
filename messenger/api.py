@@ -1,18 +1,19 @@
 from django.db import models
+from django.db.models import OuterRef, Exists
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet, ViewSet
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from core.models import Project, Task
 from core.utils.websockets import WebsocketHelper
 
-from .models import Thread, Message
+from .models import Thread, Message, MessageAck
 from .pagination import StandardResultsSetPagination
-from .serializers import ThreadSerializer, MessageSerializer
+from .serializers import ThreadSerializer, MessageSerializer, MessageAckSerializer
 
 
 class ThreadViewSet(ReadOnlyModelViewSet):
@@ -55,7 +56,8 @@ class MessageViewSet(ModelViewSet):
 
     def get_queryset(self):
         thread = self.get_thread_object()
-        return Message.objects.filter(thread=thread).order_by("-created_at")
+        acked_messages = MessageAck.objects.filter(user=self.request.user, message_id=OuterRef("id"))
+        return Message.objects.filter(thread=thread).annotate(seen=Exists(acked_messages)).order_by("-created_at")
 
     @action(detail=False, methods=["get"], url_path="unread-count")
     def unread_count(self, request, thread_id=None):
@@ -86,3 +88,28 @@ class MessageViewSet(ModelViewSet):
             "message_added",
             data={"content": f"{message.content}", "user": f"{message.user.id}"},
         )
+
+
+class MessageAckViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MessageAckSerializer
+
+    @action(detail=False, methods=["POST"])
+    def ack_messages(self, request):
+        """
+        Marks multiple messages as seen by the current user.
+        Expected payload: {"message_ids": [uuid1, uuid2, uuid3]}
+        """
+        user = request.user
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message_ids = serializer.validated_data["message_ids"]
+
+        existing_acks = set(
+            MessageAck.objects.filter(user=user, message_id__in=message_ids).values_list("message_id", flat=True)
+        )
+
+        new_acks = [MessageAck(user=user, message_id=msg_id) for msg_id in message_ids if msg_id not in existing_acks]
+
+        MessageAck.objects.bulk_create(new_acks, ignore_conflicts=True)
+        return Response({"status": "Messages acknowledged"}, status=status.HTTP_200_OK)

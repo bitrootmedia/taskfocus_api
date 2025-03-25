@@ -14,14 +14,14 @@ def user(db):
 
 
 @pytest.fixture
-def client(user):
+def client():
     client = APIClient()
-    client.force_authenticate(user=user)
     return client
 
 
 @pytest.fixture
 def auth_client(client, user):
+    client.force_authenticate(user=user)
     token, created = Token.objects.get_or_create(user=user)
     client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
     return client
@@ -52,3 +52,31 @@ def message(db, thread, user):
 @pytest.fixture
 def message_ack(db, message, user):
     return MessageAck.objects.create(message=message, user=message.user)
+
+
+@pytest.fixture
+def create_users(db):
+    def _create_users():
+        user1 = User.objects.create_user(username="user1", password="password")
+        user2 = User.objects.create_user(username="user2", password="password")
+        return user1, user2
+
+    return _create_users
+
+
+@pytest.fixture
+def create_thread_with_messages(db, create_users, thread, project):
+    def _create_thread_with_messages():
+        user1, user2 = create_users()
+        ProjectAccess.objects.all().delete()
+        ProjectAccess.objects.create(project=project, user=user1)
+        ProjectAccess.objects.create(project=project, user=user2)
+
+        messages = [
+            Message.objects.create(thread=thread, user=user1, content="Hello"),
+            Message.objects.create(thread=thread, user=user2, content="Hi"),
+            Message.objects.create(thread=thread, user=user1, content="How are you?"),
+        ]
+        return user1, user2, thread, messages
+
+    return _create_thread_with_messages
