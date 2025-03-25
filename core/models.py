@@ -734,3 +734,10 @@ class Beacon(models.Model):
                 name="unique_unconfirmed_beacon_per_user",
             )
         ]
+
+    @staticmethod
+    def close_for_user(user):
+        """If beacon found for user we close it"""
+        Beacon.objects.filter(user=user, confirmed_at__isnull=True).update(
+            confirmed_at=now()
+        )

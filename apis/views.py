@@ -930,6 +930,7 @@ class TaskUnCloseView(APIView):
 class TaskStopWorkView(APIView):
     def post(self, request, pk):
         # TODO: permissions check, add log
+
         task = Task.objects.get(pk=pk)
         tws = TaskWorkSession.objects.filter(
             user=request.user, task=task, stopped_at__isnull=True
@@ -943,6 +944,8 @@ class TaskStopWorkView(APIView):
                 user=request.user,
                 message=f"User {request.user} stopped working on this task.",
             )
+
+            Beacon.close_for_user(request.user)
 
             return JsonResponse({"id": tws.id, "status": "OK", "message": ""})
         else:
