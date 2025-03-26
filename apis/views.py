@@ -1843,12 +1843,15 @@ class CardItemMove(APIView):  # Change Item position (or card)
 
 class SideAppHomeView(APIView):
     def post(self, request):
+
         try:
             data = json.loads(request.body)
         except json.decoder.JSONDecodeError:
-            return JsonResponse(
-                {"error": "Invalid request body. Use POST JSON"}, status=400
-            )
+            _msg = "Invalid POST request (not JSON)"
+            Log.objects.create(user=request.user, message=_msg)
+            return JsonResponse({"error": _msg}, status=400)
+
+        Log.objects.create(user=request.user, message=f"Debug {data}")
 
         beacon_id = data.get("beacon_id")
 
