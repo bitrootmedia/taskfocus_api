@@ -1713,7 +1713,6 @@ class SideAppHomeView(APIView):
             try:
                 beacon = Beacon.objects.filter(user=request.user, id=beacon_id).first()
             except Exception as ex:
-
                 return JsonResponse({"error": str(ex)}, status=400)
 
             if beacon:

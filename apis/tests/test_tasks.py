@@ -179,7 +179,7 @@ class TasksTests(APITestCase):
 
     # TODO: only task owner and project owner can change task owner
     def test_task_change_owner_not_task_owner(self):
-        ...
+        pass
 
     def test_task_detail_is_pinned(self):
         self.client.force_login(self.user)
