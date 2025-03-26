@@ -4,6 +4,7 @@ from django.db import models
 
 from core.models import User
 
+
 class BaseModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -26,7 +27,7 @@ class Thread(BaseModel):
                 name="thread_must_have_either_task_or_project",
             )
         ]
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
 
 class Message(BaseModel):
@@ -35,7 +36,7 @@ class Message(BaseModel):
     content = models.TextField()
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
 
 class MessageAck(BaseModel):
@@ -45,14 +46,14 @@ class MessageAck(BaseModel):
 
     class Meta:
         unique_together = ("message", "user")
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
 
 class DirectThread(BaseModel):
     users = models.ManyToManyField(User, related_name="threads")
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
 
 class DirectMessage(BaseModel):
@@ -61,7 +62,7 @@ class DirectMessage(BaseModel):
     content = models.TextField()
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
 
 class DirectMessageAck(BaseModel):
@@ -71,4 +72,4 @@ class DirectMessageAck(BaseModel):
 
     class Meta:
         unique_together = ("message", "user")
-        ordering = ['-created_at']
+        ordering = ["-created_at"]

@@ -1,5 +1,6 @@
 from django.db import models
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Exists, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action
@@ -120,23 +121,54 @@ class DirectThreadViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return DirectThread.objects.filter(users=user)
+        queryset = DirectThread.objects.filter(users=user)
+        unseen_messages_count_subquery = (
+            DirectMessage.objects.filter(thread_id=OuterRef("id"))
+            .exclude(acks__user=user)
+            .values("thread_id")
+            .annotate(count=Count("id"))
+            .values("count")
+        )
 
-    @action(detail=False, methods=["get"], url_path="with-unseen-count")
-    def list_with_unseen_count(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        queryset = queryset.annotate(
+            unseen_messages_count=Coalesce(Subquery(unseen_messages_count_subquery), Value(0))
+        )
+
+        return queryset
+
+    # def list(self, request, *args, **kwargs):
+    #     queryset = self.filter_queryset(self.get_queryset())
+    #
+    #     page = self.paginate_queryset(queryset)
+    #     if page is not None:
+    #         serializer = self.get_serializer(page, many=True)
+    #         user = self.request.user
+    #         for thread in page:
+    #             unseen_count = Message.objects.filter(thread_id=thread.id).exclude(acks__user=user).count()
+    #             thread["unseen_messages_count"] = unseen_count
+    #
+    #         return self.get_paginated_response(serializer.data)
+    #
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)
 
 
 class DirectMessageViewSet(ModelViewSet):
     serializer_class = DirectMessageSerializer
+    ack_serializer_class = DirectMessageAckSerializer
     permission_classes = [IsAuthenticated]
 
+    def _get_thread(self, thread_id):
+        thread = get_object_or_404(DirectThread, id=thread_id)
+        if not thread.users.filter(id=self.request.user.id).exists():
+            raise PermissionDenied("You do not have permission to access messages in this thread.")
+
+        return thread
+
     def get_queryset(self):
-        user = self.request.user
         thread_id = self.kwargs.get("thread_id")
-        return DirectMessage.objects.filter(thread_id=thread_id, thread__users=user).order_by("-created_at")
+        thread = self._get_thread(thread_id)
+        return DirectMessage.objects.filter(thread=thread).order_by("-created_at")
 
     @staticmethod
     def _send_message_to_channel(direct_message, direct_thread):
@@ -149,10 +181,9 @@ class DirectMessageViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         user = self.request.user
-        thread_id = self.kwargs.get("thread_id")
         data = request.data.copy()
         data["sender"] = user.id
-        data["thread"] = thread_id
+        data["thread"] = self._get_thread(self.kwargs.get("thread_id")).id
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
             direct_message = serializer.save()
@@ -161,11 +192,11 @@ class DirectMessageViewSet(ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["post"], url_path="ack")
-    def ack_messages(self, request, thread_id=None):
+    def ack(self, request, thread_id):
         user = request.user
-        serializer = DirectMessageAckSerializer(data=request.data, many=True)
+        serializer = self.ack_serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        message_ids = [item["message"] for item in serializer.validated_data]
+        message_ids = serializer.validated_data["message_ids"]
 
         existing_acks = set(
             DirectMessageAck.objects.filter(user=user, message_id__in=message_ids).values_list("message_id", flat=True)

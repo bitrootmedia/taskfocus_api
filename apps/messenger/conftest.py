@@ -2,7 +2,7 @@ import pytest
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from apps.messenger.models import DirectMessage, DirectThread, Message, MessageAck, Thread
+from apps.messenger.models import DirectMessage, DirectMessageAck, DirectThread, Message, MessageAck, Thread
 from core.models import Project, ProjectAccess, User
 
 
@@ -108,3 +108,8 @@ def direct_thread(db, user, other_user):
 @pytest.fixture
 def direct_message(db, direct_thread, user):
     return DirectMessage.objects.create(thread=direct_thread, sender=user, content="Test message")
+
+
+@pytest.fixture
+def direct_message_ack(db, direct_message, user):
+    return DirectMessageAck.objects.create(message=direct_message, user=user)

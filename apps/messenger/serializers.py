@@ -35,7 +35,5 @@ class DirectMessageSerializer(serializers.ModelSerializer):
         fields = ["id", "thread", "sender", "content", "created_at", "updated_at"]
 
 
-class DirectMessageAckSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DirectMessageAck
-        fields = ["id", "message", "user", "seen_at"]
+class DirectMessageAckSerializer(serializers.Serializer):
+    message_ids = serializers.ListField(child=serializers.UUIDField(format="hex_verbose"), allow_empty=False)
