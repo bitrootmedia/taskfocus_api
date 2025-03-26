@@ -1,4 +1,5 @@
-from core.models import Notification, NotificationAck, ProjectAccess, TaskAccess, User
+from core.models import (Notification, NotificationAck, ProjectAccess,
+                         TaskAccess, User)
 
 
 def extract_users_from_text(text):

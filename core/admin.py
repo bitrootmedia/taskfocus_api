@@ -3,31 +3,11 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import (
-    Attachment,
-    Beacon,
-    Board,
-    BoardUser,
-    Card,
-    CardItem,
-    Comment,
-    Log,
-    Note,
-    Notification,
-    NotificationAck,
-    Pin,
-    Project,
-    ProjectAccess,
-    Reminder,
-    Task,
-    TaskAccess,
-    TaskBlock,
-    TaskChecklistItem,
-    TaskWorkSession,
-    Team,
-    User,
-    UserTaskQueue,
-)
+from .models import (Attachment, Beacon, Board, BoardUser, Card, CardItem,
+                     Comment, Log, Note, Notification, NotificationAck, Pin,
+                     Project, ProjectAccess, Reminder, Task, TaskAccess,
+                     TaskBlock, TaskChecklistItem, TaskWorkSession, Team, User,
+                     UserTaskQueue)
 
 admin.site.site_header = "AyeAyeCaptain API"
 # admin.site.register(User, UserAdmin)
