@@ -1848,12 +1848,11 @@ class SideAppHomeView(APIView):
             data = json.loads(request.body)
         except json.decoder.JSONDecodeError:
             _msg = "Invalid POST request (not JSON)"
-            Log.objects.create(user=request.user, message=_msg)
+            # Log.objects.create(user=request.user, message=_msg)
             return JsonResponse({"error": _msg}, status=400)
+        # Log.objects.create(user=request.user, message=f"Debug {data}")
 
-        Log.objects.create(user=request.user, message=f"Debug {data}")
-
-        beacon_id = data.get("beacon_id")
+        beacon_id = data.get("beacon", data.get("beacon_id"))
 
         if beacon_id:
             try:
@@ -1861,6 +1860,7 @@ class SideAppHomeView(APIView):
                     user=request.user, id=beacon_id
                 ).first()
             except Exception as ex:
+
                 return JsonResponse({"error": str(ex)}, status=400)
 
             if beacon:
