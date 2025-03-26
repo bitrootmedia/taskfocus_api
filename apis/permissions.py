@@ -96,8 +96,6 @@ class BlockUserHasTaskAccess(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         if obj.task:
-            return HasTaskAccess().has_object_permission(
-                request, view, obj.task
-            )
+            return HasTaskAccess().has_object_permission(request, view, obj.task)
 
         return False

@@ -5,7 +5,7 @@ The goal is to make a simple but flexible project/task management app.
 
 
 ## Requirements 
-Python 3.9+
+Python 3.13+
 
 
 ## Local development setup

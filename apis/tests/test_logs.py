@@ -1,7 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Log
+
+from core.models import Log, Project, ProjectAccess, User
 
 
 class LogsTests(APITestCase):
@@ -29,17 +30,11 @@ class LogsTests(APITestCase):
 
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
 
-        cls.log_user_1_no_project = Log.objects.create(
-            user=cls.user, message="User 1 No Project Log"
-        )
+        cls.log_user_1_no_project = Log.objects.create(user=cls.user, message="User 1 No Project Log")
 
-        cls.log_user_1_project_1 = Log.objects.create(
-            user=cls.user, message="User 1 Project 1 Log"
-        )
+        cls.log_user_1_project_1 = Log.objects.create(user=cls.user, message="User 1 Project 1 Log")
 
-        cls.log_user_2_project_2 = Log.objects.create(
-            user=cls.user_2, message="User 2 Project 2 Log"
-        )
+        cls.log_user_2_project_2 = Log.objects.create(user=cls.user_2, message="User 2 Project 2 Log")
 
         cls.log_user_3_project_3 = Log.objects.create(
             user=cls.user_3,

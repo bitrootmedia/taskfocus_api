@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apis.serializers import TaskBlockWebsocketSerializer
-from core.models import Project, User, ProjectAccess, Task, TaskBlock
+from core.models import Project, ProjectAccess, Task, TaskBlock, User
 
 
 class TaskBlocksTestsV2(APITestCase):
@@ -15,9 +15,7 @@ class TaskBlocksTestsV2(APITestCase):
         cls.user_2 = User.objects.create(username="user2")
         cls.user_3 = User.objects.create(username="user3")
 
-        cls.task_1 = Task.objects.create(
-            owner=cls.user, title="Task 1", description="Task 1 Description"
-        )
+        cls.task_1 = Task.objects.create(owner=cls.user, title="Task 1", description="Task 1 Description")
 
         cls.block_1 = TaskBlock.objects.create(
             task=cls.task_1,
@@ -91,9 +89,7 @@ class TaskBlocksTestsV2(APITestCase):
 
     def test_task_block_list(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.get(
-            reverse("task_block_list", kwargs={"task": str(self.task_3.id)})
-        )
+        response = self.client.get(reverse("task_block_list", kwargs={"task": str(self.task_3.id)}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.json().get("results")
         self.assertEqual(results[0].get("id"), str(self.block_3.id))
@@ -104,27 +100,19 @@ class TaskBlocksTestsV2(APITestCase):
         response = self.client.get(
             reverse(
                 "task_block_list",
-                kwargs={
-                    "task": str(  # random uuid
-                        "0508f0aa-8cdd-4d63-b67f-ab2fcc90cb3f"
-                    )
-                },
+                kwargs={"task": str("0508f0aa-8cdd-4d63-b67f-ab2fcc90cb3f")},  # random uuid
             )
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_task_block_list_no_task_access(self):
         self.client.force_authenticate(user=self.user_2)
-        response = self.client.get(
-            reverse("task_block_list", kwargs={"task": str(self.task_1.id)})
-        )
+        response = self.client.get(reverse("task_block_list", kwargs={"task": str(self.task_1.id)}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_block_list_empty(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.get(
-            reverse("task_block_list", kwargs={"task": str(self.task_4.id)})
-        )
+        response = self.client.get(reverse("task_block_list", kwargs={"task": str(self.task_4.id)}))
         results = response.json().get("results")
         self.assertEqual(len(results), 0)
 
@@ -152,9 +140,7 @@ class TaskBlocksTestsV2(APITestCase):
             event_name="block_created",
             data={
                 "changed_positions": {},
-                "created_block": TaskBlockWebsocketSerializer(
-                    instance=created_block
-                ).data,
+                "created_block": TaskBlockWebsocketSerializer(instance=created_block).data,
             },
         )
 
@@ -186,9 +172,7 @@ class TaskBlocksTestsV2(APITestCase):
                     str(self.block_4.id): 2,
                     str(self.block_5.id): 3,
                 },
-                "created_block": TaskBlockWebsocketSerializer(
-                    instance=created_block
-                ).data,
+                "created_block": TaskBlockWebsocketSerializer(instance=created_block).data,
             },
         )
 
@@ -218,9 +202,7 @@ class TaskBlocksTestsV2(APITestCase):
                     str(self.block_4.id): 2,
                     str(self.block_5.id): 3,
                 },
-                "created_block": TaskBlockWebsocketSerializer(
-                    instance=created_block
-                ).data,
+                "created_block": TaskBlockWebsocketSerializer(instance=created_block).data,
             },
         )
 
@@ -262,11 +244,7 @@ class TaskBlocksTestsV2(APITestCase):
         mock_websocket_send.assert_called_once_with(
             channel=f"{self.task_1.id}",
             event_name="block_updated",
-            data={
-                "updated_block": TaskBlockWebsocketSerializer(
-                    instance=self.block_1
-                ).data
-            },
+            data={"updated_block": TaskBlockWebsocketSerializer(instance=self.block_1).data},
         )
 
     @patch("core.utils.websockets.WebsocketHelper.send")

@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from django.core.files.storage import default_storage
 from django.db import transaction
+from django.db.models import F, Q, Sum
 from django.http import JsonResponse
 from django.utils.text import slugify
 from django.utils.timezone import now
@@ -20,105 +21,103 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.mixins import TaskAccessMixin
+from core.models import (
+    Attachment,
+    Beacon,
+    Board,
+    BoardUser,
+    Card,
+    CardItem,
+    Comment,
+    Log,
+    Note,
+    Notification,
+    NotificationAck,
+    Pin,
+    PrivateNote,
+    Project,
+    ProjectAccess,
+    Reminder,
+    Task,
+    TaskAccess,
+    TaskBlock,
+    TaskWorkSession,
+    Team,
+    User,
+    UserTaskQueue,
+)
 from core.utils.hashtags import extract_hashtags
 from core.utils.notifications import create_notification_from_comment
 from core.utils.permissions import user_can_see_task
 from core.utils.time_from_seconds import time_from_seconds
 from core.utils.websockets import WebsocketHelper
+
 from .filters import (
-    ProjectFilter,
-    TaskFilter,
-    LogFilter,
-    CommentFilter,
     AttachmentFilter,
-    TaskSessionFilter,
-    ProjectAccessFilter,
-    TaskAccessFilter,
-    ReminderFilter,
+    BoardFilter,
+    CommentFilter,
+    LogFilter,
+    NoteFilter,
     NotificationAckFilter,
     PrivateNoteFilter,
-    NoteFilter,
-    BoardFilter,
+    ProjectAccessFilter,
+    ProjectFilter,
+    ReminderFilter,
+    TaskAccessFilter,
+    TaskFilter,
+    TaskSessionFilter,
 )
 from .paginations import CustomPaginationPageSize1k
-
-from .serializers import (
-    ProjectListSerializer,
-    ProjectListReadOnlySerializer,
-    ProjectDetailReadOnlySerializer,
-    ProjectDetailSerializer,
-    TaskListSerializer,
-    TaskDetailSerializer,
-    LogListSerializer,
-    CommentListSerializer,
-    TaskSessionListSerializer,
-    CommentListReadOnlySerializer,
-    CommentDetailSerializer,
-    AttachmentListSerializer,
-    AttachmentDetailSerializer,
-    ProjectAccessSerializer,
-    TaskTotalTimeReadOnlySerializer,
-    UserSerializer,
-    ProjectAccessDetailSerializer,
-    TaskSessionDetailSerializer,
-    TaskReadOnlySerializer,
-    TaskAccessDetailSerializer,
-    TaskAccessSerializer,
-    NotificationAckSerializer,
-    UserTaskQueueSerializer,
-    ReminderSerializer,
-    ReminderReadOnlySerializer,
-    PrivateNoteListSerializer,
-    PrivateNoteDetailSerializer,
-    TaskBlockListSerializer,
-    PinDetailSerializer,
-    WorkSessionsBreakdownInputSerializer,
-    WorkSessionsWSBSerializer,
-    NoteSerializer,
-    BoardReadonlySerializer,
-    BoardSerializer,
-    CardSerializer,
-    CardItemSerializer,
-    BoardUserSerializer,
-    TaskBlockCreateSerializer,
-    TaskBlockUpdateSerializer,
-    TaskBlockWebsocketSerializer,
-)
-
-from core.models import (
-    Project,
-    Task,
-    Log,
-    Comment,
-    Attachment,
-    ProjectAccess,
-    User,
-    TaskWorkSession,
-    TaskAccess,
-    NotificationAck,
-    UserTaskQueue,
-    Reminder,
-    Notification,
-    Team,
-    PrivateNote,
-    TaskBlock,
-    Pin,
-    Note,
-    BoardUser,
-    Board,
-    Card,
-    CardItem,
-    Beacon,
-)
-from django.db.models import Q, F, Sum
 from .permissions import (
     HasProjectAccess,
     HasTaskAccess,
     IsAuthorOrReadOnly,
     IsOwnerOrReadOnly,
+    IsPrivateNoteOwner,
     IsProjectOwner,
     IsTaskOwner,
-    IsPrivateNoteOwner,
+)
+from .serializers import (
+    AttachmentDetailSerializer,
+    AttachmentListSerializer,
+    BoardReadonlySerializer,
+    BoardSerializer,
+    BoardUserSerializer,
+    CardItemSerializer,
+    CardSerializer,
+    CommentDetailSerializer,
+    CommentListReadOnlySerializer,
+    CommentListSerializer,
+    LogListSerializer,
+    NoteSerializer,
+    NotificationAckSerializer,
+    PinDetailSerializer,
+    PrivateNoteDetailSerializer,
+    PrivateNoteListSerializer,
+    ProjectAccessDetailSerializer,
+    ProjectAccessSerializer,
+    ProjectDetailReadOnlySerializer,
+    ProjectDetailSerializer,
+    ProjectListReadOnlySerializer,
+    ProjectListSerializer,
+    ReminderReadOnlySerializer,
+    ReminderSerializer,
+    TaskAccessDetailSerializer,
+    TaskAccessSerializer,
+    TaskBlockCreateSerializer,
+    TaskBlockListSerializer,
+    TaskBlockUpdateSerializer,
+    TaskBlockWebsocketSerializer,
+    TaskDetailSerializer,
+    TaskListSerializer,
+    TaskReadOnlySerializer,
+    TaskSessionDetailSerializer,
+    TaskSessionListSerializer,
+    TaskTotalTimeReadOnlySerializer,
+    UserSerializer,
+    UserTaskQueueSerializer,
+    WorkSessionsBreakdownInputSerializer,
+    WorkSessionsWSBSerializer,
 )
 
 
@@ -160,18 +159,12 @@ class ProjectList(generics.ListCreateAPIView):
         if self.request.GET.get("user"):
             user = User.objects.get(pk=self.request.GET.get("user"))
 
-        projects = (
-            Project.objects.filter(Q(owner=user) | Q(permissions__user=user))
-            .distinct()
-            .order_by("created_at")
-        )
+        projects = Project.objects.filter(Q(owner=user) | Q(permissions__user=user)).distinct().order_by("created_at")
         return projects
 
     def perform_create(self, serializer):
         project = serializer.save(owner=self.request.user)
-        Log.objects.create(
-            project=project, user=self.request.user, message="Project created"
-        )
+        Log.objects.create(project=project, user=self.request.user, message="Project created")
 
 
 class ProjectDetail(generics.RetrieveUpdateAPIView):
@@ -186,9 +179,7 @@ class ProjectDetail(generics.RetrieveUpdateAPIView):
 
     def perform_update(self, serializer):
         project = serializer.save()
-        Log.objects.create(
-            project=project, user=self.request.user, message="Project updated"
-        )
+        Log.objects.create(project=project, user=self.request.user, message="Project updated")
 
 
 class TaskList(generics.ListCreateAPIView):
@@ -210,10 +201,7 @@ class TaskList(generics.ListCreateAPIView):
 
         tasks = (
             Task.objects.filter(
-                Q(owner=user)
-                | Q(permissions__user=user)
-                | Q(project__owner=user)
-                | Q(project__permissions__user=user)
+                Q(owner=user) | Q(permissions__user=user) | Q(project__owner=user) | Q(project__permissions__user=user)
             )
             .distinct()
             .order_by("position")
@@ -222,9 +210,7 @@ class TaskList(generics.ListCreateAPIView):
         return tasks
 
     def perform_create(self, serializer):
-        task = serializer.save(
-            owner=self.request.user, responsible=self.request.user
-        )
+        task = serializer.save(owner=self.request.user, responsible=self.request.user)
         hashtags = extract_hashtags(task.title)
         if hashtags:
             task.tag = ",".join(hashtags)
@@ -236,32 +222,20 @@ class TaskList(generics.ListCreateAPIView):
             queue_position = self.request.data.get("queue_position", "top")
             priority = 100
             if queue_position == "top":
-                utq = (
-                    UserTaskQueue.objects.filter(user=self.request.user)
-                    .order_by("-priority")
-                    .first()
-                )
+                utq = UserTaskQueue.objects.filter(user=self.request.user).order_by("-priority").first()
                 if utq:
                     priority = utq.priority + 10
 
             if queue_position == "bottom":
-                utq = (
-                    UserTaskQueue.objects.filter(user=self.request.user)
-                    .order_by("priority")
-                    .first()
-                )
+                utq = UserTaskQueue.objects.filter(user=self.request.user).order_by("priority").first()
                 if utq:
                     priority = utq.priority - 10
 
-            UserTaskQueue.objects.create(
-                user=self.request.user, task=task, priority=priority
-            )
+            UserTaskQueue.objects.create(user=self.request.user, task=task, priority=priority)
 
         TaskAccess.objects.create(task=task, user=self.request.user)
 
-        Log.objects.create(
-            task=task, user=self.request.user, message="Task created"
-        )
+        Log.objects.create(task=task, user=self.request.user, message="Task created")
 
 
 class TaskDetail(generics.RetrieveUpdateAPIView):
@@ -310,13 +284,9 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
                 message=f"Responsible person changed to {task.responsible}",
             )
 
-            utq = UserTaskQueue.objects.filter(
-                user=task.responsible, task=task
-            )
+            utq = UserTaskQueue.objects.filter(user=task.responsible, task=task)
             if not utq:
-                UserTaskQueue.objects.create(
-                    user=task.responsible, task=task, priority=int(time.time())
-                )
+                UserTaskQueue.objects.create(user=task.responsible, task=task, priority=int(time.time()))
 
             notification = Notification.objects.create(
                 task=task,
@@ -324,9 +294,7 @@ class TaskDetail(generics.RetrieveUpdateAPIView):
                 content=f"You are now responsible for task [{task.title}] (set by {self.request.user.username})",
             )
 
-            NotificationAck.objects.create(
-                notification=notification, user=task.responsible
-            )
+            NotificationAck.objects.create(notification=notification, user=task.responsible)
 
 
 class TaskTotalTime(generics.RetrieveAPIView):
@@ -344,17 +312,11 @@ class TaskBlockListV2(generics.ListAPIView):
         if not task:
             raise PermissionDenied()
 
-        has_task_access = HasTaskAccess().has_object_permission(
-            self.request, self, task
-        )
+        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
         if not has_task_access:
             raise PermissionDenied()
 
-        return (
-            task.blocks.filter(is_archived=False)
-            .order_by("position")
-            .distinct()
-        )
+        return task.blocks.filter(is_archived=False).order_by("position").distinct()
 
 
 class TaskBlockCreate(generics.CreateAPIView, TaskAccessMixin):
@@ -376,8 +338,7 @@ class TaskBlockCreate(generics.CreateAPIView, TaskAccessMixin):
             event_name="block_created",
             data={
                 "changed_positions": {
-                    str(block.id): block.position
-                    for block in task.blocks.filter(id__in=blocks_to_move)
+                    str(block.id): block.position for block in task.blocks.filter(id__in=blocks_to_move)
                 },
                 "created_block": TaskBlockWebsocketSerializer(new_block).data,
             },
@@ -414,9 +375,7 @@ class TaskBlockDelete(generics.DestroyAPIView, TaskAccessMixin):
         block.save()
 
         # Move all following blocks position back one level
-        blocks_to_move = task.blocks.filter(
-            is_archived=False, position__gt=block.position
-        )
+        blocks_to_move = task.blocks.filter(is_archived=False, position__gt=block.position)
         blocks_to_move_ids = [block.id for block in blocks_to_move]
 
         blocks_to_move.update(position=F("position") - 1)
@@ -427,8 +386,7 @@ class TaskBlockDelete(generics.DestroyAPIView, TaskAccessMixin):
             data={
                 "archived_block": str(block.id),
                 "changed_positions": {
-                    str(block.id): block.position
-                    for block in task.blocks.filter(id__in=blocks_to_move_ids)
+                    str(block.id): block.position for block in task.blocks.filter(id__in=blocks_to_move_ids)
                 },
             },
         )
@@ -447,12 +405,7 @@ class TaskBlockMove(APIView, TaskAccessMixin):
         except ValueError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        blocks_count = (
-            task.blocks.filter(is_archived=False)
-            .order_by("position")
-            .distinct()
-            .count()
-        )
+        blocks_count = task.blocks.filter(is_archived=False).order_by("position").distinct().count()
         if new_position > blocks_count:
             new_position = blocks_count - 1
 
@@ -472,9 +425,7 @@ class TaskBlockMove(APIView, TaskAccessMixin):
                     position__lte=new_position,
                 )
                 blocks_to_move_ids = [block.id for block in blocks_to_move]
-                blocks_to_move.exclude(id=block.id).update(
-                    position=F("position") - 1
-                )
+                blocks_to_move.exclude(id=block.id).update(position=F("position") - 1)
             else:
                 blocks_to_move = task.blocks.filter(
                     is_archived=False,
@@ -482,19 +433,14 @@ class TaskBlockMove(APIView, TaskAccessMixin):
                     position__gte=new_position,
                 )
                 blocks_to_move_ids = [block.id for block in blocks_to_move]
-                blocks_to_move.exclude(id=block.id).update(
-                    position=F("position") + 1
-                )
+                blocks_to_move.exclude(id=block.id).update(position=F("position") + 1)
 
             WebsocketHelper.send(
                 channel=f"{task.id}",
                 event_name="block_moved",
                 data={
                     "changed_positions": {
-                        str(block.id): block.position
-                        for block in task.blocks.filter(
-                            id__in=blocks_to_move_ids
-                        )
+                        str(block.id): block.position for block in task.blocks.filter(id__in=blocks_to_move_ids)
                     },
                 },
             )
@@ -620,11 +566,7 @@ class NoteList(generics.ListCreateAPIView):
     filterset_class = NoteFilter
 
     def get_queryset(self):
-        notes = (
-            Note.objects.filter(user=self.request.user)
-            .distinct()
-            .order_by("-updated_at")
-        )
+        notes = Note.objects.filter(user=self.request.user).distinct().order_by("-updated_at")
         return notes
 
     def perform_create(self, serializer):
@@ -760,9 +702,7 @@ class TaskAccessList(generics.ListCreateAPIView):
 
     def get_queryset(self):
         # TODO: don't let people without task access to list it
-        task_accesses = TaskAccess.objects.filter(
-            task__id=self.request.GET.get("task")
-        ).order_by("id")
+        task_accesses = TaskAccess.objects.filter(task__id=self.request.GET.get("task")).order_by("id")
         return task_accesses
 
     def perform_create(self, serializer):
@@ -823,9 +763,7 @@ class TaskPositionChangeView(APIView):
         task_above_id = request.data.get("task_above_id")
         print(f"Task above id found: {task_above_id}")
 
-        task_above = (
-            Task.objects.get(pk=task_above_id) if task_above_id else None
-        )
+        task_above = Task.objects.get(pk=task_above_id) if task_above_id else None
 
         if not task_above:
             task.position = 0
@@ -858,15 +796,11 @@ class TaskStartWorkView(APIView):
 
         task = Task.objects.get(pk=pk)
 
-        for tws in TaskWorkSession.objects.filter(
-            user=request.user, stopped_at__isnull=True
-        ):
+        for tws in TaskWorkSession.objects.filter(user=request.user, stopped_at__isnull=True):
             tws.stopped_at = now()
             tws.save()
 
-        twa = TaskWorkSession.objects.create(
-            task=task, user=request.user, started_at=now()
-        )
+        twa = TaskWorkSession.objects.create(task=task, user=request.user, started_at=now())
 
         Log.objects.create(
             task=task,
@@ -891,9 +825,7 @@ class TaskCloseView(APIView):
         if task.owner != request.user:
             raise Exception("Only task owner can close the task")
 
-        Log.objects.create(
-            task=task, user=self.request.user, message="Task closed"
-        )
+        Log.objects.create(task=task, user=self.request.user, message="Task closed")
         if request.data.get("closing_message"):
             comment = Comment.objects.create(
                 task=task,
@@ -917,9 +849,7 @@ class TaskUnCloseView(APIView):
         if task.owner != request.user:
             raise Exception("Only task owner can close the task")
 
-        Log.objects.create(
-            task=task, user=self.request.user, message="Task unclosed"
-        )
+        Log.objects.create(task=task, user=self.request.user, message="Task unclosed")
         task.is_closed = False
         task.archived_at = None
         task.save()
@@ -932,9 +862,7 @@ class TaskStopWorkView(APIView):
         # TODO: permissions check, add log
 
         task = Task.objects.get(pk=pk)
-        tws = TaskWorkSession.objects.filter(
-            user=request.user, task=task, stopped_at__isnull=True
-        ).first()
+        tws = TaskWorkSession.objects.filter(user=request.user, task=task, stopped_at__isnull=True).first()
         if tws:
             tws.stopped_at = now()
             tws.save()
@@ -964,9 +892,7 @@ class CurrentTaskView(APIView):
         if request.GET.get("user"):
             user = User.objects.get(pk=request.GET.get("user"))
 
-        task_work_session = TaskWorkSession.objects.filter(
-            user=user, stopped_at__isnull=True
-        ).last()
+        task_work_session = TaskWorkSession.objects.filter(user=user, stopped_at__isnull=True).last()
 
         response = {}
         if not task_work_session:
@@ -978,9 +904,7 @@ class CurrentTaskView(APIView):
         if not user_can_see_task(request.user, task_work_session.task):
             return JsonResponse(response)
 
-        serializer = TaskReadOnlySerializer(
-            task_work_session.task, context={"request": request}
-        )
+        serializer = TaskReadOnlySerializer(task_work_session.task, context={"request": request})
         response = serializer.data
         return JsonResponse(response)
 
@@ -992,9 +916,7 @@ class UploadView(APIView):
         task_id = request.POST.get("task_id")
         project_id = request.POST.get("project_id")
         if not any([task_id, project_id]):
-            return JsonResponse(
-                {"error": "task_id or project_id must be sent"}
-            )
+            return JsonResponse({"error": "task_id or project_id must be sent"})
 
         # if task_id and project_id:
         #     project_id = None
@@ -1059,9 +981,7 @@ class NotificationAckListView(ListAPIView):
 
 class NotificationAckConfirmView(APIView):
     def post(self, request, pk):
-        na = NotificationAck.objects.filter(
-            pk=pk, user=self.request.user
-        ).first()
+        na = NotificationAck.objects.filter(pk=pk, user=self.request.user).first()
         if not na:
             return JsonResponse({"status": "OK"})
         na.status = NotificationAck.Status.READ
@@ -1079,11 +999,7 @@ class UserTaskQueueView(ListAPIView):
         if self.request.GET.get("user"):
             user = User.objects.get(pk=self.request.GET.get("user"))
 
-        utq = (
-            UserTaskQueue.objects.filter(user=user)
-            .exclude(task__is_closed=True)
-            .order_by("-priority")
-        )
+        utq = UserTaskQueue.objects.filter(user=user).exclude(task__is_closed=True).order_by("-priority")
         return utq
 
 
@@ -1116,9 +1032,7 @@ class UserTaskQueueManageView(APIView):
         if request_user:
             user = User.objects.get(pk=request_user)
 
-        Log.objects.create(
-            task=task, user=self.request.user, message="Task added to queue"
-        )
+        Log.objects.create(task=task, user=self.request.user, message="Task added to queue")
 
         UserTaskQueue.objects.get_or_create(task=task, user=user)
         return JsonResponse({"status": "OK"})
@@ -1168,11 +1082,7 @@ class UserTaskQueuePositionChangeView(APIView):
 
         user = utq.user
 
-        for ut in (
-            UserTaskQueue.objects.filter(user=user)
-            .exclude(id=utq.id)
-            .order_by("-priority")
-        ):
+        for ut in UserTaskQueue.objects.filter(user=user).exclude(id=utq.id).order_by("-priority"):
             sorted_tasks.append(ut)
             if user_task_above_id == ut.id:
                 sorted_tasks.append(utq)
@@ -1198,9 +1108,7 @@ class ReminderListView(generics.ListCreateAPIView):
         return ReminderSerializer
 
     def get_queryset(self):
-        reminders = Reminder.objects.filter(user=self.request.user).exclude(
-            closed_at__isnull=False
-        )
+        reminders = Reminder.objects.filter(user=self.request.user).exclude(closed_at__isnull=False)
         return reminders
 
     def perform_create(self, serializer):
@@ -1234,18 +1142,14 @@ class ChangeTaskOwnerView(APIView):
         task = Task.objects.get(pk=pk)
         if task.owner != request.user:
             if task.project and task.project.owner != request.user:
-                raise Exception(
-                    "Only task or project owner can change task owner"
-                )
+                raise Exception("Only task or project owner can change task owner")
 
         new_owner_id = request.data.get("owner")
 
         new_owner = User.objects.get(pk=new_owner_id)
         task.owner = new_owner
         task.save()
-        Log.objects.create(
-            task=task, user=request.user, message="Owner of the task changed"
-        )
+        Log.objects.create(task=task, user=request.user, message="Owner of the task changed")
         return JsonResponse({"status": "OK"})
 
 
@@ -1276,11 +1180,7 @@ class PinnedTaskList(ListAPIView):
     serializer_class = TaskListSerializer
 
     def get_queryset(self):
-        pinned_tasks = (
-            Task.objects.filter(pinned_tasks__user=self.request.user)
-            .distinct()
-            .order_by("urgency_level")
-        )
+        pinned_tasks = Task.objects.filter(pinned_tasks__user=self.request.user).distinct().order_by("urgency_level")
         return pinned_tasks
 
 
@@ -1289,9 +1189,7 @@ class PinTaskDetail(generics.GenericAPIView):
     serializer_class = PinDetailSerializer
 
     def has_task_access(self, task):
-        has_task_access = HasTaskAccess().has_object_permission(
-            self.request, self, task
-        )
+        has_task_access = HasTaskAccess().has_object_permission(self.request, self, task)
         if not has_task_access:
             raise PermissionDenied()
 
@@ -1312,9 +1210,7 @@ class PinTaskDetail(generics.GenericAPIView):
         if Pin.objects.filter(user=self.request.user, task=task).exists():
             return Response(status=status.HTTP_304_NOT_MODIFIED)
 
-        serializer = self.get_serializer(
-            data={"task": task.id, "user": request.user.id}
-        )
+        serializer = self.get_serializer(data={"task": task.id, "user": request.user.id})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -1341,8 +1237,7 @@ class PinnedBoardList(ListAPIView):
         pinned_boards = (
             Board.objects.filter(pinned_boards__user=self.request.user)
             .filter(  # only list boards user has access to
-                Q(owner=self.request.user)
-                | Q(board_users__user=self.request.user)
+                Q(owner=self.request.user) | Q(board_users__user=self.request.user)
             )
             .distinct()
             .order_by("name")
@@ -1367,9 +1262,7 @@ class PinBoardDetail(generics.GenericAPIView):
         if Pin.objects.filter(user=self.request.user, board=board).exists():
             return Response(status=status.HTTP_304_NOT_MODIFIED)
 
-        serializer = self.get_serializer(
-            data={"board": board.id, "user": request.user.id}
-        )
+        serializer = self.get_serializer(data={"board": board.id, "user": request.user.id})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -1427,9 +1320,7 @@ class WorkSessionsBreakdownView(APIView):
             tasks_total[task_name] = f"{task_total_h:02}:{task_total_m:02}"
 
         # Overall total across all tasks
-        total_time_sum = work_sessions.aggregate(
-            time_sum=Sum("total_time")
-        ).get("time_sum")
+        total_time_sum = work_sessions.aggregate(time_sum=Sum("total_time")).get("time_sum")
         total_hours, total_minutes, _ = time_from_seconds(total_time_sum)
         total_time_sum_str = f"{total_hours:02}:{total_minutes:02}"
 
@@ -1452,10 +1343,7 @@ class BoardList(generics.ListCreateAPIView):
 
     def get_queryset(self):
         boards = (
-            Board.objects.filter(
-                Q(owner=self.request.user)
-                | Q(board_users__user=self.request.user)
-            )
+            Board.objects.filter(Q(owner=self.request.user) | Q(board_users__user=self.request.user))
             .distinct()
             .order_by("name")
         )
@@ -1475,11 +1363,7 @@ class BoardDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         boards = Board.objects.filter(
-            Q(id=self.kwargs["pk"])
-            & (
-                Q(owner=self.request.user)
-                | Q(board_users__user=self.request.user)
-            )
+            Q(id=self.kwargs["pk"]) & (Q(owner=self.request.user) | Q(board_users__user=self.request.user))
         ).distinct()
         return boards
 
@@ -1518,9 +1402,7 @@ class BoardLogList(APIView):
 
         logs = Log.objects.filter(board=board).order_by("-created_at")
         serializer = LogListSerializer(logs, many=True)
-        return JsonResponse(
-            {"results": serializer.data}, status=status.HTTP_200_OK
-        )
+        return JsonResponse({"results": serializer.data}, status=status.HTTP_200_OK)
 
 
 class BoardUserView(APIView):
@@ -1537,10 +1419,7 @@ class BoardUserView(APIView):
     def get(self, request, board_id, *args, **kwargs):
         # Make sure user has the access to requested board
         board = (
-            Board.objects.filter(
-                Q(owner=self.request.user)
-                | Q(board_users__user=self.request.user)
-            )
+            Board.objects.filter(Q(owner=self.request.user) | Q(board_users__user=self.request.user))
             .filter(id=board_id)
             .first()
         )
@@ -1549,14 +1428,10 @@ class BoardUserView(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer = BoardUserSerializer(board.board_users.all(), many=True)
-        return Response(
-            {"results": serializer.data}, status=status.HTTP_200_OK
-        )
+        return Response({"results": serializer.data}, status=status.HTTP_200_OK)
 
     def post(self, request, board_id, *args, **kwargs):
-        board = Board.objects.filter(
-            Q(id=board_id) & Q(owner=request.user)
-        ).first()
+        board = Board.objects.filter(Q(id=board_id) & Q(owner=request.user)).first()
         if not board:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
@@ -1567,9 +1442,7 @@ class BoardUserView(APIView):
         if self.user_in_board_users(board, user):
             return Response(status=status.HTTP_304_NOT_MODIFIED)
 
-        serializer = BoardUserSerializer(
-            data={"board": board.id, "user": user.id}
-        )
+        serializer = BoardUserSerializer(data={"board": board.id, "user": user.id})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -1582,9 +1455,7 @@ class BoardUserView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, board_id, *args, **kwargs):
-        board = Board.objects.filter(
-            Q(id=board_id) & Q(owner=request.user)
-        ).first()
+        board = Board.objects.filter(Q(id=board_id) & Q(owner=request.user)).first()
         if not board:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
@@ -1632,10 +1503,7 @@ class CardDetail(
     def get_queryset(self):
         return Card.objects.filter(
             Q(id=self.kwargs["pk"])
-            & (
-                Q(board__owner=self.request.user)
-                | Q(board__board_users__user=self.request.user)
-            )
+            & (Q(board__owner=self.request.user) | Q(board__board_users__user=self.request.user))
         ).distinct()
 
     def perform_update(self, serializer):
@@ -1668,10 +1536,7 @@ class CardMove(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         card = (
-            Card.objects.filter(
-                Q(board__owner=self.request.user)
-                | Q(board__board_users__user=self.request.user)
-            )
+            Card.objects.filter(Q(board__owner=self.request.user) | Q(board__board_users__user=self.request.user))
             .filter(id=card_id)
             .first()
         )
@@ -1686,13 +1551,13 @@ class CardMove(APIView):
             old_position = card.position
 
             if old_position < new_position:
-                card.board.cards.filter(
-                    position__gt=old_position, position__lte=new_position
-                ).update(position=F("position") - 1)
+                card.board.cards.filter(position__gt=old_position, position__lte=new_position).update(
+                    position=F("position") - 1
+                )
             else:
-                card.board.cards.filter(
-                    position__lt=old_position, position__gte=new_position
-                ).update(position=F("position") + 1)
+                card.board.cards.filter(position__lt=old_position, position__gte=new_position).update(
+                    position=F("position") + 1
+                )
 
             card.position = new_position
             card.save()
@@ -1731,10 +1596,7 @@ class CardItemDetail(
     def get_queryset(self):
         return CardItem.objects.filter(
             Q(id=self.kwargs["pk"])
-            & (
-                Q(card__board__owner=self.request.user)
-                | Q(card__board__board_users__user=self.request.user)
-            )
+            & (Q(card__board__owner=self.request.user) | Q(card__board__board_users__user=self.request.user))
         ).distinct()
 
     def perform_update(self, serializer):
@@ -1767,8 +1629,7 @@ class CardItemMove(APIView):  # Change Item position (or card)
 
         card_item = (
             CardItem.objects.filter(
-                Q(card__board__owner=self.request.user)
-                | Q(card__board__board_users__user=self.request.user)
+                Q(card__board__owner=self.request.user) | Q(card__board__board_users__user=self.request.user)
             )
             .filter(id=card_item_id)
             .first()
@@ -1783,20 +1644,15 @@ class CardItemMove(APIView):  # Change Item position (or card)
                 old_card = card_item.card
                 new_card = (
                     Card.objects.filter(
-                        Q(board__owner=self.request.user)
-                        | Q(board__board_users__user=self.request.user)
+                        Q(board__owner=self.request.user) | Q(board__board_users__user=self.request.user)
                     )
                     .filter(id=new_card_id)
                     .first()
                 )
 
-                old_card.card_items.filter(position__gt=new_position).update(
-                    position=F("position") - 1
-                )
+                old_card.card_items.filter(position__gt=new_position).update(position=F("position") - 1)
 
-                new_card.card_items.filter(position__gte=new_position).update(
-                    position=F("position") + 1
-                )
+                new_card.card_items.filter(position__gte=new_position).update(position=F("position") + 1)
 
                 card_item.card = new_card
                 card_item.position = new_position
@@ -1821,13 +1677,13 @@ class CardItemMove(APIView):  # Change Item position (or card)
                 old_position = card_item.position
 
                 if old_position < new_position:
-                    card_item.card.card_items.filter(
-                        position__gt=old_position, position__lte=new_position
-                    ).update(position=F("position") - 1)
+                    card_item.card.card_items.filter(position__gt=old_position, position__lte=new_position).update(
+                        position=F("position") - 1
+                    )
                 else:
-                    card_item.card.card_items.filter(
-                        position__lt=old_position, position__gte=new_position
-                    ).update(position=F("position") + 1)
+                    card_item.card.card_items.filter(position__lt=old_position, position__gte=new_position).update(
+                        position=F("position") + 1
+                    )
 
                 card_item.position = new_position
                 card_item.save()
@@ -1843,7 +1699,6 @@ class CardItemMove(APIView):  # Change Item position (or card)
 
 class SideAppHomeView(APIView):
     def post(self, request):
-
         try:
             data = json.loads(request.body)
         except json.decoder.JSONDecodeError:
@@ -1856,11 +1711,8 @@ class SideAppHomeView(APIView):
 
         if beacon_id:
             try:
-                beacon = Beacon.objects.filter(
-                    user=request.user, id=beacon_id
-                ).first()
+                beacon = Beacon.objects.filter(user=request.user, id=beacon_id).first()
             except Exception as ex:
-
                 return JsonResponse({"error": str(ex)}, status=400)
 
             if beacon:
@@ -1873,9 +1725,7 @@ class SideAppHomeView(APIView):
 
         if quick_action:
             try:
-                Log.objects.create(
-                    user=request.user, message=f"Debug {quick_action}"
-                )
+                Log.objects.create(user=request.user, message=f"Debug {quick_action}")
             except Exception as ex:
                 return JsonResponse({"error": f"{ex}"})
 
@@ -1901,18 +1751,14 @@ class SideAppHomeView(APIView):
 
         response = {"instant_actions": buttons, "currently_working_on": None}
 
-        task_work_session = TaskWorkSession.objects.filter(
-            user=user, stopped_at__isnull=True
-        ).last()
+        task_work_session = TaskWorkSession.objects.filter(user=user, stopped_at__isnull=True).last()
         if task_work_session:
             response["currently_working_on"] = {
                 "id": f"{task_work_session.task.id}",
                 "title": task_work_session.task.title,
             }
 
-        beacon = Beacon.objects.filter(
-            user=user, confirmed_at__isnull=True
-        ).first()
+        beacon = Beacon.objects.filter(user=user, confirmed_at__isnull=True).first()
         if beacon:
             response["beacon"] = {"id": beacon.id}
 

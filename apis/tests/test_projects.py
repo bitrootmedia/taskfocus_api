@@ -1,8 +1,10 @@
 import json
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess
+
+from core.models import Project, ProjectAccess, User
 
 
 class ProjectTests(APITestCase):
@@ -47,9 +49,7 @@ class ProjectTests(APITestCase):
 
     def test_api_project_list_filter(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("project_list") + "?title=" + self.project.title
-        )
+        response = self.client.get(reverse("project_list") + "?title=" + self.project.title)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, self.project)
         self.assertNotContains(response, self.project_2)
@@ -57,32 +57,24 @@ class ProjectTests(APITestCase):
         self.assertEqual(json.loads(response.content).get("count"), 1)
 
     def test_api_project_details_not_logged_in(self):
-        response = self.client.get(
-            reverse("project_detail", kwargs={"pk": self.project.id})
-        )
+        response = self.client.get(reverse("project_detail", kwargs={"pk": self.project.id}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_api_project_details_logged_in(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("project_detail", kwargs={"pk": self.project.id})
-        )
+        response = self.client.get(reverse("project_detail", kwargs={"pk": self.project.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, self.project.title)
         self.assertContains(response, self.project.description)
 
     def test_api_project_not_owner_no_access_details(self):
         self.client.force_login(self.user_3)
-        response = self.client.get(
-            reverse("project_detail", kwargs={"pk": self.project.id})
-        )
+        response = self.client.get(reverse("project_detail", kwargs={"pk": self.project.id}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_api_project_not_owner_details_has_access(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("project_detail", kwargs={"pk": self.project_3.id})
-        )
+        response = self.client.get(reverse("project_detail", kwargs={"pk": self.project_3.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_api_project_update_own_project(self):
@@ -93,9 +85,7 @@ class ProjectTests(APITestCase):
             {"title": updated_title},
         )
 
-        r = self.client.get(
-            reverse("project_detail", kwargs={"pk": self.project.id})
-        )
+        r = self.client.get(reverse("project_detail", kwargs={"pk": self.project.id}))
         self.assertContains(r, updated_title)
 
     def test_api_project_update_not_own_project(self):
@@ -106,9 +96,7 @@ class ProjectTests(APITestCase):
             {"title": updated_title},
         )
 
-        r = self.client.get(
-            reverse("project_detail", kwargs={"pk": self.project_3.id})
-        )
+        r = self.client.get(reverse("project_detail", kwargs={"pk": self.project_3.id}))
         self.assertContains(r, updated_title)
 
     def test_api_project_update_no_access_project(self):
@@ -122,9 +110,7 @@ class ProjectTests(APITestCase):
 
     def test_api_destroy_project(self):
         self.client.force_login(self.user)
-        s = self.client.delete(
-            reverse("project_detail", kwargs={"pk": self.project_2.id})
-        )
+        s = self.client.delete(reverse("project_detail", kwargs={"pk": self.project_2.id}))
         self.assertEqual(s.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_change_project_owner(self):
@@ -138,9 +124,7 @@ class ProjectTests(APITestCase):
 
     def test_api_project_list_filter_closed(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("project_list") + "?show_closed=False"
-        )
+        response = self.client.get(reverse("project_list") + "?show_closed=False")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, self.project)
         self.assertNotContains(response, self.project_2)

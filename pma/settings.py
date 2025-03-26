@@ -1,10 +1,10 @@
-from pathlib import Path
-import environ
+import logging
 import os
+from pathlib import Path
 
+import environ
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-import logging
 
 logger = logging.getLogger(__name__)
 env = environ.Env(DEBUG=(bool, False))
