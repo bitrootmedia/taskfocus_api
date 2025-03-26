@@ -1,16 +1,26 @@
-django==4.1.7
-pre-commit==2.20.0
-Pillow==9.3.0
-djangorestframework==3.14.0
-django-cors-headers==3.13.0
-django-filter==22.1
-drf-spectacular==0.25.1
-django-environ==0.9.0
-dj-rest-auth==2.2.5
+# Core dependencies
 boto3==1.26.100
+requests==2.31.0
+
+# Django dependencies
+django==4.1.7
+django-cors-headers==3.13.0
+django-environ==0.9.0
+django-filter==22.1
 django-simple-history==3.6.0
 django-storages==1.13.2
+
+# Django REST framework dependencies
+djangorestframework==3.14.0
+dj-rest-auth==2.2.5
+drf-spectacular==0.25.1
+
+# Other dependencies
+Pillow==9.3.0
 psycopg2==2.9.6
-requests==2.31.0
 pusher==3.3.2
 sentry-sdk==2.13.0
+
+# Testing dependencies
+pre-commit==2.20.0
+pytest-django==4.10.0

@@ -1,20 +1,21 @@
 import django_filters
 from django.db.models import Q
 from django_filters import rest_framework as filters
+
 from core.models import (
-    Project,
-    Task,
-    Log,
-    Comment,
     Attachment,
-    ProjectAccess,
-    TaskAccess,
-    Reminder,
-    NotificationAck,
-    TaskWorkSession,
-    PrivateNote,
-    Note,
     Board,
+    Comment,
+    Log,
+    Note,
+    NotificationAck,
+    PrivateNote,
+    Project,
+    ProjectAccess,
+    Reminder,
+    Task,
+    TaskAccess,
+    TaskWorkSession,
 )
 
 
@@ -61,9 +62,7 @@ class TaskFilter(filters.FilterSet):
 
 
 class ReminderFilter(filters.FilterSet):
-    open_only = django_filters.BooleanFilter(
-        field_name="closed_at", lookup_expr="isnull"
-    )
+    open_only = django_filters.BooleanFilter(field_name="closed_at", lookup_expr="isnull")
 
     class Meta:
         model = Reminder
@@ -98,9 +97,7 @@ class NoteFilter(filters.FilterSet):
         fields = ["user"]
 
     def filter_by_all_fields(self, queryset, name, value):
-        return queryset.filter(
-            Q(title__icontains=value) | Q(content__icontains=value)
-        )
+        return queryset.filter(Q(title__icontains=value) | Q(content__icontains=value))
 
 
 class PrivateNoteFilter(filters.FilterSet):

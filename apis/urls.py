@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -110,9 +111,7 @@ urlpatterns = [
         views.PrivateNoteDetail.as_view(),
         name="private_note_detail",
     ),
-    path(
-        "attachments", views.AttachmentList.as_view(), name="attachment_list"
-    ),
+    path("attachments", views.AttachmentList.as_view(), name="attachment_list"),
     path(
         "attachment/<pk>",
         views.AttachmentDetail.as_view(),
@@ -191,9 +190,7 @@ urlpatterns = [
         views.BoardDetail.as_view(),
         name="board_detail",
     ),
-    path(
-        "board/logs/<pk>", views.BoardLogList.as_view(), name="board_log_list"
-    ),
+    path("board/logs/<pk>", views.BoardLogList.as_view(), name="board_log_list"),
     path(
         "board-users/<uuid:board_id>",
         views.BoardUserView.as_view(),
@@ -212,8 +209,6 @@ urlpatterns = [
         views.CardItemDetail.as_view(),
         name="card_item_detail",
     ),
-    path(
-        "card-item-move", views.CardItemMove.as_view(), name="card_item_move"
-    ),
+    path("card-item-move", views.CardItemMove.as_view(), name="card_item_move"),
     path("sideapp/home", views.SideAppHomeView.as_view(), name="sideapp_home"),
 ]

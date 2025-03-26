@@ -1,5 +1,6 @@
-import pusher
 import logging
+
+import pusher
 from django.conf import settings
 
 logger = logging.getLogger(__name__)

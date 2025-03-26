@@ -41,12 +41,8 @@ class Project(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=150, unique=True)
     description = models.TextField(blank=True)
-    background_image = models.ImageField(
-        upload_to="project_background", blank=True
-    )
-    owner = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="owned_projects"
-    )
+    background_image = models.ImageField(upload_to="project_background", blank=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_projects")
     created_at = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
     progress = models.IntegerField(default=0)
@@ -59,9 +55,7 @@ class Project(models.Model):
 
 class ProjectAccess(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="permissions"
-    )
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="permissions")
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -125,19 +119,13 @@ class Task(models.Model):
         null=True,
         blank=True,
     )
-    owner = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="owned_tasks"
-    )
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_tasks")
     is_closed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    progress = models.PositiveIntegerField(
-        validators=[MinValueValidator(0), MaxValueValidator(100)], default=0
-    )
+    progress = models.PositiveIntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
     eta_date = models.DateField(null=True, blank=True)
-    estimated_work_hours = models.DecimalField(
-        null=True, blank=True, max_digits=4, decimal_places=1
-    )
+    estimated_work_hours = models.DecimalField(null=True, blank=True, max_digits=4, decimal_places=1)
     is_urgent = models.BooleanField(default=False)
     responsible = models.ForeignKey(
         User,
@@ -146,9 +134,7 @@ class Task(models.Model):
         null=True,
         blank=True,
     )
-    status = models.CharField(
-        max_length=150, blank=True, null=True, choices=StatusChoices.choices
-    )
+    status = models.CharField(max_length=150, blank=True, null=True, choices=StatusChoices.choices)
     urgency_level = models.CharField(
         max_length=150,
         blank=True,
@@ -169,12 +155,8 @@ class TaskBlock(models.Model):
         CHECKLIST = "CHECKLIST", "Checklist"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    task = models.ForeignKey(
-        Task, on_delete=models.CASCADE, related_name="blocks"
-    )
-    block_type = models.CharField(
-        max_length=150, choices=BlockTypeChoices.choices
-    )
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="blocks")
+    block_type = models.CharField(max_length=150, choices=BlockTypeChoices.choices)
     position = models.PositiveSmallIntegerField(default=0)
     content = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -217,9 +199,7 @@ class Pin(models.Model):
 
 class TaskAccess(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    task = models.ForeignKey(
-        Task, on_delete=models.CASCADE, related_name="permissions"
-    )
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="permissions")
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -265,15 +245,9 @@ class Attachment(models.Model):
         blank=True,
     )
     file_path = models.FileField(upload_to="attachments", max_length=4000)
-    thumbnail_path = models.ImageField(
-        upload_to="attachment_thumbnails", blank=True, max_length=4000
-    )
-    owner = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="owned_attachments"
-    )
-    is_deleted = models.BooleanField(
-        default=False
-    )  # do I need this field (is_deleted) if I have archived_at?
+    thumbnail_path = models.ImageField(upload_to="attachment_thumbnails", blank=True, max_length=4000)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_attachments")
+    is_deleted = models.BooleanField(default=False)  # do I need this field (is_deleted) if I have archived_at?
     created_at = models.DateTimeField(auto_now_add=True)
     archived_at = models.DateTimeField(null=True, blank=True)
 
@@ -282,9 +256,7 @@ class Attachment(models.Model):
 
     def clean(self):
         if self.task is None and self.project is None:
-            raise ValidationError(
-                "Task field or Project field needs to have a value."
-            )
+            raise ValidationError("Task field or Project field needs to have a value.")
         # if self.task is not None and self.project is not None:
         #     raise ValidationError(
         #         "Only Task field or Project field can have a value."
@@ -314,9 +286,7 @@ class Comment(models.Model):
         null=True,
         blank=True,
     )
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="comments"
-    )
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     content = models.TextField()
     response_to_comment = models.ForeignKey(
         "self",
@@ -338,13 +308,9 @@ class Comment(models.Model):
 
     def clean(self):
         if self.task is None and self.project is None:
-            raise ValidationError(
-                "Task field or Project field needs to have a value."
-            )
+            raise ValidationError("Task field or Project field needs to have a value.")
         if self.task is not None and self.project is not None:
-            raise ValidationError(
-                "Only Task field or Project field can have a value."
-            )
+            raise ValidationError("Only Task field or Project field can have a value.")
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -373,9 +339,7 @@ class CommentAck(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     seen_at = models.DateTimeField(null=True, blank=True)
-    reaction = models.ForeignKey(
-        CommentReaction, null=True, blank=True, on_delete=models.SET_NULL
-    )
+    reaction = models.ForeignKey(CommentReaction, null=True, blank=True, on_delete=models.SET_NULL)
     mentioned = models.BooleanField(null=True, blank=True)
     comment = models.ForeignKey(
         Comment,
@@ -409,9 +373,7 @@ class PrivateNote(models.Model):
         on_delete=models.CASCADE,
         related_name="private_notes",
     )
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="private_notes"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="private_notes")
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -424,9 +386,7 @@ class Log(models.Model):
         DELETED = "DELETED", "Deleted"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="logs"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="logs")
     message = models.TextField()
     task = models.ForeignKey(
         Task,
@@ -471,9 +431,7 @@ class TaskWorkSession(models.Model):
     stopped_at = models.DateTimeField(null=True, blank=True)
 
     total_time = models.IntegerField(default=0)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="task_work"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="task_work")
     message = models.TextField(null=True, blank=True)
     task = models.ForeignKey(
         Task,
@@ -491,9 +449,7 @@ class TaskWorkSession(models.Model):
             raise Exception("Stopped at cannot be before started at")
 
         if self.stopped_at and self.started_at:
-            self.total_time = (
-                self.stopped_at - self.started_at
-            ).total_seconds()
+            self.total_time = (self.stopped_at - self.started_at).total_seconds()
 
         super().save(*args, **kwargs)
 
@@ -576,9 +532,7 @@ class UserTaskQueue(models.Model):
         Task,
         on_delete=models.CASCADE,
     )
-    priority = models.IntegerField(
-        default=100, help_text="Higher is more important"
-    )
+    priority = models.IntegerField(default=100, help_text="Higher is more important")
 
     class Meta:
         ordering = ["-priority"]
@@ -595,9 +549,7 @@ class Reminder(models.Model):
         Task,
         on_delete=models.CASCADE,
     )
-    created_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="reminders_created"
-    )
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reminders_created")
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
@@ -625,30 +577,22 @@ class TaskChecklistItem(models.Model):
         on_delete=models.CASCADE,
     )
     position = models.IntegerField(default=0)
-    done_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="checklistitem_done"
-    )
+    done_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="checklistitem_done")
 
 
 class Board(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=150)
-    owner = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="owned_boards"
-    )
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_boards")
     config = models.JSONField(default=dict, blank=True)
 
     def user_has_board_access(self, user):
-        return (self.owner == user) or self.board_users.filter(
-            user__id=user.id
-        ).exists()
+        return (self.owner == user) or self.board_users.filter(user__id=user.id).exists()
 
 
 class BoardUser(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    board = models.ForeignKey(
-        Board, on_delete=models.CASCADE, related_name="board_users"
-    )
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name="board_users")
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -658,9 +602,7 @@ class BoardUser(models.Model):
 
 class Card(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    board = models.ForeignKey(
-        Board, on_delete=models.CASCADE, related_name="cards"
-    )
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name="cards")
     name = models.CharField(max_length=150)
     position = models.IntegerField(default=0)
     config = models.JSONField(default=dict, blank=True)
@@ -692,9 +634,7 @@ class CardItem(models.Model):
         blank=True,
     )
     comment = models.TextField(null=True, blank=True)
-    card = models.ForeignKey(
-        Card, on_delete=models.CASCADE, related_name="card_items"
-    )
+    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name="card_items")
 
     position = models.IntegerField(default=0)
     config = models.JSONField(default=dict, blank=True)
@@ -738,6 +678,4 @@ class Beacon(models.Model):
     @staticmethod
     def close_for_user(user):
         """If beacon found for user we close it"""
-        Beacon.objects.filter(user=user, confirmed_at__isnull=True).update(
-            confirmed_at=now()
-        )
+        Beacon.objects.filter(user=user, confirmed_at__isnull=True).update(confirmed_at=now())

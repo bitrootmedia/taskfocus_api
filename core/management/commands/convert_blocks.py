@@ -3,14 +3,13 @@ import json
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from core.models import Task, TaskBlock, User, Log
+from core.models import Log, Task, TaskBlock, User
 
 
 class Command(BaseCommand):
     help = "Converts all existing blocks to new model based format"
 
     def handle(self, *args, **options):
-
         # Not ideal but we need a user to create a log.
         admin_user = User.objects.filter(is_superuser=True).first()
 
@@ -20,9 +19,7 @@ class Command(BaseCommand):
 
                 try:
                     old_blocks_dict = task.blocks_old
-                    if isinstance(
-                        old_blocks_dict, str
-                    ):  # we got un-serialized json
+                    if isinstance(old_blocks_dict, str):  # we got un-serialized json
                         old_blocks_dict = json.loads(old_blocks_dict)
 
                     for i, block_data in enumerate(old_blocks_dict):
@@ -32,9 +29,7 @@ class Command(BaseCommand):
                             new_block = TaskBlock(
                                 task=task,
                                 block_type=TaskBlock.BlockTypeChoices.MARKDOWN,
-                                content={
-                                    "markdown": block_data.get("content")
-                                },
+                                content={"markdown": block_data.get("content")},
                                 position=i,
                                 created_by=task.owner,
                             )
@@ -67,9 +62,7 @@ class Command(BaseCommand):
                     with transaction.atomic():
                         TaskBlock.objects.bulk_create(blocks)
                         self.stdout.write(
-                            self.style.SUCCESS(
-                                f"Successfully converted {len(blocks)} blocks for task {task.id}"
-                            )
+                            self.style.SUCCESS(f"Successfully converted {len(blocks)} blocks for task {task.id}")
                         )
 
                 except Exception as e:
@@ -79,7 +72,5 @@ class Command(BaseCommand):
                         message=f"Error while converting block(s) e: {str(e)}",
                     )
                     self.stdout.write(
-                        self.style.ERROR(
-                            f"Something went wrong while converting task ({task.id}) blocks: {str(e)}"
-                        )
+                        self.style.ERROR(f"Something went wrong while converting task ({task.id}) blocks: {str(e)}")
                     )

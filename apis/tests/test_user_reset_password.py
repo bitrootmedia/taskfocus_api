@@ -6,15 +6,14 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APITestCase
+
 from core.models import User
 
 
 class UsersTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.user = User.objects.create(
-            username="user1", email="user@some.domain"
-        )
+        cls.user = User.objects.create(username="user1", email="user@some.domain")
         cls.user_2 = User.objects.create(username="user2")
 
     def test_api_sends_reset_password_email(self):
@@ -23,9 +22,7 @@ class UsersTests(APITestCase):
             {"email": self.user.email},
         )
         self.assertEqual(r.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            r.json()["detail"], "Password reset e-mail has been sent."
-        )
+        self.assertEqual(r.json()["detail"], "Password reset e-mail has been sent.")
 
         encoded_user_uid = urlsafe_base64_encode(force_bytes(self.user.pk))
 

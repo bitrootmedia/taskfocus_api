@@ -1,8 +1,10 @@
 import json
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Team
+
+from core.models import Project, ProjectAccess, Team, User
 
 
 class UsersTests(APITestCase):
@@ -30,9 +32,7 @@ class UsersTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         user_ids = [x.get("id") for x in response.json().get("results")]
-        user_names = [
-            x.get("username") for x in response.json().get("results")
-        ]
+        user_names = [x.get("username") for x in response.json().get("results")]
 
         self.assertIn(str(self.user.id), user_ids)
         self.assertIn(str(self.user_2.id), user_ids)

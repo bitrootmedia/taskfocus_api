@@ -1,9 +1,11 @@
+import json
+
 from django.urls import reverse
 from django.utils.timezone import now
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import User, Reminder, Task
-import json
+
+from core.models import Reminder, Task, User
 
 
 class SideAppTests(APITestCase):

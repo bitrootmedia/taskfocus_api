@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from core.models import User, Note
+from core.models import Note, User
 
 
 class TestNotes(APITestCase):
@@ -72,9 +72,7 @@ class TestNotes(APITestCase):
             {"content": "First line is the title\nContent here"},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(
-            "First line is the title", response.json().get("title")
-        )
+        self.assertEqual("First line is the title", response.json().get("title"))
 
     def test_create_note_first_newlines(self):
         self.client.force_authenticate(user=self.user)
@@ -102,9 +100,7 @@ class TestNotes(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.note.refresh_from_db()
         self.assertEqual(self.note.title, "Updated Title")
-        self.assertEqual(
-            self.note.content, "Updated Title\nUpdated Content here"
-        )
+        self.assertEqual(self.note.content, "Updated Title\nUpdated Content here")
 
     def test_edit_other_users_note(self):
         self.client.force_authenticate(user=self.user_2)

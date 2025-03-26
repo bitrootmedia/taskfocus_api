@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("core", "0050_beacon_beacon_unique_unconfirmed_beacon_per_user"),
     ]

@@ -14,11 +14,7 @@ class TaskAccessMixin:
         task = Task.objects.filter(id=task_id).first()
         if not task:
             raise PermissionDenied(f"Task not found for id: {task_id}")
-        has_task_access = HasTaskAccess().has_object_permission(
-            getattr(self, "request", {}), self, task
-        )
+        has_task_access = HasTaskAccess().has_object_permission(getattr(self, "request", {}), self, task)
         if not has_task_access:
-            raise PermissionDenied(
-                f"Not allowed to access the task (id: {task_id})"
-            )
+            raise PermissionDenied(f"Not allowed to access the task (id: {task_id})")
         return task

@@ -1,7 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Task, Pin
+
+from core.models import Pin, Project, ProjectAccess, Task, User
 
 
 class TasksTests(APITestCase):
@@ -11,9 +12,7 @@ class TasksTests(APITestCase):
         cls.user_2 = User.objects.create(username="user2")
         cls.user_3 = User.objects.create(username="user3")
 
-        cls.task_1 = Task.objects.create(
-            owner=cls.user, title="Task 1", description="Task 1 Description"
-        )
+        cls.task_1 = Task.objects.create(owner=cls.user, title="Task 1", description="Task 1 Description")
 
         cls.project_2 = Project.objects.create(
             title="Testing Project 2",
@@ -84,37 +83,27 @@ class TasksTests(APITestCase):
         self.assertContains(response, self.task_4.title)
 
     def test_task_detail_not_logged(self):
-        response = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_1.id})
-        )
+        response = self.client.get(reverse("task_detail", kwargs={"pk": self.task_1.id}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_task_detail_logged_access(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_1.id})
-        )
+        response = self.client.get(reverse("task_detail", kwargs={"pk": self.task_1.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_task_detail_logged_no_access(self):
         self.client.force_login(self.user_3)
-        response = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_1.id})
-        )
+        response = self.client.get(reverse("task_detail", kwargs={"pk": self.task_1.id}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_task_detail_logged_access_project_owner(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_4.id})
-        )
+        response = self.client.get(reverse("task_detail", kwargs={"pk": self.task_4.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_task_detail_logged_access_project_access(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_3.id})
-        )
+        response = self.client.get(reverse("task_detail", kwargs={"pk": self.task_3.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_api_task_update_own(self):
@@ -126,9 +115,7 @@ class TasksTests(APITestCase):
         )
         self.assertEqual(r.status_code, 200)
 
-        r = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_1.id})
-        )
+        r = self.client.get(reverse("task_detail", kwargs={"pk": self.task_1.id}))
         self.assertContains(r, updated_title)
 
     def test_api_task_update_no_access(self):
@@ -149,9 +136,7 @@ class TasksTests(APITestCase):
             {"title": updated_title},
         )
 
-        r = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_4.id})
-        )
+        r = self.client.get(reverse("task_detail", kwargs={"pk": self.task_4.id}))
         self.assertContains(r, updated_title)
 
     def test_api_task_update_project(self):
@@ -165,12 +150,8 @@ class TasksTests(APITestCase):
 
     def test_api_task_delete(self):
         self.client.force_login(self.user)
-        response = self.client.delete(
-            reverse("task_detail", kwargs={"pk": self.task_4.id})
-        )
-        self.assertEqual(
-            response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+        response = self.client.delete(reverse("task_detail", kwargs={"pk": self.task_4.id}))
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_api_task_create(self):
         self.client.force_login(self.user)
@@ -202,13 +183,9 @@ class TasksTests(APITestCase):
 
     def test_task_detail_is_pinned(self):
         self.client.force_login(self.user)
-        request = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_1.id})
-        )
+        request = self.client.get(reverse("task_detail", kwargs={"pk": self.task_1.id}))
         self.assertFalse(request.json().get("is_pinned"))
 
         Pin.objects.create(user=self.user, task=self.task_1)
-        request = self.client.get(
-            reverse("task_detail", kwargs={"pk": self.task_1.id})
-        )
+        request = self.client.get(reverse("task_detail", kwargs={"pk": self.task_1.id}))
         self.assertTrue(request.json().get("is_pinned"))
