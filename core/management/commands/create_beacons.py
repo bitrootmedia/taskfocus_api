@@ -9,9 +9,10 @@ class Command(BaseCommand):
         """This command would run via cron or periodic task every minute or so,
         but Beacons are to be created randomly for user"""
 
-        # TODO: do not create beacon more often than X the previous one was created
-
-        for tws in TaskWorkSession.objects.filter(stopped_at__isnull=True):
+        cutoff_time = timezone.now() - timedelta(minutes=30)
+        for tws in TaskWorkSession.objects.filter(
+            stopped_at__isnull=True, started_at__lte=cutoff_time
+        ):
             beacon = Beacon.objects.filter(
                 user=tws.user, confirmed_at__isnull=True
             ).first()
@@ -21,7 +22,7 @@ class Command(BaseCommand):
                 print(f"Beacon {beacon.id} created for {tws.user}")
 
         # find active Beacons if older than 10 mins - stop working on task
-        cutoff_time = timezone.now() - timedelta(minutes=1)
+        cutoff_time = timezone.now() - timedelta(minutes=10)
         for beacon in Beacon.objects.filter(
             confirmed_at__isnull=True, created_at__lte=cutoff_time
         ):
@@ -40,4 +41,3 @@ class Command(BaseCommand):
                     user=beacon.user,
                     message=_msg,
                 )
-                print(_msg)
