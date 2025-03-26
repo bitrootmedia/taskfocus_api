@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from core.models import Project, Task
 from core.utils.websockets import WebsocketHelper
@@ -24,7 +24,7 @@ from .serializers import (
 )
 
 
-class ThreadViewSet(ReadOnlyModelViewSet):
+class ThreadViewSet(ModelViewSet):
     serializer_class = ThreadSerializer
     permission_classes = [IsAuthenticated]
 
@@ -36,15 +36,19 @@ class ThreadViewSet(ReadOnlyModelViewSet):
             Thread.objects.filter(
                 models.Q(project_id__in=accessible_project_ids) | models.Q(task_id__in=accessible_task_ids)
             )
+            .order_by("-created_at")
             .annotate(unread_count=Count("messages", filter=~Q(messages__acks__user=user)))
             .distinct()
         )
 
-    @action(detail=False, methods=["get"])
-    def user_threads(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data["user"] = request.user.id
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        serializer.data["unread_count"] = 0
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class MessageViewSet(ModelViewSet):
@@ -77,6 +81,7 @@ class MessageViewSet(ModelViewSet):
         thread = self.get_thread_object()
 
         data = request.data.copy()
+        data["thread"] = thread.id
         data["sender"] = user.id
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
@@ -115,14 +120,14 @@ class MessageViewSet(ModelViewSet):
         return Response({"status": "Messages acknowledged"}, status=status.HTTP_200_OK)
 
 
-class DirectThreadViewSet(ReadOnlyModelViewSet):
+class DirectThreadViewSet(ModelViewSet):
     serializer_class = DirectThreadSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        queryset = DirectThread.objects.filter(users=user)
-        unseen_messages_count_subquery = (
+        queryset = DirectThread.objects.filter(users=user).order_by("-created_at")
+        unread_count_subquery = (
             DirectMessage.objects.filter(thread_id=OuterRef("id"))
             .exclude(acks__user=user)
             .values("thread_id")
@@ -130,27 +135,19 @@ class DirectThreadViewSet(ReadOnlyModelViewSet):
             .values("count")
         )
 
-        queryset = queryset.annotate(
-            unseen_messages_count=Coalesce(Subquery(unseen_messages_count_subquery), Value(0))
-        )
-
+        queryset = queryset.annotate(unread_count=Coalesce(Subquery(unread_count_subquery), Value(0)))
         return queryset
 
-    # def list(self, request, *args, **kwargs):
-    #     queryset = self.filter_queryset(self.get_queryset())
-    #
-    #     page = self.paginate_queryset(queryset)
-    #     if page is not None:
-    #         serializer = self.get_serializer(page, many=True)
-    #         user = self.request.user
-    #         for thread in page:
-    #             unseen_count = Message.objects.filter(thread_id=thread.id).exclude(acks__user=user).count()
-    #             thread["unseen_messages_count"] = unseen_count
-    #
-    #         return self.get_paginated_response(serializer.data)
-    #
-    #     serializer = self.get_serializer(queryset, many=True)
-    #     return Response(serializer.data)
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        if str(request.user.id) not in data["users"]:
+            data["users"].append(str(request.user.id))
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        serializer.data["unread_count"] = 0
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class DirectMessageViewSet(ModelViewSet):

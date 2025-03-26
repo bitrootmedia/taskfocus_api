@@ -12,6 +12,16 @@ def user(db):
 
 
 @pytest.fixture
+def integration_user1(db):
+    return User.objects.create_user(username="testuser1", password="password")
+
+
+@pytest.fixture
+def integration_user2(db):
+    return User.objects.create_user(username="testuser2", password="password")
+
+
+@pytest.fixture
 def client():
     client = APIClient()
     return client

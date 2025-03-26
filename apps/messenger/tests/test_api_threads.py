@@ -9,6 +9,17 @@ from core.models import User
 
 
 @pytest.mark.django_db
+def test_create_thread(auth_client, user, project):
+    payload = {"project_id": str(project.id)}
+    response = auth_client.post(reverse("thread-list"), payload)
+
+    assert response.status_code == status.HTTP_201_CREATED
+    thread = Thread.objects.get(id=response.data["id"])
+    assert thread.project_id == project.id
+    assert thread.user.id == user.id
+
+
+@pytest.mark.django_db
 def test_user_threads(auth_client, thread):
     response = auth_client.get(reverse("thread-list"))
     assert response.status_code == status.HTTP_200_OK

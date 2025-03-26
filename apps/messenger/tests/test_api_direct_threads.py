@@ -11,7 +11,7 @@ def test_list_direct_threads_no_messages(auth_client, direct_thread):
     response = auth_client.get(reverse("direct-thread-list"))
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == 1
-    assert response.data["results"][0]["unseen_messages_count"] == 0
+    assert response.data["results"][0]["unread_count"] == 0
 
 
 @pytest.mark.django_db
@@ -19,7 +19,7 @@ def test_list_direct_threads_with_unseen_message(auth_client, direct_thread, dir
     response = auth_client.get(reverse("direct-thread-list"))
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == 1
-    assert response.data["results"][0]["unseen_messages_count"] == 1
+    assert response.data["results"][0]["unread_count"] == 1
 
 
 @pytest.mark.django_db
@@ -27,4 +27,4 @@ def test_list_direct_threads_with_seen_message(auth_client, direct_thread, direc
     response = auth_client.get(reverse("direct-thread-list"))
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == 1
-    assert response.data["results"][0]["unseen_messages_count"] == 0
+    assert response.data["results"][0]["unread_count"] == 0
