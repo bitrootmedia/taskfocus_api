@@ -31,11 +31,13 @@ class ThreadViewSet(ReadOnlyModelViewSet):
         user = self.request.user
         accessible_project_ids = Project.objects.filter(permissions__user=user).values_list("id", flat=True)
         accessible_task_ids = Task.objects.filter(permissions__user=user).values_list("id", flat=True)
-        return Thread.objects.filter(
-            models.Q(project_id__in=accessible_project_ids) | models.Q(task_id__in=accessible_task_ids)
-        ).annotate(
-            unread_count=Count('messages', filter=~Q(messages__acks__user=user))
-        ).distinct()
+        return (
+            Thread.objects.filter(
+                models.Q(project_id__in=accessible_project_ids) | models.Q(task_id__in=accessible_task_ids)
+            )
+            .annotate(unread_count=Count("messages", filter=~Q(messages__acks__user=user)))
+            .distinct()
+        )
 
     @action(detail=False, methods=["get"])
     def user_threads(self, request):
