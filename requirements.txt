@@ -9,6 +9,7 @@ django-environ==0.12.0
 django-filter==25.1
 django-simple-history==3.8.0
 django-storages==1.14.5
+django-extensions==3.2.3
 
 # Django REST framework dependencies
 djangorestframework==3.15.2

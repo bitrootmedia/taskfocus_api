@@ -1,25 +1,25 @@
 from django.db import models
-from django.db.models import OuterRef, Exists, Q, Count
+from django.db.models import Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet, ViewSet
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
 
 from core.models import Project, Task
 from core.utils.websockets import WebsocketHelper
 
-from .models import Thread, Message, MessageAck, DirectThread, DirectMessage, DirectMessageAck
+from .models import DirectMessage, DirectMessageAck, DirectThread, Message, MessageAck, Thread
 from .pagination import StandardResultsSetPagination
 from .serializers import (
-    ThreadSerializer,
-    MessageSerializer,
-    MessageAckSerializer,
-    DirectThreadSerializer,
-    DirectMessageSerializer,
     DirectMessageAckSerializer,
+    DirectMessageSerializer,
+    DirectThreadSerializer,
+    MessageAckSerializer,
+    MessageSerializer,
+    ThreadSerializer,
 )
 
 

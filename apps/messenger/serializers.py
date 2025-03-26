@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Thread, Message, DirectThread, DirectMessage, DirectMessageAck
+
+from .models import DirectMessage, DirectMessageAck, DirectThread, Message, Thread
 
 
 class ThreadSerializer(serializers.ModelSerializer):

@@ -2,8 +2,8 @@ import pytest
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from core.models import User, Project, ProjectAccess
-from apps.messenger.models import Thread, Message, MessageAck, DirectThread, DirectMessage
+from apps.messenger.models import DirectMessage, DirectThread, Message, MessageAck, Thread
+from core.models import Project, ProjectAccess, User
 
 
 @pytest.fixture

@@ -1,7 +1,8 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from apps.messenger.models import DirectThread, DirectMessage, DirectMessageAck
+
+from apps.messenger.models import DirectMessage, DirectMessageAck, DirectThread
 from core.models import User
 
 
