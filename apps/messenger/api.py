@@ -33,6 +33,8 @@ class ThreadViewSet(ReadOnlyModelViewSet):
         accessible_task_ids = Task.objects.filter(permissions__user=user).values_list("id", flat=True)
         return Thread.objects.filter(
             models.Q(project_id__in=accessible_project_ids) | models.Q(task_id__in=accessible_task_ids)
+        ).annotate(
+            unread_count=Count('messages', filter=~Q(messages__acks__user=user))
         ).distinct()
 
     @action(detail=False, methods=["get"])
@@ -44,6 +46,7 @@ class ThreadViewSet(ReadOnlyModelViewSet):
 
 class MessageViewSet(ModelViewSet):
     serializer_class = MessageSerializer
+    ack_serializer_class = MessageAckSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
@@ -66,23 +69,15 @@ class MessageViewSet(ModelViewSet):
         acked_messages = MessageAck.objects.filter(user=self.request.user, message_id=OuterRef("id"))
         return Message.objects.filter(thread=thread).annotate(seen=Exists(acked_messages)).order_by("-created_at")
 
-    @action(detail=False, methods=["get"], url_path="unread-count")
-    def unread_count(self, request, thread_id=None):
-        user = request.user
-        thread = self.get_thread_object()
-
-        unread_count = Message.objects.filter(thread=thread).exclude(acks__user=user).count()
-        return Response({"unread_count": unread_count})
-
     def create(self, request, *args, **kwargs):
         user = request.user
         thread = self.get_thread_object()
 
         data = request.data.copy()
-        data["user"] = user.id
+        data["sender"] = user.id
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
-            message = serializer.save(user=user)
+            message = serializer.save(sender=user)
             self._send_message_to_channel(message, thread)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -93,22 +88,17 @@ class MessageViewSet(ModelViewSet):
         ws.send(
             f"thread_{thread.id}",
             "message_added",
-            data={"content": f"{message.content}", "user": f"{message.user.id}"},
+            data={"content": f"{message.content}", "sender": f"{message.sender.id}"},
         )
 
-
-class MessageAckViewSet(ViewSet):
-    permission_classes = [IsAuthenticated]
-    serializer_class = MessageAckSerializer
-
     @action(detail=False, methods=["POST"])
-    def ack_messages(self, request):
+    def ack(self, request, thread_id):
         """
         Marks multiple messages as seen by the current user.
         Expected payload: {"message_ids": [uuid1, uuid2, uuid3]}
         """
         user = request.user
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.ack_serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         message_ids = serializer.validated_data["message_ids"]
 

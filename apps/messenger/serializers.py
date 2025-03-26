@@ -3,9 +3,11 @@ from .models import Thread, Message, DirectThread, DirectMessage, DirectMessageA
 
 
 class ThreadSerializer(serializers.ModelSerializer):
+    unread_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Thread
-        fields = "__all__"
+        fields = ["id", "task_id", "project_id", "unread_count", "created_at"]
 
 
 class MessageSerializer(serializers.ModelSerializer):

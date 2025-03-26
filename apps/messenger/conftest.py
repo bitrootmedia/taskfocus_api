@@ -44,12 +44,12 @@ def thread(db, user, project):
 
 @pytest.fixture
 def message(db, thread, user):
-    return Message.objects.create(thread=thread, user=user, content="Test message")
+    return Message.objects.create(thread=thread, sender=user, content="Test message")
 
 
 @pytest.fixture
 def message_ack(db, message, user):
-    return MessageAck.objects.create(message=message, user=message.user)
+    return MessageAck.objects.create(message=message, user=message.sender)
 
 
 @pytest.fixture
@@ -71,9 +71,9 @@ def create_thread_with_messages(db, create_users, thread, project):
         ProjectAccess.objects.create(project=project, user=user2)
 
         messages = [
-            Message.objects.create(thread=thread, user=user1, content="Hello"),
-            Message.objects.create(thread=thread, user=user2, content="Hi"),
-            Message.objects.create(thread=thread, user=user1, content="How are you?"),
+            Message.objects.create(thread=thread, sender=user1, content="Hello"),
+            Message.objects.create(thread=thread, sender=user2, content="Hi"),
+            Message.objects.create(thread=thread, sender=user1, content="How are you?"),
         ]
         return user1, user2, thread, messages
 

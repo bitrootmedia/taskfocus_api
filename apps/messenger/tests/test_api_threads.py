@@ -24,3 +24,21 @@ def test_cannot_see_other_threads(auth_client, thread):
     assert response.status_code == status.HTTP_200_OK
     assert response.data["results"]
     assert other_thread.id not in [t["id"] for t in response.data["results"]]
+
+
+@pytest.mark.django_db
+def test_unread_count_api(auth_client, user, thread, message):
+    url = reverse('thread-list')
+    response = auth_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["results"][0]['unread_count'] == 1
+
+
+@pytest.mark.django_db
+def test_unread_count_api_when_message_was_ack(auth_client, user, thread, message, message_ack):
+    url = reverse('thread-list')
+    response = auth_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["results"][0]['unread_count'] == 0
