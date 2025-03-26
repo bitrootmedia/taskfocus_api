@@ -1,11 +1,30 @@
 from django.db.models import Q, Sum
 from rest_framework import serializers
 
-from core.models import (Attachment, Board, BoardUser, Card, CardItem, Comment,
-                         Log, Note, Notification, NotificationAck, Pin,
-                         PrivateNote, Project, ProjectAccess, Reminder, Task,
-                         TaskAccess, TaskBlock, TaskChecklistItem,
-                         TaskWorkSession, User, UserTaskQueue)
+from core.models import (
+    Attachment,
+    Board,
+    BoardUser,
+    Card,
+    CardItem,
+    Comment,
+    Log,
+    Note,
+    Notification,
+    NotificationAck,
+    Pin,
+    PrivateNote,
+    Project,
+    ProjectAccess,
+    Reminder,
+    Task,
+    TaskAccess,
+    TaskBlock,
+    TaskChecklistItem,
+    TaskWorkSession,
+    User,
+    UserTaskQueue,
+)
 from core.utils.permissions import user_can_see_project, user_can_see_task
 from core.utils.time_from_seconds import time_from_seconds
 

@@ -2,9 +2,21 @@ import django_filters
 from django.db.models import Q
 from django_filters import rest_framework as filters
 
-from core.models import (Attachment, Board, Comment, Log, Note,
-                         NotificationAck, PrivateNote, Project, ProjectAccess,
-                         Reminder, Task, TaskAccess, TaskWorkSession)
+from core.models import (
+    Attachment,
+    Board,
+    Comment,
+    Log,
+    Note,
+    NotificationAck,
+    PrivateNote,
+    Project,
+    ProjectAccess,
+    Reminder,
+    Task,
+    TaskAccess,
+    TaskWorkSession,
+)
 
 
 class ProjectFilter(filters.FilterSet):

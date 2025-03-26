@@ -2,8 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from core.models import (Comment, PrivateNote, Project, ProjectAccess, Task,
-                         User)
+from core.models import Comment, PrivateNote, Project, ProjectAccess, Task, User
 
 
 class PrivateNoteTests(APITestCase):

@@ -4,8 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from core.models import (Attachment, Project, ProjectAccess, Task, TaskAccess,
-                         User)
+from core.models import Attachment, Project, ProjectAccess, Task, TaskAccess, User
 
 
 class AttachmentTests(APITestCase):
