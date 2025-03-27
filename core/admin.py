@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.models import Group
 from simple_history.admin import SimpleHistoryAdmin
 
@@ -30,15 +30,14 @@ from .models import (
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
-# admin.site.register(User, UserAdmin)
 admin.site.unregister(Group)
 
 
 @admin.register(User)
-class UserAdmin(UserAdmin):
+class UserAdmin(DjangoUserAdmin):
     model = User
-    fieldsets = (
-        *UserAdmin.fieldsets,
+    fieldsets = (  # type: ignore
+        *DjangoUserAdmin.fieldsets,
         (
             "Custom fields",
             {"fields": ("config", "teams", "pushover_user", "notifier_user")},

@@ -29,3 +29,9 @@ pytest==8.3.5
 black==25.1.0
 isort==6.0.1
 flake8==7.1.2
+mypy==1.15.0
+
+# Typings
+djangorestframework-stubs==3.15.3
+types-python-dateutil==2.9.0.20241206
+django-stubs==5.1.3

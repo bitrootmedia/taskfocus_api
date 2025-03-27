@@ -106,7 +106,7 @@ class AttachmentTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    @skip
+    @skip("Skipped until its fixed")
     def test_create_attachment(self):
         self.client.force_login(self.user_1)
         response = self.client.post(
