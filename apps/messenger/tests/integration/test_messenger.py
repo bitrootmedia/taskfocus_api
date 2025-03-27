@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 from rest_framework import status
 
@@ -35,7 +37,6 @@ def test_messenger(auth_client, integration_user1, integration_user2, project):
     assert created_message["content"] == "Hello, User2!"
     assert created_message["thread"] == str(thread_id)
     assert created_message["sender"] == str(integration_user1.id)
-    message_id = response.data["id"]
 
     # User2 list threads and sees 1 unseen message
     auth_client.force_authenticate(integration_user2)
@@ -50,8 +51,8 @@ def test_messenger(auth_client, integration_user1, integration_user2, project):
 
     # User2 acks message**
     response = auth_client.post(
-        f"/messenger/threads/{thread_id}/messages/ack/",
-        {"message_ids": [message_id]},
+        f"/messenger/threads/{thread_id}/ack/",
+        {"seen_at": datetime.now()},
         format="json",
     )
     assert response.status_code == status.HTTP_200_OK

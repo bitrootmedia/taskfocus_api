@@ -1,5 +1,7 @@
+from datetime import datetime
+
 from django.db import models
-from django.db.models import Count, Exists, OuterRef, Q, Subquery, Value
+from django.db.models import Count, F, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -7,37 +9,46 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet
 
 from core.models import Project, Task
 from core.utils.websockets import WebsocketHelper
 
-from .models import DirectMessage, DirectMessageAck, DirectThread, Message, MessageAck, Thread
+from .models import DirectMessage, DirectThread, DirectThreadAck, Message, Thread, ThreadAck
 from .pagination import StandardResultsSetPagination
 from .serializers import (
-    DirectMessageAckSerializer,
     DirectMessageSerializer,
+    DirectThreadAckSerializer,
     DirectThreadSerializer,
-    MessageAckSerializer,
     MessageSerializer,
+    ThreadAckSerializer,
     ThreadSerializer,
 )
 
 
 class ThreadViewSet(ModelViewSet):
     serializer_class = ThreadSerializer
+    ack_serializer_class = ThreadAckSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
         accessible_project_ids = Project.objects.filter(permissions__user=user).values_list("id", flat=True)
         accessible_task_ids = Task.objects.filter(permissions__user=user).values_list("id", flat=True)
+        latest_seen_at_subquery = (
+            ThreadAck.objects.filter(thread=OuterRef("id"), user=user).order_by("-created_at").values("seen_at")[:1]
+        )
+
+        filter_subquery = Q(messages__created_at__gt=F("last_seen_at")) & (~Q(messages__sender=user))
         return (
             Thread.objects.filter(
                 models.Q(project_id__in=accessible_project_ids) | models.Q(task_id__in=accessible_task_ids)
             )
+            .annotate(
+                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(datetime.min)),
+                unread_count=Count("messages", filter=filter_subquery, distinct=True),
+            )
             .order_by("-created_at")
-            .annotate(unread_count=Count("messages", filter=~Q(messages__acks__user=user)))
             .distinct()
         )
 
@@ -50,10 +61,21 @@ class ThreadViewSet(ModelViewSet):
         serializer.data["unread_count"] = 0
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["post"], url_path="ack")
+    def ack(self, request, pk=None):
+        thread = self.get_object()
+        user = request.user
+        serializer = self.ack_serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        seen_at = serializer.validated_data["seen_at"]
+
+        ThreadAck.objects.create(thread=thread, user=user, seen_at=seen_at)
+
+        return Response(status=status.HTTP_200_OK)
+
 
 class MessageViewSet(ModelViewSet):
     serializer_class = MessageSerializer
-    ack_serializer_class = MessageAckSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
@@ -73,8 +95,7 @@ class MessageViewSet(ModelViewSet):
 
     def get_queryset(self):
         thread = self.get_thread_object()
-        acked_messages = MessageAck.objects.filter(user=self.request.user, message_id=OuterRef("id"))
-        return Message.objects.filter(thread=thread).annotate(seen=Exists(acked_messages)).order_by("-created_at")
+        return Message.objects.filter(thread=thread).order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
         user = request.user
@@ -99,43 +120,33 @@ class MessageViewSet(ModelViewSet):
             data={"content": f"{message.content}", "sender": f"{message.sender.id}"},
         )
 
-    @action(detail=False, methods=["POST"])
-    def ack(self, request, thread_id):
-        """
-        Marks multiple messages as seen by the current user.
-        Expected payload: {"message_ids": [uuid1, uuid2, uuid3]}
-        """
-        user = request.user
-        serializer = self.ack_serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        message_ids = serializer.validated_data["message_ids"]
-
-        existing_acks = set(
-            MessageAck.objects.filter(user=user, message_id__in=message_ids).values_list("message_id", flat=True)
-        )
-
-        new_acks = [MessageAck(user=user, message_id=msg_id) for msg_id in message_ids if msg_id not in existing_acks]
-
-        MessageAck.objects.bulk_create(new_acks, ignore_conflicts=True)
-        return Response({"status": "Messages acknowledged"}, status=status.HTTP_200_OK)
-
 
 class DirectThreadViewSet(ModelViewSet):
     serializer_class = DirectThreadSerializer
+    ack_serializer_class = DirectThreadAckSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        queryset = DirectThread.objects.filter(users=user).order_by("-created_at")
-        unread_count_subquery = (
-            DirectMessage.objects.filter(thread_id=OuterRef("id"))
-            .exclude(acks__user=user)
-            .values("thread_id")
-            .annotate(count=Count("id"))
-            .values("count")
+        latest_seen_at_subquery = (
+            DirectThreadAck.objects.filter(thread=OuterRef("id"), user=user)
+            .order_by("-created_at")
+            .values("seen_at")[:1]
         )
 
-        queryset = queryset.annotate(unread_count=Coalesce(Subquery(unread_count_subquery), Value(0)))
+        filter_subquery = Q(direct_messages__created_at__gt=F("last_seen_at")) & (~Q(direct_messages__sender=user))
+        queryset = (
+            DirectThread.objects.filter(users=user)
+            .annotate(
+                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(datetime.min)),
+                unread_count=Count(
+                    "direct_messages",
+                    filter=filter_subquery,
+                    distinct=True,
+                ),
+            )
+            .order_by("-created_at")
+        )
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -149,10 +160,21 @@ class DirectThreadViewSet(ModelViewSet):
         serializer.data["unread_count"] = 0
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["post"], url_path="ack")
+    def ack(self, request, pk=None):
+        thread = self.get_object()
+        user = request.user
+        serializer = self.ack_serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        seen_at = serializer.validated_data["seen_at"]
+
+        DirectThreadAck.objects.create(thread=thread, user=user, seen_at=seen_at)
+
+        return Response(status=status.HTTP_200_OK)
+
 
 class DirectMessageViewSet(ModelViewSet):
     serializer_class = DirectMessageSerializer
-    ack_serializer_class = DirectMessageAckSerializer
     permission_classes = [IsAuthenticated]
 
     def _get_thread(self, thread_id):
@@ -187,21 +209,3 @@ class DirectMessageViewSet(ModelViewSet):
             self._send_message_to_channel(direct_message, direct_message.thread)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=["post"], url_path="ack")
-    def ack(self, request, thread_id):
-        user = request.user
-        serializer = self.ack_serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        message_ids = serializer.validated_data["message_ids"]
-
-        existing_acks = set(
-            DirectMessageAck.objects.filter(user=user, message_id__in=message_ids).values_list("message_id", flat=True)
-        )
-
-        new_acks = [
-            DirectMessageAck(user=user, message_id=msg_id) for msg_id in message_ids if msg_id not in existing_acks
-        ]
-
-        DirectMessageAck.objects.bulk_create(new_acks, ignore_conflicts=True)
-        return Response({"status": "Messages acknowledged"}, status=status.HTTP_200_OK)

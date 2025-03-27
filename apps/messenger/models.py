@@ -39,13 +39,12 @@ class Message(BaseModel):
         ordering = ["-created_at"]
 
 
-class MessageAck(BaseModel):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="acks")
+class ThreadAck(BaseModel):
+    thread = models.ForeignKey(Thread, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    seen_at = models.DateTimeField(auto_now_add=True)
+    seen_at = models.DateTimeField()
 
     class Meta:
-        unique_together = ("message", "user")
         ordering = ["-created_at"]
 
 
@@ -65,11 +64,10 @@ class DirectMessage(BaseModel):
         ordering = ["-created_at"]
 
 
-class DirectMessageAck(BaseModel):
-    message = models.ForeignKey(DirectMessage, on_delete=models.CASCADE, related_name="acks")
+class DirectThreadAck(BaseModel):
+    thread = models.ForeignKey(DirectThread, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    seen_at = models.DateTimeField(auto_now_add=True)
+    seen_at = models.DateTimeField()
 
     class Meta:
-        unique_together = ("message", "user")
         ordering = ["-created_at"]

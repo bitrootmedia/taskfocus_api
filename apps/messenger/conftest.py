@@ -1,8 +1,10 @@
+from datetime import datetime
+
 import pytest
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from apps.messenger.models import DirectMessage, DirectMessageAck, DirectThread, Message, MessageAck, Thread
+from apps.messenger.models import DirectMessage, DirectThread, DirectThreadAck, Message, Thread, ThreadAck
 from core.models import Project, ProjectAccess, User
 
 
@@ -22,6 +24,16 @@ def integration_user2(db):
 
 
 @pytest.fixture
+def integration_user3(db):
+    return User.objects.create_user(username="testuser3", password="password")
+
+
+@pytest.fixture
+def integration_user4(db):
+    return User.objects.create_user(username="testuser4", password="password")
+
+
+@pytest.fixture
 def client():
     client = APIClient()
     return client
@@ -36,7 +48,7 @@ def auth_client(client, user):
 
 
 @pytest.fixture
-def project(db, user):
+def project(db, user, other_user):
     p = Project.objects.create(
         title="test-project",
         description="Test project",
@@ -44,6 +56,7 @@ def project(db, user):
         owner=user,
     )
     ProjectAccess.objects.create(project=p, user=user)
+    ProjectAccess.objects.create(project=p, user=other_user)
     return p
 
 
@@ -53,13 +66,13 @@ def thread(db, user, project):
 
 
 @pytest.fixture
-def message(db, thread, user):
-    return Message.objects.create(thread=thread, sender=user, content="Test message")
+def thread_ack(db, user, thread):
+    return ThreadAck.objects.create(thread=thread, seen_at=datetime.now(), user=user)
 
 
 @pytest.fixture
-def message_ack(db, message, user):
-    return MessageAck.objects.create(message=message, user=message.sender)
+def message(db, thread, user):
+    return Message.objects.create(thread=thread, sender=user, content="Test message")
 
 
 @pytest.fixture
@@ -116,10 +129,10 @@ def direct_thread(db, user, other_user):
 
 
 @pytest.fixture
-def direct_message(db, direct_thread, user):
-    return DirectMessage.objects.create(thread=direct_thread, sender=user, content="Test message")
+def direct_thread_ack(db, user, direct_thread):
+    return DirectThreadAck.objects.create(thread=direct_thread, seen_at=datetime.now(), user=user)
 
 
 @pytest.fixture
-def direct_message_ack(db, direct_message, user):
-    return DirectMessageAck.objects.create(message=direct_message, user=user)
+def direct_message(db, direct_thread, user):
+    return DirectMessage.objects.create(thread=direct_thread, sender=user, content="Test message")

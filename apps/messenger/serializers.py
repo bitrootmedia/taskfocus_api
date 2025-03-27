@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from core.models import User
 
-from .models import DirectMessage, DirectMessageAck, DirectThread, Message, Thread
+from .models import DirectMessage, DirectThread, Message, Thread
 
 
 class ThreadSerializer(serializers.ModelSerializer):
@@ -20,8 +20,8 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class MessageAckSerializer(serializers.Serializer):
-    message_ids = serializers.ListField(child=serializers.UUIDField(format="hex_verbose"), allow_empty=False)
+class ThreadAckSerializer(serializers.Serializer):
+    seen_at = serializers.DateTimeField()
 
 
 class DirectThreadSerializer(serializers.ModelSerializer):
@@ -53,5 +53,5 @@ class DirectMessageSerializer(serializers.ModelSerializer):
         fields = ["id", "thread", "sender", "content", "created_at", "updated_at"]
 
 
-class DirectMessageAckSerializer(serializers.Serializer):
-    message_ids = serializers.ListField(child=serializers.UUIDField(format="hex_verbose"), allow_empty=False)
+class DirectThreadAckSerializer(serializers.Serializer):
+    seen_at = serializers.DateTimeField()
