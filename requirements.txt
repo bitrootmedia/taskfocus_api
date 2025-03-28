@@ -9,6 +9,7 @@ django-environ==0.12.0
 django-filter==25.1
 django-simple-history==3.8.0
 django-storages==1.14.5
+django-extensions==3.2.3
 
 # Django REST framework dependencies
 djangorestframework==3.15.2
@@ -28,3 +29,9 @@ pytest==8.3.5
 black==25.1.0
 isort==6.0.1
 flake8==7.1.2
+mypy==1.15.0
+
+# Typings
+djangorestframework-stubs==3.15.3
+types-python-dateutil==2.9.0.20241206
+django-stubs==5.1.3

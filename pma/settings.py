@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env("SECRET_KEY", default="SETMEUP")
 DEBUG = env("DEBUG", default=False)
-ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="localhost,127.0.0.1,0.0.0.0").split(",")
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # 3rd-party
+    "django_extensions",
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
@@ -32,6 +33,7 @@ INSTALLED_APPS = [
     # local
     "apis",
     "core",
+    "apps.messenger",
 ]
 
 MIDDLEWARE = [
