@@ -66,3 +66,17 @@ def test_ack_direct_messages_unauthorized(client, direct_thread, direct_message)
     url = reverse("direct-thread-ack", kwargs={"pk": str(direct_thread.id)})
     response = client.post(url, {"message_ids": [str(direct_message.id)]})
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_create_thread_existing(auth_client, user, other_user, direct_thread):
+    data = {"users": [str(user.id), str(other_user.id)]}
+
+    response = auth_client.post(reverse("direct-thread-list"), data, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    response_data = response.json()
+    print(response_data)
+
+    assert "unread_count" in response_data
+    assert response_data["unread_count"] >= 0
+    assert response_data["id"] == str(direct_thread.id)

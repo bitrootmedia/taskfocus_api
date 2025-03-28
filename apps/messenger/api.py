@@ -171,6 +171,14 @@ class DirectThreadViewSet(ModelViewSet):
         if str(request.user.id) not in data["users"]:
             data["users"].append(str(request.user.id))
 
+        users_set = set(data["users"])
+        existing_thread = DirectThread.objects.filter(users__in=users_set).distinct()
+        existing_thread = existing_thread.annotate(user_count=Count("users")).filter(user_count=len(users_set)).first()
+
+        if existing_thread:
+            thread = self.get_queryset().filter(id=existing_thread.id).first()
+            return Response(self.get_serializer(thread).data, status=status.HTTP_200_OK)
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
