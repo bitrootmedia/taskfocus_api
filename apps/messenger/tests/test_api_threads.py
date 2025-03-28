@@ -1,12 +1,10 @@
-import uuid
-
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
 from apps.messenger.models import Thread, ThreadAck
-from core.models import User
+from core.models import TaskAccess
 
 
 @pytest.mark.django_db
@@ -68,3 +66,47 @@ def test_ack_direct_thread(auth_client, thread, user):
     thread_ack = ThreadAck.objects.first()
     assert thread_ack.user == user
     assert thread_ack.seen_at == seen_at
+
+
+def test_thread_filtering_by_project_id(auth_client, project, project2, thread, thread_on_task):
+    url = reverse("thread-list")
+    response = auth_client.get(f"{url}?project_ids={project.id},{project2.id}")
+
+    assert response.status_code == status.HTTP_200_OK
+    results = response.json()["results"]
+    assert len(results) == 1
+    result_thread = results[0]
+    assert result_thread["project"] == str(project.id)
+
+
+def test_thread_filtering_by_task_id(auth_client, user, task, thread, thread_on_task):
+    url = reverse("thread-list")
+    TaskAccess.objects.create(task=task, user=user)
+    response = auth_client.get(f"{url}?task_ids={task.id}")
+
+    assert response.status_code == status.HTTP_200_OK
+    results = response.json()["results"]
+    assert len(results) == 1
+    thread = results[0]
+    assert thread["task"] == str(task.id)
+
+
+def test_thread_filtering_by_project_and_task_ids(auth_client, user, project, project2, task, thread, thread_on_task):
+    url = reverse("thread-list")
+    TaskAccess.objects.create(task=task, user=user)
+    project_ids = ",".join([str(project.id), str(project2.id)])
+    task_ids = ",".join([str(task.id)])
+    response = auth_client.get(f"{url}?project_ids={project_ids}&task_ids={task_ids}")
+
+    assert response.status_code == status.HTTP_200_OK
+    results = response.json()["results"]
+    assert len(results) == 2
+    thread1, thread2 = results
+    if thread1["project"]:
+        project_thread = thread1
+        task_thread = thread2
+    else:
+        project_thread = thread2
+        task_thread = thread1
+
+    assert {project_thread["project"], task_thread["task"]} == {str(project.id), str(task.id)}

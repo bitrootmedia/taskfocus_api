@@ -61,6 +61,32 @@ def project(db, user, other_user):
 
 
 @pytest.fixture
+def project2(db, user, other_user):
+    p = Project.objects.create(
+        title="test-project2",
+        description="Test project",
+        background_image="project_background/test.jpg",
+        owner=user,
+    )
+    ProjectAccess.objects.create(project=p, user=user)
+    ProjectAccess.objects.create(project=p, user=other_user)
+    return p
+
+
+@pytest.fixture
+def project3(db, user, other_user):
+    p = Project.objects.create(
+        title="test-project3",
+        description="Test project",
+        background_image="project_background/test.jpg",
+        owner=user,
+    )
+    ProjectAccess.objects.create(project=p, user=user)
+    ProjectAccess.objects.create(project=p, user=other_user)
+    return p
+
+
+@pytest.fixture
 def task(db, other_user):
     task = Task.objects.create(owner=other_user)
     TaskAccess.objects.create(task=task, user=other_user)
