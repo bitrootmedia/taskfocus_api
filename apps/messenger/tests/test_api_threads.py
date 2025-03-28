@@ -11,7 +11,7 @@ from core.models import User
 
 @pytest.mark.django_db
 def test_create_thread(auth_client, user, project):
-    payload = {"project_id": str(project.id)}
+    payload = {"project": str(project.id)}
     response = auth_client.post(reverse("thread-list"), payload)
 
     assert response.status_code == status.HTTP_201_CREATED
@@ -28,15 +28,11 @@ def test_user_threads(auth_client, thread):
 
 
 @pytest.mark.django_db
-def test_cannot_see_other_threads(auth_client, thread):
-    other_thread = Thread.objects.create(
-        task_id=uuid.uuid4(),
-        user=User.objects.create_user(username="other", password="password"),
-    )
+def test_cannot_see_other_threads(auth_client, thread, thread_on_task):
     response = auth_client.get(reverse("thread-list"))
     assert response.status_code == status.HTTP_200_OK
     assert response.data["results"]
-    assert other_thread.id not in [t["id"] for t in response.data["results"]]
+    assert thread_on_task.id not in [t["id"] for t in response.data["results"]]
 
 
 @pytest.mark.django_db

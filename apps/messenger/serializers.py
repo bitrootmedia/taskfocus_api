@@ -10,7 +10,7 @@ class ThreadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Thread
-        fields = ["id", "task_id", "project_id", "unread_count", "created_at", "user"]
+        fields = ["id", "task", "project", "unread_count", "created_at", "user"]
         extra_kwargs = {"user": {"write_only": True}}
 
 

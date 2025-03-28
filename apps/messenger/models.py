@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from core.models import User
+from core.models import Project, Task, User
 
 
 class BaseModel(models.Model):
@@ -15,15 +15,17 @@ class BaseModel(models.Model):
 
 
 class Thread(BaseModel):
-    task_id = models.UUIDField(null=True, blank=True)
-    project_id = models.UUIDField(null=True, blank=True)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(task_id__isnull=True, project_id__isnull=False)
-                | models.Q(task_id__isnull=False, project_id__isnull=True),
+                condition=(
+                    models.Q(task__isnull=True, project__isnull=False)
+                    | models.Q(task__isnull=False, project__isnull=True)
+                ),
                 name="thread_must_have_either_task_or_project",
             )
         ]
@@ -35,6 +37,8 @@ class Message(BaseModel):
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
 
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -43,6 +47,8 @@ class ThreadAck(BaseModel):
     thread = models.ForeignKey(Thread, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     seen_at = models.DateTimeField()
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -60,8 +66,13 @@ class DirectMessage(BaseModel):
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
 
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["thread", "sender", "created_at"], name="idx_thread_sender_created_at"),
+        ]
 
 
 class DirectThreadAck(BaseModel):
@@ -69,5 +80,8 @@ class DirectThreadAck(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     seen_at = models.DateTimeField()
 
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["thread", "user", "-created_at"], name="idx_thread_user_created_at")]

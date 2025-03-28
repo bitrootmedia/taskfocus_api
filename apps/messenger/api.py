@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from core.models import Project, Task
+from core.models import Project, ProjectAccess, Task, TaskAccess
 from core.utils.websockets import WebsocketHelper
 
 from .models import DirectMessage, DirectThread, DirectThreadAck, Message, Thread, ThreadAck
@@ -33,8 +33,8 @@ class ThreadViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        accessible_project_ids = Project.objects.filter(permissions__user=user).values_list("id", flat=True)
-        accessible_task_ids = Task.objects.filter(permissions__user=user).values_list("id", flat=True)
+        accessible_project_ids = ProjectAccess.objects.filter(user=user).values_list("project_id", flat=True)
+        accessible_task_ids = TaskAccess.objects.filter(user=user).values_list("task_id", flat=True)
         latest_seen_at_subquery = (
             ThreadAck.objects.filter(thread=OuterRef("id"), user=user).order_by("-created_at").values("seen_at")[:1]
         )

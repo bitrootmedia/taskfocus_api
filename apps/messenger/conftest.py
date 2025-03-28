@@ -5,7 +5,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from apps.messenger.models import DirectMessage, DirectThread, DirectThreadAck, Message, Thread, ThreadAck
-from core.models import Project, ProjectAccess, User
+from core.models import Project, ProjectAccess, Task, TaskAccess, User
 
 
 @pytest.fixture
@@ -61,8 +61,20 @@ def project(db, user, other_user):
 
 
 @pytest.fixture
+def task(db, other_user):
+    task = Task.objects.create(owner=other_user)
+    TaskAccess.objects.create(task=task, user=other_user)
+    return task
+
+
+@pytest.fixture
 def thread(db, user, project):
     return Thread.objects.create(project_id=project.id, user=user)
+
+
+@pytest.fixture
+def thread_on_task(db, user, task):
+    return Thread.objects.create(task_id=task.id, user=user)
 
 
 @pytest.fixture

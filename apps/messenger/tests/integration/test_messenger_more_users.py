@@ -32,12 +32,12 @@ def test_messenger_with_four_users_complex(
 
     # User1 creates thread
     auth_client.force_authenticate(integration_user1)
-    response = auth_client.post("/messenger/threads/", {"project_id": str(project.id)})
+    response = auth_client.post("/messenger/threads/", {"project": str(project.id)})
     assert response.status_code == status.HTTP_201_CREATED
     created_thread = response.json()
-    assert created_thread["project_id"] == str(project.id)
+    assert created_thread["project"] == str(project.id)
     assert created_thread["unread_count"] == 0
-    assert created_thread["task_id"] is None
+    assert created_thread["task"] is None
 
     # User1 sends a message
     thread_id = created_thread["id"]
@@ -56,7 +56,7 @@ def test_messenger_with_four_users_complex(
     assert len(results) == 1
     thread = results[0]
     assert thread["id"] == str(thread_id)
-    assert thread["project_id"] == str(project.id)
+    assert thread["project"] == str(project.id)
     assert thread["unread_count"] == 1
 
     # User2 acks the message but does not send any new messages
@@ -74,7 +74,7 @@ def test_messenger_with_four_users_complex(
     assert len(results) == 1
     thread = results[0]
     assert thread["id"] == str(thread_id)
-    assert thread["project_id"] == str(project.id)
+    assert thread["project"] == str(project.id)
     assert thread["unread_count"] == 0
 
     # User3 lists threads and sees 1 unseen message
@@ -85,7 +85,7 @@ def test_messenger_with_four_users_complex(
     assert len(results) == 1
     thread = results[0]
     assert thread["id"] == str(thread_id)
-    assert thread["project_id"] == str(project.id)
+    assert thread["project"] == str(project.id)
     assert thread["unread_count"] == 1
 
     # User3 acks the message and sends a new one
@@ -106,7 +106,7 @@ def test_messenger_with_four_users_complex(
     assert len(results) == 1
     thread = results[0]
     assert thread["id"] == str(thread_id)
-    assert thread["project_id"] == str(project.id)
+    assert thread["project"] == str(project.id)
     assert thread["unread_count"] == 2
 
     # User4 acks the messages
@@ -149,7 +149,7 @@ def test_messenger_with_four_users_complex(
         assert len(results) == 1
         thread = results[0]
         assert thread["id"] == str(thread_id)
-        assert thread["project_id"] == str(project.id)
+        assert thread["project"] == str(project.id)
         assert thread["unread_count"] == 1
 
     # User1 sends a new message
@@ -164,7 +164,7 @@ def test_messenger_with_four_users_complex(
     assert len(results) == 1
     thread = results[0]
     assert thread["id"] == str(thread_id)
-    assert thread["project_id"] == str(project.id)
+    assert thread["project"] == str(project.id)
     assert thread["unread_count"] == 1
 
     # User4 acks User1's new message
@@ -182,5 +182,5 @@ def test_messenger_with_four_users_complex(
     assert len(results) == 1
     thread = results[0]
     assert thread["id"] == str(thread_id)
-    assert thread["project_id"] == str(project.id)
+    assert thread["project"] == str(project.id)
     assert thread["unread_count"] == 0
