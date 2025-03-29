@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from django.db import models
 from django.db.models import Count, F, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404

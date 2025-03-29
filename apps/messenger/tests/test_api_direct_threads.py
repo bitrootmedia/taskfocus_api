@@ -80,3 +80,19 @@ def test_create_thread_existing(auth_client, user, other_user, direct_thread):
     assert "unread_count" in response_data
     assert response_data["unread_count"] >= 0
     assert response_data["id"] == str(direct_thread.id)
+
+
+@pytest.mark.django_db
+def test_retrieve_direct_thread(auth_client, user, direct_thread):
+    url = reverse("direct-thread-detail", args=[str(direct_thread.id)])
+    response = auth_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["id"] == str(direct_thread.id)
+
+
+@pytest.mark.django_db
+def test_retrieve_direct_thread_not_found(auth_client, user):
+    url = reverse("direct-thread-detail", args=[999])
+    response = auth_client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND

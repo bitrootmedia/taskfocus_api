@@ -110,3 +110,19 @@ def test_thread_filtering_by_project_and_task_ids(auth_client, user, project, pr
         task_thread = thread1
 
     assert {project_thread["project"], task_thread["task"]} == {str(project.id), str(task.id)}
+
+
+@pytest.mark.django_db
+def test_retrieve_direct_thread(auth_client, user, thread):
+    url = reverse("thread-detail", args=[str(thread.id)])
+    response = auth_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["id"] == str(thread.id)
+
+
+@pytest.mark.django_db
+def test_retrieve_direct_thread_not_found(auth_client, user):
+    url = reverse("thread-detail", args=[999])
+    response = auth_client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
