@@ -8,7 +8,10 @@ from core.models import TaskAccess
 
 
 @pytest.mark.django_db
-def test_create_thread(auth_client, user, project):
+def test_create_thread(make_auth_client, make_user, make_project):
+    user = make_user()
+    project = make_project(owner=user)
+    auth_client = make_auth_client(user=user)
     payload = {"project": str(project.id)}
     response = auth_client.post(reverse("thread-list"), payload)
 
@@ -19,22 +22,37 @@ def test_create_thread(auth_client, user, project):
 
 
 @pytest.mark.django_db
-def test_user_threads(auth_client, thread):
+def test_user_threads(make_user, make_auth_client, make_project, make_thread):
+    user = make_user()
+    project = make_project(owner=user)
+    auth_client = make_auth_client(user=user)
+    make_thread(user=user, project=project)
     response = auth_client.get(reverse("thread-list"))
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) > 0
 
 
 @pytest.mark.django_db
-def test_cannot_see_other_threads(auth_client, thread, thread_on_task):
+def test_cannot_see_other_threads(make_user, make_auth_client, make_project, make_thread):
+    user = make_user()
+    project = make_project(owner=user)
+    auth_client = make_auth_client(user=user)
+    make_thread(user=user, project=project)
+    different_thread = make_thread()
     response = auth_client.get(reverse("thread-list"))
     assert response.status_code == status.HTTP_200_OK
     assert response.data["results"]
-    assert thread_on_task.id not in [t["id"] for t in response.data["results"]]
+    assert different_thread.id not in [t["id"] for t in response.data["results"]]
 
 
 @pytest.mark.django_db
-def test_unread_count_api(auth_client, user, other_user, thread, message):
+def test_unread_count_api(make_user, make_auth_client, make_project, make_thread, make_message):
+    user = make_user()
+    other_user = make_user()
+    project = make_project(owner=user, members=[other_user])
+    auth_client = make_auth_client(user=user)
+    thread = make_thread(user=user, project=project)
+    make_message(thread=thread, sender=user)
     url = reverse("thread-list")
     response = auth_client.get(url)
     assert response.status_code == status.HTTP_200_OK
@@ -47,7 +65,11 @@ def test_unread_count_api(auth_client, user, other_user, thread, message):
 
 
 @pytest.mark.django_db
-def test_unread_count_api_when_message_was_ack(auth_client, user, thread, message, thread_ack):
+def test_unread_count_api_when_message_was_ack(make_user, make_auth_client, make_project, make_thread):
+    user = make_user()
+    auth_client = make_auth_client(user=user)
+    project = make_project(owner=user)
+    make_thread(user=user, project=project)
     url = reverse("thread-list")
     response = auth_client.get(url)
 
@@ -56,7 +78,11 @@ def test_unread_count_api_when_message_was_ack(auth_client, user, thread, messag
 
 
 @pytest.mark.django_db
-def test_ack_direct_thread(auth_client, thread, user):
+def test_ack_direct_thread(make_user, make_auth_client, make_project, make_thread):
+    user = make_user()
+    auth_client = make_auth_client(user=user)
+    project = make_project(owner=user)
+    thread = make_thread(project=project, user=user)
     assert ThreadAck.objects.count() == 0
     url = reverse("thread-ack", args=[thread.id])
     seen_at = timezone.now()
@@ -68,7 +94,12 @@ def test_ack_direct_thread(auth_client, thread, user):
     assert thread_ack.seen_at == seen_at
 
 
-def test_thread_filtering_by_project_id(auth_client, project, project2, thread, thread_on_task):
+def test_thread_filtering_by_project_id(make_user, make_auth_client, make_project, make_thread):
+    user = make_user()
+    auth_client = make_auth_client(user=user)
+    project = make_project(owner=user)
+    project2 = make_project(owner=user)
+    make_thread(user=user, project=project)
     url = reverse("thread-list")
     response = auth_client.get(f"{url}?project_ids={project.id},{project2.id}")
 
@@ -79,9 +110,12 @@ def test_thread_filtering_by_project_id(auth_client, project, project2, thread, 
     assert result_thread["project"] == str(project.id)
 
 
-def test_thread_filtering_by_task_id(auth_client, user, task, thread, thread_on_task):
+def test_thread_filtering_by_task_id(make_user, make_auth_client, make_task, make_thread):
+    user = make_user()
+    auth_client = make_auth_client(user=user)
+    task = make_task(owner=user)
+    make_thread(user=user, task=task)
     url = reverse("thread-list")
-    TaskAccess.objects.create(task=task, user=user)
     response = auth_client.get(f"{url}?task_ids={task.id}")
 
     assert response.status_code == status.HTTP_200_OK
@@ -91,9 +125,15 @@ def test_thread_filtering_by_task_id(auth_client, user, task, thread, thread_on_
     assert thread["task"] == str(task.id)
 
 
-def test_thread_filtering_by_project_and_task_ids(auth_client, user, project, project2, task, thread, thread_on_task):
+def test_thread_filtering_by_project_and_task_ids(make_auth_client, make_user, make_thread, make_task, make_project):
+    user = make_user()
+    auth_client = make_auth_client(user=user)
+    task = make_task(owner=user)
+    project = make_project(owner=user)
+    project2 = make_project(owner=user)
+    make_thread(user=user, project=project)
+    make_thread(user=user, task=task)
     url = reverse("thread-list")
-    TaskAccess.objects.create(task=task, user=user)
     project_ids = ",".join([str(project.id), str(project2.id)])
     task_ids = ",".join([str(task.id)])
     response = auth_client.get(f"{url}?project_ids={project_ids}&task_ids={task_ids}")
@@ -113,7 +153,10 @@ def test_thread_filtering_by_project_and_task_ids(auth_client, user, project, pr
 
 
 @pytest.mark.django_db
-def test_retrieve_direct_thread(auth_client, user, thread):
+def test_retrieve_thread(make_auth_client, make_user, make_thread):
+    user = make_user()
+    auth_client = make_auth_client(user=user)
+    thread = make_thread(user=user)
     url = reverse("thread-detail", args=[str(thread.id)])
     response = auth_client.get(url)
 
@@ -122,7 +165,8 @@ def test_retrieve_direct_thread(auth_client, user, thread):
 
 
 @pytest.mark.django_db
-def test_retrieve_direct_thread_not_found(auth_client, user):
+def test_retrieve_thread_not_found(make_auth_client):
+    auth_client = make_auth_client()
     url = reverse("thread-detail", args=[999])
     response = auth_client.get(url)
     assert response.status_code == status.HTTP_404_NOT_FOUND

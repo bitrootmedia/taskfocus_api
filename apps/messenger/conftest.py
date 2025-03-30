@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 import pytest
 from rest_framework.authtoken.models import Token
@@ -9,168 +10,139 @@ from core.models import Project, ProjectAccess, Task, TaskAccess, User
 
 
 @pytest.fixture
-def user(db):
-    return User.objects.create_user(username="testuser", password="password")
+def make_user(db):
+    def _make_user(**kwargs):
+        username = kwargs.pop("username", f"testuser-{uuid4()}")
+        password = kwargs.pop("password", "password")
+        return User.objects.create_user(username=username, password=password, **kwargs)
+
+    return _make_user
 
 
 @pytest.fixture
-def integration_user1(db):
-    return User.objects.create_user(username="testuser1", password="password")
+def make_project(db, make_user):
+    def _make_project(**kwargs):
+        if "owner" not in kwargs:
+            kwargs["owner"] = make_user(username="owner", password="password")
+
+        members = kwargs.pop("members", [])
+        project = Project.objects.create(
+            title=kwargs.pop("title", f"test-project-{uuid4()}"),
+            description=kwargs.pop("description", "Test project"),
+            **kwargs,
+        )
+        ProjectAccess.objects.create(project=project, user=kwargs["owner"])
+
+        for member in members:
+            ProjectAccess.objects.create(project=project, user=member)
+
+        return project
+
+    return _make_project
 
 
 @pytest.fixture
-def integration_user2(db):
-    return User.objects.create_user(username="testuser2", password="password")
+def make_task(db, make_user):
+    def _make_task(**kwargs):
+        if "owner" not in kwargs:
+            kwargs["owner"] = make_user(username="task_owner", password="password")
+        task = Task.objects.create(**kwargs)
+        TaskAccess.objects.create(task=task, user=kwargs["owner"])
+        return task
+
+    return _make_task
 
 
 @pytest.fixture
-def integration_user3(db):
-    return User.objects.create_user(username="testuser3", password="password")
+def make_thread(db, make_user, make_project, make_task):
+    def _make_thread(**kwargs):
+        if "user" not in kwargs:
+            kwargs["user"] = make_user(username="thread_user", password="password")
+        if "project" not in kwargs and "task" not in kwargs:
+            kwargs["project"] = make_project(owner=kwargs["user"])
+
+        return Thread.objects.create(**kwargs)
+
+    return _make_thread
 
 
 @pytest.fixture
-def integration_user4(db):
-    return User.objects.create_user(username="testuser4", password="password")
+def make_thread_ack(db, make_user, make_thread):
+    def _make_thread_ack(**kwargs):
+        if "user" not in kwargs:
+            kwargs["user"] = make_user(username="ack_user", password="password")
+        if "thread" not in kwargs:
+            kwargs["thread"] = make_thread()
+        return ThreadAck.objects.create(seen_at=datetime.now(), **kwargs)
+
+    return _make_thread_ack
+
+
+@pytest.fixture
+def make_message(db, make_user, make_thread):
+    def _make_message(**kwargs):
+        if "sender" not in kwargs:
+            kwargs["sender"] = make_user(username="message_sender", password="password")
+        if "thread" not in kwargs:
+            kwargs["thread"] = make_thread()
+        return Message.objects.create(content="Test message", **kwargs)
+
+    return _make_message
+
+
+@pytest.fixture
+def make_direct_thread(db, make_user):
+    def _make_direct_thread(**kwargs):
+        if "users" not in kwargs:
+            kwargs["users"] = [
+                make_user(username="user1", password="password"),
+                make_user(username="user2", password="password"),
+            ]
+        direct_thread = DirectThread.objects.create()
+        direct_thread.users.set(kwargs["users"])
+        return direct_thread
+
+    return _make_direct_thread
+
+
+@pytest.fixture
+def make_direct_thread_ack(db, make_user, make_direct_thread):
+    def _make_direct_thread_ack(**kwargs):
+        if "user" not in kwargs:
+            kwargs["user"] = make_user(username="direct_ack_user", password="password")
+        if "thread" not in kwargs:
+            kwargs["thread"] = make_direct_thread()
+        return DirectThreadAck.objects.create(seen_at=datetime.now(), **kwargs)
+
+    return _make_direct_thread_ack
+
+
+@pytest.fixture
+def make_direct_message(db, make_user, make_direct_thread):
+    def _make_direct_message(**kwargs):
+        if "sender" not in kwargs:
+            kwargs["sender"] = make_user(username="direct_message_sender", password="password")
+        if "thread" not in kwargs:
+            kwargs["thread"] = make_direct_thread()
+        return DirectMessage.objects.create(content="Test message", **kwargs)
+
+    return _make_direct_message
 
 
 @pytest.fixture
 def client():
-    client = APIClient()
-    return client
+    return APIClient()
 
 
 @pytest.fixture
-def auth_client(client, user):
-    client.force_authenticate(user=user)
-    token, created = Token.objects.get_or_create(user=user)
-    client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
-    return client
+def make_auth_client(make_user):
+    def _auth_client(user=None):
+        if user is None:
+            user = make_user(username="auth_user", password="password")
+        client = APIClient()
+        client.force_authenticate(user=user)
+        token, created = Token.objects.get_or_create(user=user)
+        client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
+        return client
 
-
-@pytest.fixture
-def project(db, user, other_user):
-    p = Project.objects.create(
-        title="test-project",
-        description="Test project",
-        background_image="project_background/test.jpg",
-        owner=user,
-    )
-    ProjectAccess.objects.create(project=p, user=user)
-    ProjectAccess.objects.create(project=p, user=other_user)
-    return p
-
-
-@pytest.fixture
-def project2(db, user, other_user):
-    p = Project.objects.create(
-        title="test-project2",
-        description="Test project",
-        background_image="project_background/test.jpg",
-        owner=user,
-    )
-    ProjectAccess.objects.create(project=p, user=user)
-    ProjectAccess.objects.create(project=p, user=other_user)
-    return p
-
-
-@pytest.fixture
-def project3(db, user, other_user):
-    p = Project.objects.create(
-        title="test-project3",
-        description="Test project",
-        background_image="project_background/test.jpg",
-        owner=user,
-    )
-    ProjectAccess.objects.create(project=p, user=user)
-    ProjectAccess.objects.create(project=p, user=other_user)
-    return p
-
-
-@pytest.fixture
-def task(db, other_user):
-    task = Task.objects.create(owner=other_user)
-    TaskAccess.objects.create(task=task, user=other_user)
-    return task
-
-
-@pytest.fixture
-def thread(db, user, project):
-    return Thread.objects.create(project_id=project.id, user=user)
-
-
-@pytest.fixture
-def thread_on_task(db, user, task):
-    return Thread.objects.create(task_id=task.id, user=user)
-
-
-@pytest.fixture
-def thread_ack(db, user, thread):
-    return ThreadAck.objects.create(thread=thread, seen_at=datetime.now(), user=user)
-
-
-@pytest.fixture
-def message(db, thread, user):
-    return Message.objects.create(thread=thread, sender=user, content="Test message")
-
-
-@pytest.fixture
-def create_users(db):
-    def _create_users():
-        user1 = User.objects.create_user(username="user1", password="password")
-        user2 = User.objects.create_user(username="user2", password="password")
-        return user1, user2
-
-    return _create_users
-
-
-@pytest.fixture
-def create_thread_with_messages(db, create_users, thread, project):
-    def _create_thread_with_messages():
-        user1, user2 = create_users()
-        ProjectAccess.objects.all().delete()
-        ProjectAccess.objects.create(project=project, user=user1)
-        ProjectAccess.objects.create(project=project, user=user2)
-
-        messages = [
-            Message.objects.create(thread=thread, sender=user1, content="Hello"),
-            Message.objects.create(thread=thread, sender=user2, content="Hi"),
-            Message.objects.create(thread=thread, sender=user1, content="How are you?"),
-        ]
-        return user1, user2, thread, messages
-
-    return _create_thread_with_messages
-
-
-@pytest.fixture
-def other_user(db):
-    return User.objects.create_user(username="otheruser", password="password")
-
-
-@pytest.fixture
-def no_thread_user(db):
-    return User.objects.create_user(username="no_thread_user", password="password")
-
-
-@pytest.fixture
-def no_thread_user_auth_client(client, no_thread_user):
-    client.force_authenticate(user=no_thread_user)
-    token, created = Token.objects.get_or_create(user=no_thread_user)
-    client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
-    return client
-
-
-@pytest.fixture
-def direct_thread(db, user, other_user):
-    direct_thread = DirectThread.objects.create()
-    direct_thread.users.set([user, other_user])
-    return direct_thread
-
-
-@pytest.fixture
-def direct_thread_ack(db, user, direct_thread):
-    return DirectThreadAck.objects.create(thread=direct_thread, seen_at=datetime.now(), user=user)
-
-
-@pytest.fixture
-def direct_message(db, direct_thread, user):
-    return DirectMessage.objects.create(thread=direct_thread, sender=user, content="Test message")
+    return _auth_client

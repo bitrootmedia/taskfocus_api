@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.db.models import Count, F, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
@@ -58,10 +58,11 @@ class ThreadViewSet(ModelViewSet):
         accessible_project_ids = accessible_project_ids_qs.values_list("project_id", flat=True)
         accessible_task_ids = accessible_task_ids_qs.values_list("task_id", flat=True)
         filter_subquery = Q(messages__created_at__gt=F("last_seen_at")) & (~Q(messages__sender=user))
+        min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
         return (
             Thread.objects.filter(Q(project_id__in=accessible_project_ids) | Q(task_id__in=accessible_task_ids))
             .annotate(
-                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(datetime.min)),
+                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(min_utc_aware)),
                 unread_count=Count("messages", filter=filter_subquery, distinct=True),
             )
             .order_by("-created_at")
@@ -151,10 +152,11 @@ class DirectThreadViewSet(ModelViewSet):
         )
 
         filter_subquery = Q(direct_messages__created_at__gt=F("last_seen_at")) & (~Q(direct_messages__sender=user))
+        min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
         queryset = (
             DirectThread.objects.filter(users=user)
             .annotate(
-                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(datetime.min)),
+                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(min_utc_aware)),
                 unread_count=Count(
                     "direct_messages",
                     filter=filter_subquery,
