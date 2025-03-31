@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from django.db import models
 from django.db.models import Count, F, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
@@ -33,19 +32,37 @@ class ThreadViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        accessible_project_ids = ProjectAccess.objects.filter(user=user).values_list("project_id", flat=True)
-        accessible_task_ids = TaskAccess.objects.filter(user=user).values_list("task_id", flat=True)
+        accessible_project_ids_qs = ProjectAccess.objects.filter(user=user)
+        accessible_task_ids_qs = TaskAccess.objects.filter(user=user)
         latest_seen_at_subquery = (
             ThreadAck.objects.filter(thread=OuterRef("id"), user=user).order_by("-created_at").values("seen_at")[:1]
         )
 
+        project_filter = self.request.query_params.get("project_ids")
+        task_filter = self.request.query_params.get("task_ids")
+
+        if task_filter and not project_filter:
+            accessible_project_ids_qs = accessible_project_ids_qs.none()
+
+        if project_filter and not task_filter:
+            accessible_task_ids_qs = accessible_task_ids_qs.none()
+
+        if project_filter:
+            project_filter = project_filter.split(",")
+            accessible_project_ids_qs = accessible_project_ids_qs.filter(project_id__in=project_filter)
+
+        if task_filter:
+            task_filter = task_filter.split(",")
+            accessible_task_ids_qs = accessible_task_ids_qs.filter(task_id__in=task_filter)
+
+        accessible_project_ids = accessible_project_ids_qs.values_list("project_id", flat=True)
+        accessible_task_ids = accessible_task_ids_qs.values_list("task_id", flat=True)
         filter_subquery = Q(messages__created_at__gt=F("last_seen_at")) & (~Q(messages__sender=user))
+        min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
         return (
-            Thread.objects.filter(
-                models.Q(project_id__in=accessible_project_ids) | models.Q(task_id__in=accessible_task_ids)
-            )
+            Thread.objects.filter(Q(project_id__in=accessible_project_ids) | Q(task_id__in=accessible_task_ids))
             .annotate(
-                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(datetime.min)),
+                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(min_utc_aware)),
                 unread_count=Count("messages", filter=filter_subquery, distinct=True),
             )
             .order_by("-created_at")
@@ -135,10 +152,11 @@ class DirectThreadViewSet(ModelViewSet):
         )
 
         filter_subquery = Q(direct_messages__created_at__gt=F("last_seen_at")) & (~Q(direct_messages__sender=user))
+        min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
         queryset = (
             DirectThread.objects.filter(users=user)
             .annotate(
-                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(datetime.min)),
+                last_seen_at=Coalesce(Subquery(latest_seen_at_subquery), Value(min_utc_aware)),
                 unread_count=Count(
                     "direct_messages",
                     filter=filter_subquery,
@@ -153,6 +171,14 @@ class DirectThreadViewSet(ModelViewSet):
         data = request.data.copy()
         if str(request.user.id) not in data["users"]:
             data["users"].append(str(request.user.id))
+
+        users_set = set(data["users"])
+        existing_thread = DirectThread.objects.filter(users__in=users_set).distinct()
+        existing_thread = existing_thread.annotate(user_count=Count("users")).filter(user_count=len(users_set)).first()
+
+        if existing_thread:
+            thread = self.get_queryset().filter(id=existing_thread.id).first()
+            return Response(self.get_serializer(thread).data, status=status.HTTP_200_OK)
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
