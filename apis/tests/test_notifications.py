@@ -1,17 +1,16 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import User, Notification, NotificationAck
+
+from core.models import Notification, NotificationAck, User
 
 
 class NotificationTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user_1 = User.objects.create(username="user1")
-        cls.notification_1_no_task_no_project_no_comment = (
-            Notification.objects.create(
-                tag="testing tag", content="This is an example"
-            )
+        cls.notification_1_no_task_no_project_no_comment = Notification.objects.create(
+            tag="testing tag", content="This is an example"
         )
         NotificationAck.objects.create(
             user=cls.user_1,

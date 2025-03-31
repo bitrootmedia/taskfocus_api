@@ -1,4 +1,5 @@
 from django import template
+
 from core.utils.time_from_seconds import time_from_seconds
 
 register = template.Library()

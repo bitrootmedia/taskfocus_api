@@ -86,27 +86,15 @@ class Command(BaseCommand):
             else:
                 user = User.objects.get(username=options["username"])
         except User.DoesNotExist:
-            raise CommandError(
-                "User does not exist for given " + "user_id"
-                if options.get("user_id")
-                else "uuid4"
-            )
+            raise CommandError("User does not exist for given " + "user_id" if options.get("user_id") else "uuid4")
         except User.MultipleObjectsReturned:
-            raise CommandError(
-                "Multiple users exist for given " + "user_id"
-                if options.get("user_id")
-                else "uuid4"
-            )
+            raise CommandError("Multiple users exist for given " + "user_id" if options.get("user_id") else "uuid4")
 
         work_sessions = TaskWorkSession.objects.filter(
-            Q(started_at__date__gte=options["start_date"])
-            & Q(stopped_at__date__lte=options["end_date"])
-            & Q(user=user)
+            Q(started_at__date__gte=options["start_date"]) & Q(stopped_at__date__lte=options["end_date"]) & Q(user=user)
         )
 
-        total_time_sum = work_sessions.aggregate(
-            time_sum=Sum("total_time")
-        ).get("time_sum")
+        total_time_sum = work_sessions.aggregate(time_sum=Sum("total_time")).get("time_sum")
 
         work_sessions = work_sessions.annotate(
             date=F("started_at__date"),
@@ -121,13 +109,9 @@ class Command(BaseCommand):
 
         # Calculate daily totals
         for date, day_data in sessions_by_day.items():
-            sessions_by_day[date]["total"] = sum(
-                [entry.total_time for entry in day_data["entries"]]
-            )
+            sessions_by_day[date]["total"] = sum([entry.total_time for entry in day_data["entries"]])
 
-        sessions_by_day = dict(
-            sessions_by_day
-        )  # Convert to dict for DTL .items call
+        sessions_by_day = dict(sessions_by_day)  # Convert to dict for DTL .items call
 
         message_content_html = render_to_string(
             "user_report.html",

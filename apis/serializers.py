@@ -1,31 +1,31 @@
-from django.db.models import Sum, Q
+from django.db.models import Q, Sum
 from rest_framework import serializers
 
 from core.models import (
-    Project,
-    Task,
-    Log,
-    Comment,
     Attachment,
-    ProjectAccess,
-    TaskAccess,
-    TaskWorkSession,
-    User,
-    Notification,
-    NotificationAck,
-    UserTaskQueue,
-    Reminder,
-    TaskChecklistItem,
-    PrivateNote,
-    TaskBlock,
-    Pin,
-    Note,
     Board,
+    BoardUser,
     Card,
     CardItem,
-    BoardUser,
+    Comment,
+    Log,
+    Note,
+    Notification,
+    NotificationAck,
+    Pin,
+    PrivateNote,
+    Project,
+    ProjectAccess,
+    Reminder,
+    Task,
+    TaskAccess,
+    TaskBlock,
+    TaskChecklistItem,
+    TaskWorkSession,
+    User,
+    UserTaskQueue,
 )
-from core.utils.permissions import user_can_see_task, user_can_see_project
+from core.utils.permissions import user_can_see_project, user_can_see_task
 from core.utils.time_from_seconds import time_from_seconds
 
 masked_string = "*" * 5
@@ -216,9 +216,7 @@ class TaskTotalTimeReadOnlySerializer(serializers.ModelSerializer):
         fields = ("id", "total_time")
 
     def get_total_time(self, instance: Task):
-        total_seconds = instance.task_work.aggregate(
-            time_sum=Sum("total_time")
-        ).get("time_sum", 0)
+        total_seconds = instance.task_work.aggregate(time_sum=Sum("total_time")).get("time_sum", 0)
         if not total_seconds:
             total_seconds = 0
         hours, minutes, _ = time_from_seconds(total_seconds)
@@ -240,12 +238,28 @@ class TaskBlockListSerializer(serializers.ModelSerializer):
         read_only_fields = ("created_by",)
 
 
-class TaskBlockDetailSerializer(serializers.ModelSerializer):
+class TaskBlockWebsocketSerializer(TaskBlockListSerializer):
+    id = serializers.UUIDField(format="hex_verbose")
+    created_by = serializers.CharField(source="created_by.id", read_only=True)
+
+
+class TaskBlockCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskBlock
         fields = (
-            "id",
+            "task",
+            "block_type",
             "position",
+            "content",
+        )
+
+
+class TaskBlockUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskBlock
+        fields = (
+            "task",
+            "block_type",
             "content",
         )
 
@@ -478,12 +492,8 @@ class WorkSessionsBreakdownInputSerializer(serializers.Serializer):
 
 
 class WorkSessionsWSBSerializer(serializers.ModelSerializer):
-    start = serializers.DateTimeField(
-        format="%Y-%m-%d %H:%M", source="started_at"
-    )
-    end = serializers.DateTimeField(
-        format="%Y-%m-%d %H:%M", source="stopped_at"
-    )
+    start = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="started_at")
+    end = serializers.DateTimeField(format="%Y-%m-%d %H:%M", source="stopped_at")
     title = serializers.CharField(source="task.title")
     task_id = serializers.UUIDField(source="task.id")
 
@@ -567,8 +577,6 @@ class BoardReadonlySerializer(serializers.ModelSerializer):
         user = getattr(request, "user", None)
 
         if request and user and instance:
-            return Pin.objects.filter(
-                Q(user=user) & Q(board=instance)
-            ).exists()
+            return Pin.objects.filter(Q(user=user) & Q(board=instance)).exists()
 
         return False

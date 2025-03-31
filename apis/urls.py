@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -45,14 +46,29 @@ urlpatterns = [
     path("upload", views.UploadView.as_view(), name="upload"),
     path("task/<pk>", views.TaskDetail.as_view(), name="task_detail"),
     path(
-        "task-block-list/<pk>",
-        views.TaskBlockList.as_view(),
+        "task-block-list/<task>",
+        views.TaskBlockListV2.as_view(),
         name="task_block_list",
     ),
     path(
-        "task-block/<pk>",
-        views.TaskBlockDetail.as_view(),
-        name="task_block_detail",
+        "task-block-create",
+        views.TaskBlockCreate.as_view(),
+        name="task_block_create",
+    ),
+    path(
+        "task-block-update",
+        views.TaskBlockUpdate.as_view(),
+        name="task_block_update",
+    ),
+    path(
+        "task-block-delete",
+        views.TaskBlockDelete.as_view(),
+        name="task_block_delete",
+    ),
+    path(
+        "task-block-move",
+        views.TaskBlockMove.as_view(),
+        name="task_block_move",
     ),
     path(
         "task-start-work/<pk>",
@@ -95,9 +111,7 @@ urlpatterns = [
         views.PrivateNoteDetail.as_view(),
         name="private_note_detail",
     ),
-    path(
-        "attachments", views.AttachmentList.as_view(), name="attachment_list"
-    ),
+    path("attachments", views.AttachmentList.as_view(), name="attachment_list"),
     path(
         "attachment/<pk>",
         views.AttachmentDetail.as_view(),
@@ -176,9 +190,7 @@ urlpatterns = [
         views.BoardDetail.as_view(),
         name="board_detail",
     ),
-    path(
-        "board/logs/<pk>", views.BoardLogList.as_view(), name="board_log_list"
-    ),
+    path("board/logs/<pk>", views.BoardLogList.as_view(), name="board_log_list"),
     path(
         "board-users/<uuid:board_id>",
         views.BoardUserView.as_view(),
@@ -197,10 +209,6 @@ urlpatterns = [
         views.CardItemDetail.as_view(),
         name="card_item_detail",
     ),
-    path(
-        "card-item-move", views.CardItemMove.as_view(), name="card_item_move"
-    ),
-    path(
-        "ci-test-view", views.TestCIReloadView.as_view(), name="ci-test-view"
-    ),
+    path("card-item-move", views.CardItemMove.as_view(), name="card_item_move"),
+    path("sideapp/home", views.SideAppHomeView.as_view(), name="sideapp_home"),
 ]

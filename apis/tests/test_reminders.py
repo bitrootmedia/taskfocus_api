@@ -2,7 +2,8 @@ from django.urls import reverse
 from django.utils.timezone import now
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import User, Reminder, Task
+
+from core.models import Reminder, Task, User
 
 
 class RemindersTests(APITestCase):
@@ -61,15 +62,11 @@ class RemindersTests(APITestCase):
         self.assertEqual(response.json().get("count"), 4)
 
         # test with filter
-        response = self.client.get(
-            reverse("reminder_list") + f"?task={self.task_2.pk}"
-        )
+        response = self.client.get(reverse("reminder_list") + f"?task={self.task_2.pk}")
         self.assertEqual(response.json().get("count"), 1)
 
         # close
         self.assertIsNone(self.reminder_1.closed_at)
-        self.client.post(
-            reverse("reminder_close", kwargs={"pk": self.reminder_1.pk})
-        )
+        self.client.post(reverse("reminder_close", kwargs={"pk": self.reminder_1.pk}))
         reminder = Reminder.objects.get(pk=self.reminder_1.pk)
         self.assertIsNotNone(reminder.closed_at)

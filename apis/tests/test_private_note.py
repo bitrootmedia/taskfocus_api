@@ -1,14 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import (
-    Project,
-    User,
-    ProjectAccess,
-    Comment,
-    Task,
-    PrivateNote,
-)
+
+from core.models import Comment, PrivateNote, Project, ProjectAccess, Task, User
 
 
 class PrivateNoteTests(APITestCase):
@@ -32,9 +26,7 @@ class PrivateNoteTests(APITestCase):
         ProjectAccess.objects.create(project=cls.project, user=cls.user_2)
         ProjectAccess.objects.create(project=cls.project, user=cls.user_3)
 
-        cls.task_1_project_1_user_1 = Task.objects.create(
-            project=cls.project, owner=cls.user, title="Task 1"
-        )
+        cls.task_1_project_1_user_1 = Task.objects.create(project=cls.project, owner=cls.user, title="Task 1")
 
         cls.note_1_task_1_user2 = PrivateNote.objects.create(
             task=cls.task_1_project_1_user_1,
@@ -42,9 +34,7 @@ class PrivateNoteTests(APITestCase):
             note="Note 1 task 1 user 2",
         )
 
-        cls.task_2_project_2_user_1 = Task.objects.create(
-            project=cls.project_2, owner=cls.user, title="Task 2"
-        )
+        cls.task_2_project_2_user_1 = Task.objects.create(project=cls.project_2, owner=cls.user, title="Task 2")
 
         cls.note_2_task_2_user_2 = PrivateNote.objects.create(
             task=cls.task_2_project_2_user_1,
@@ -77,19 +67,13 @@ class PrivateNoteTests(APITestCase):
 
     def test_private_note_list_no_notes(self):
         self.client.force_login(self.user_3)
-        response = self.client.get(
-            reverse("private_note_list")
-            + f"?task={self.task_1_project_1_user_1.id}"
-        )
+        response = self.client.get(reverse("private_note_list") + f"?task={self.task_1_project_1_user_1.id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json().get("results"), [])
 
     def test_private_note_task_filter(self):
         self.client.force_login(self.user_2)
-        response = self.client.get(
-            reverse("private_note_list")
-            + f"?task={self.task_1_project_1_user_1.id}"
-        )
+        response = self.client.get(reverse("private_note_list") + f"?task={self.task_1_project_1_user_1.id}")
         result_ids = [x.get("id") for x in response.json().get("results")]
         self.assertIn(str(self.note_1_task_1_user2.id), result_ids)
         self.assertNotIn(str(self.note_3_task_1_user_1.id), result_ids)

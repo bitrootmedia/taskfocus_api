@@ -1,19 +1,17 @@
+import typing
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, include
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-    SpectacularSwaggerView,
-)
+from django.urls import URLPattern, URLResolver, include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-urlpatterns = []
+URL = typing.Union[URLPattern, URLResolver]
+URLList = typing.List[URL]
+urlpatterns: URLList = []
 
 if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
-    )
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += [
     path("api/", include("apis.urls")),
@@ -30,5 +28,6 @@ urlpatterns += [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
+    path("messenger/", include("apps.messenger.urls")),
     path("", admin.site.urls),
 ]

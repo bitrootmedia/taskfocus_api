@@ -1,7 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, TaskAccess, Task
+
+from core.models import Project, ProjectAccess, Task, TaskAccess, User
 
 
 class TaskAccessTests(APITestCase):
@@ -30,43 +31,27 @@ class TaskAccessTests(APITestCase):
             description="Description of project 3",
         )
 
-        cls.project_access_project_1_user_1__user2 = (
-            ProjectAccess.objects.create(
-                project=cls.project_1_user_1, user=cls.user_2
-            )
+        cls.project_access_project_1_user_1__user2 = ProjectAccess.objects.create(
+            project=cls.project_1_user_1, user=cls.user_2
         )
 
-        cls.project_access_project_1_user_1__user5 = (
-            ProjectAccess.objects.create(
-                project=cls.project_1_user_1, user=cls.user_5
-            )
+        cls.project_access_project_1_user_1__user5 = ProjectAccess.objects.create(
+            project=cls.project_1_user_1, user=cls.user_5
         )
 
-        cls.project_access_project_1_user_1__user6 = (
-            ProjectAccess.objects.create(
-                project=cls.project_1_user_1, user=cls.user_6
-            )
+        cls.project_access_project_1_user_1__user6 = ProjectAccess.objects.create(
+            project=cls.project_1_user_1, user=cls.user_6
         )
 
-        cls.task_1_user_1 = Task.objects.create(
-            owner=cls.user_1, title="What to do"
-        )
+        cls.task_1_user_1 = Task.objects.create(owner=cls.user_1, title="What to do")
 
-        cls.task_1_user_1_access = TaskAccess.objects.create(
-            task=cls.task_1_user_1, user=cls.user_1
-        )
+        cls.task_1_user_1_access = TaskAccess.objects.create(task=cls.task_1_user_1, user=cls.user_1)
 
-        cls.task_2_user_1 = Task.objects.create(
-            owner=cls.user_1, title="What to do next"
-        )
+        cls.task_2_user_1 = Task.objects.create(owner=cls.user_1, title="What to do next")
 
-        cls.task_2_user_1_access = TaskAccess.objects.create(
-            task=cls.task_2_user_1, user=cls.user_1
-        )
+        cls.task_2_user_1_access = TaskAccess.objects.create(task=cls.task_2_user_1, user=cls.user_1)
 
-        cls.task_3_user_3 = Task.objects.create(
-            owner=cls.user_3, title="What to do next"
-        )
+        cls.task_3_user_3 = Task.objects.create(owner=cls.user_3, title="What to do next")
 
     def test_api_task_access_list_not_authenticated(self):
         response = self.client.get(reverse("task_access_list"))
@@ -74,9 +59,7 @@ class TaskAccessTests(APITestCase):
 
     def test_api_task_access_list_authenticated(self):
         self.client.force_login(self.user_1)
-        response = self.client.get(
-            reverse("task_access_list") + f"?task={self.task_1_user_1.pk}"
-        )
+        response = self.client.get(reverse("task_access_list") + f"?task={self.task_1_user_1.pk}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.json().get("results")
@@ -91,28 +74,19 @@ class TaskAccessTests(APITestCase):
 
     def test_api_task_access_list_authenticated_with_filter(self):
         self.client.force_login(self.user_1)
-        response = self.client.get(
-            reverse("task_access_list") + f"?task={self.task_1_user_1.id}"
-        )
+        response = self.client.get(reverse("task_access_list") + f"?task={self.task_1_user_1.id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.json().get("results")
         task_users_id_api = [r.get("user").get("id") for r in results]
-        task_users_id_db = [
-            f"{u.user.id}"
-            for u in TaskAccess.objects.filter(task=self.task_1_user_1)
-        ]
+        task_users_id_db = [f"{u.user.id}" for u in TaskAccess.objects.filter(task=self.task_1_user_1)]
 
         self.assertEqual(set(task_users_id_db), set(task_users_id_api))
 
     def test_api_task_access_create(self):
         self.client.force_login(self.user_1)
 
-        self.assertFalse(
-            TaskAccess.objects.filter(
-                task=self.task_1_user_1, user=self.user_3
-            ).exists()
-        )
+        self.assertFalse(TaskAccess.objects.filter(task=self.task_1_user_1, user=self.user_3).exists())
 
         response = self.client.post(
             reverse("task_access_list"),
@@ -121,20 +95,12 @@ class TaskAccessTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        self.assertTrue(
-            TaskAccess.objects.filter(
-                task=self.task_1_user_1, user=self.user_3
-            ).exists()
-        )
+        self.assertTrue(TaskAccess.objects.filter(task=self.task_1_user_1, user=self.user_3).exists())
 
     def test_api_task_access_create_not_owner(self):
         self.client.force_login(self.user_1)
 
-        self.assertFalse(
-            TaskAccess.objects.filter(
-                task=self.task_3_user_3, user=self.user_2
-            ).exists()
-        )
+        self.assertFalse(TaskAccess.objects.filter(task=self.task_3_user_3, user=self.user_2).exists())
 
         response = self.client.post(
             reverse("task_access_list"),
@@ -143,22 +109,14 @@ class TaskAccessTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        self.assertFalse(
-            TaskAccess.objects.filter(
-                task=self.task_3_user_3, user=self.user_2
-            ).exists()
-        )
+        self.assertFalse(TaskAccess.objects.filter(task=self.task_3_user_3, user=self.user_2).exists())
 
     def test_api_task_access_delete_project_not_owner(self):
         self.client.force_login(self.user_1)
 
-        pa = TaskAccess.objects.create(
-            task=self.task_3_user_3, user=self.user_2
-        )
+        pa = TaskAccess.objects.create(task=self.task_3_user_3, user=self.user_2)
 
-        response = self.client.delete(
-            reverse("task_access_detail", kwargs={"pk": pa.id.__str__()})
-        )
+        response = self.client.delete(reverse("task_access_detail", kwargs={"pk": pa.id.__str__()}))
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 

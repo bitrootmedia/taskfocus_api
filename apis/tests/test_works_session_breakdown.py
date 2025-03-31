@@ -1,9 +1,10 @@
 import datetime
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from core.models import User, Task, TaskWorkSession
+from core.models import Task, TaskWorkSession, User
 
 
 class WorkSessionBreakdownTests(APITestCase):
@@ -12,12 +13,8 @@ class WorkSessionBreakdownTests(APITestCase):
         cls.user = User.objects.create(username="user1")
         cls.user_2 = User.objects.create(username="user2")
 
-        cls.task_1 = Task.objects.create(
-            owner=cls.user, title="Task 1", description="Task 1 Description"
-        )
-        cls.task_2 = Task.objects.create(
-            owner=cls.user, title="Task 2", description="Task 2 Description"
-        )
+        cls.task_1 = Task.objects.create(owner=cls.user, title="Task 1", description="Task 1 Description")
+        cls.task_2 = Task.objects.create(owner=cls.user, title="Task 2", description="Task 2 Description")
         cls.base_dt = datetime.datetime(
             2024,
             1,

@@ -1,12 +1,14 @@
-import pusher
 import logging
+
+import pusher
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
 class WebsocketHelper:
-    def send(self, channel, event_name, data):
+    @staticmethod
+    def send(channel, event_name, data):
         if not settings.PUSHER_APP_SECRET:
             logger.debug("PUSHER_APP_SECRET not set")
             return

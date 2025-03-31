@@ -1,4 +1,5 @@
 venv/
+.venv/
 db.sqlite3
 __pycache__/
 media/
@@ -8,3 +9,4 @@ media/
 \.env
 deployment/ansible_vars.yml
 TODO.txt
+.venv/

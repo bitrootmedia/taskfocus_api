@@ -1,15 +1,37 @@
-django==4.1.7
-pre-commit==2.20.0
-Pillow==9.3.0
-djangorestframework==3.14.0
-django-cors-headers==3.13.0
-django-filter==22.1
-drf-spectacular==0.25.1
-django-environ==0.9.0
+# Core dependencies
+boto3==1.37.20
+requests==2.32.3
+
+# Django dependencies
+django==5.1.7
+django-cors-headers==4.7.0
+django-environ==0.12.0
+django-filter==25.1
+django-simple-history==3.8.0
+django-storages==1.14.5
+django-extensions==3.2.3
+
+# Django REST framework dependencies
+djangorestframework==3.15.2
 dj-rest-auth==2.2.5
-boto3==1.26.100
-django-simple-history==3.6.0
-django-storages==1.13.2
-psycopg2==2.9.6
-requests==2.31.0
-pusher==3.3.2
+drf-spectacular==0.28.0
+
+# Other dependencies
+Pillow==11.1.0
+psycopg2==2.9.10
+pusher==3.3.3
+sentry-sdk==2.24.1
+
+# Testing dependencies
+pre-commit==4.2.0
+pytest-django==4.10.0
+pytest==8.3.5
+black==25.1.0
+isort==6.0.1
+flake8==7.1.2
+mypy==1.15.0
+
+# Typings
+djangorestframework-stubs==3.15.3
+types-python-dateutil==2.9.0.20241206
+django-stubs==5.1.3

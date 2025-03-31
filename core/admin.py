@@ -1,43 +1,43 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.models import Group
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
     Attachment,
-    Comment,
-    Log,
-    Project,
-    ProjectAccess,
-    Task,
-    TaskAccess,
-    User,
-    TaskWorkSession,
-    Notification,
-    NotificationAck,
-    UserTaskQueue,
-    Reminder,
-    TaskChecklistItem,
-    Team,
-    Pin,
-    TaskBlock,
-    Note,
+    Beacon,
     Board,
     BoardUser,
     Card,
     CardItem,
+    Comment,
+    Log,
+    Note,
+    Notification,
+    NotificationAck,
+    Pin,
+    Project,
+    ProjectAccess,
+    Reminder,
+    Task,
+    TaskAccess,
+    TaskBlock,
+    TaskChecklistItem,
+    TaskWorkSession,
+    Team,
+    User,
+    UserTaskQueue,
 )
 
 admin.site.site_header = "AyeAyeCaptain API"
-# admin.site.register(User, UserAdmin)
 admin.site.unregister(Group)
 
 
 @admin.register(User)
-class UserAdmin(UserAdmin):
+class UserAdmin(DjangoUserAdmin):
     model = User
-    fieldsets = (
-        *UserAdmin.fieldsets,
+    fieldsets = (  # type: ignore
+        *DjangoUserAdmin.fieldsets,
         (
             "Custom fields",
             {"fields": ("config", "teams", "pushover_user", "notifier_user")},
@@ -268,3 +268,8 @@ class CardAdmin(admin.ModelAdmin):
 @admin.register(CardItem)
 class CardItemAdmin(admin.ModelAdmin):
     list_display = ("task", "card")
+
+
+@admin.register(Beacon)
+class BeaconAdmin(admin.ModelAdmin):
+    list_display = ("user", "created_at", "confirmed_at")

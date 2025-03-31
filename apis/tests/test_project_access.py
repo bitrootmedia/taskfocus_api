@@ -1,7 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Log
+
+from core.models import Log, Project, ProjectAccess, User
 
 
 class ProjectAccessTests(APITestCase):
@@ -30,22 +31,16 @@ class ProjectAccessTests(APITestCase):
             description="Description of project 3",
         )
 
-        cls.project_access_project_1_user_1__user2 = (
-            ProjectAccess.objects.create(
-                project=cls.project_1_user_1, user=cls.user_2
-            )
+        cls.project_access_project_1_user_1__user2 = ProjectAccess.objects.create(
+            project=cls.project_1_user_1, user=cls.user_2
         )
 
-        cls.project_access_project_1_user_1__user5 = (
-            ProjectAccess.objects.create(
-                project=cls.project_1_user_1, user=cls.user_5
-            )
+        cls.project_access_project_1_user_1__user5 = ProjectAccess.objects.create(
+            project=cls.project_1_user_1, user=cls.user_5
         )
 
-        cls.project_access_project_1_user_1__user6 = (
-            ProjectAccess.objects.create(
-                project=cls.project_1_user_1, user=cls.user_6
-            )
+        cls.project_access_project_1_user_1__user6 = ProjectAccess.objects.create(
+            project=cls.project_1_user_1, user=cls.user_6
         )
 
     def test_api_project_access_list_not_authenticated(self):
@@ -69,31 +64,19 @@ class ProjectAccessTests(APITestCase):
 
     def test_api_project_access_list_authenticated_with_filter(self):
         self.client.force_login(self.user_1)
-        response = self.client.get(
-            reverse("project_access_list")
-            + f"?project={self.project_1_user_1.id}"
-        )
+        response = self.client.get(reverse("project_access_list") + f"?project={self.project_1_user_1.id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.json().get("results")
         project_users_id_api = [r.get("user").get("id") for r in results]
-        project_users_id_db = [
-            f"{u.user.id}"
-            for u in ProjectAccess.objects.filter(
-                project=self.project_1_user_1
-            )
-        ]
+        project_users_id_db = [f"{u.user.id}" for u in ProjectAccess.objects.filter(project=self.project_1_user_1)]
 
         self.assertEqual(set(project_users_id_db), set(project_users_id_api))
 
     def test_api_project_access_create(self):
         self.client.force_login(self.user_1)
 
-        self.assertFalse(
-            ProjectAccess.objects.filter(
-                project=self.project_1_user_1, user=self.user_3
-            ).exists()
-        )
+        self.assertFalse(ProjectAccess.objects.filter(project=self.project_1_user_1, user=self.user_3).exists())
 
         response = self.client.post(
             reverse("project_access_list"),
@@ -102,20 +85,12 @@ class ProjectAccessTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        self.assertTrue(
-            ProjectAccess.objects.filter(
-                project=self.project_1_user_1, user=self.user_3
-            ).exists()
-        )
+        self.assertTrue(ProjectAccess.objects.filter(project=self.project_1_user_1, user=self.user_3).exists())
 
     def test_api_project_access_create_not_owner(self):
         self.client.force_login(self.user_1)
 
-        self.assertFalse(
-            ProjectAccess.objects.filter(
-                project=self.project_3_user_3, user=self.user_2
-            ).exists()
-        )
+        self.assertFalse(ProjectAccess.objects.filter(project=self.project_3_user_3, user=self.user_2).exists())
 
         response = self.client.post(
             reverse("project_access_list"),
@@ -124,22 +99,14 @@ class ProjectAccessTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        self.assertFalse(
-            ProjectAccess.objects.filter(
-                project=self.project_3_user_3, user=self.user_2
-            ).exists()
-        )
+        self.assertFalse(ProjectAccess.objects.filter(project=self.project_3_user_3, user=self.user_2).exists())
 
     def test_api_project_access_delete_project_not_owner(self):
         self.client.force_login(self.user_1)
 
-        pa = ProjectAccess.objects.create(
-            project=self.project_3_user_3, user=self.user_2
-        )
+        pa = ProjectAccess.objects.create(project=self.project_3_user_3, user=self.user_2)
 
-        response = self.client.delete(
-            reverse("project_access_detail", kwargs={"pk": pa.id.__str__()})
-        )
+        response = self.client.delete(reverse("project_access_detail", kwargs={"pk": pa.id.__str__()}))
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -148,9 +115,7 @@ class ProjectAccessTests(APITestCase):
         response = self.client.put(
             reverse(
                 "project_access_detail",
-                kwargs={
-                    "pk": self.project_access_project_1_user_1__user2.id.__str__()
-                },
+                kwargs={"pk": self.project_access_project_1_user_1__user2.id.__str__()},
             ),
             {
                 "user": self.user_3.id.__str__(),
@@ -158,27 +123,17 @@ class ProjectAccessTests(APITestCase):
             },
         )
 
-        self.assertEqual(
-            response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_api_project_access_delete_project_owner(self):
         self.client.force_login(self.user_1)
-        pa = ProjectAccess.objects.create(
-            project=self.project_1_user_1, user=self.user_4
-        )
-        response = self.client.delete(
-            reverse("project_access_detail", kwargs={"pk": pa.id.__str__()})
-        )
+        pa = ProjectAccess.objects.create(project=self.project_1_user_1, user=self.user_4)
+        response = self.client.delete(reverse("project_access_detail", kwargs={"pk": pa.id.__str__()}))
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_api_project_access_details_not_authenticated(self):
-        pa = ProjectAccess.objects.create(
-            project=self.project_1_user_1, user=self.user_4
-        )
-        response = self.client.get(
-            reverse("project_access_detail", kwargs={"pk": pa.id.__str__()})
-        )
+        pa = ProjectAccess.objects.create(project=self.project_1_user_1, user=self.user_4)
+        response = self.client.get(reverse("project_access_detail", kwargs={"pk": pa.id.__str__()}))
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

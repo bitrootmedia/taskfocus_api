@@ -1,7 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from core.models import Project, User, ProjectAccess, Comment, Task
+
+from core.models import Comment, Project, ProjectAccess, Task, User
 
 
 class CommentTests(APITestCase):
@@ -30,9 +31,7 @@ class CommentTests(APITestCase):
         ProjectAccess.objects.create(project=cls.project_3, user=cls.user)
         ProjectAccess.objects.create(project=cls.project, user=cls.user_2)
 
-        cls.task_1_project_1_user_1 = Task.objects.create(
-            project=cls.project, owner=cls.user, title="Task 1"
-        )
+        cls.task_1_project_1_user_1 = Task.objects.create(project=cls.project, owner=cls.user, title="Task 1")
 
         cls.comment_1_task_1_user_2 = Comment.objects.create(
             task=cls.task_1_project_1_user_1,
@@ -41,9 +40,7 @@ class CommentTests(APITestCase):
             content="Comment 1 task 1 user 2",
         )
 
-        cls.task_2_project_2_user_2 = Task.objects.create(
-            project=cls.project_2, owner=cls.user_2, title="Task 2"
-        )
+        cls.task_2_project_2_user_2 = Task.objects.create(project=cls.project_2, owner=cls.user_2, title="Task 2")
 
         cls.comment_2_task_2_user_2 = Comment.objects.create(
             task=cls.task_2_project_2_user_2,
@@ -84,17 +81,13 @@ class CommentTests(APITestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("comment_list"))
         result_ids = [x.get("id") for x in response.json().get("results")]
-        self.assertIn(
-            str(self.comment_3_project_1_user_2.id.__str__()), result_ids
-        )
+        self.assertIn(str(self.comment_3_project_1_user_2.id.__str__()), result_ids)
 
     def test_comment_list_project_not_owner_not_member(self):
         self.client.force_login(self.user_3)
         response = self.client.get(reverse("comment_list"))
         result_ids = [x.get("id") for x in response.json().get("results")]
-        self.assertNotIn(
-            str(self.comment_3_project_1_user_2.id.__str__()), result_ids
-        )
+        self.assertNotIn(str(self.comment_3_project_1_user_2.id.__str__()), result_ids)
 
     def test_comment_list_project_member(self):
         self.client.force_login(self.user_2)
@@ -104,9 +97,7 @@ class CommentTests(APITestCase):
 
     def test_comment_list_project_filter(self):
         self.client.force_login(self.user)
-        response = self.client.get(
-            reverse("comment_list") + f"?project={self.project.id}"
-        )
+        response = self.client.get(reverse("comment_list") + f"?project={self.project.id}")
         result_ids = [x.get("id") for x in response.json().get("results")]
         self.assertIn(str(self.comment_1_task_1_user_2.id), result_ids)
         self.assertNotIn(str(self.comment_2_task_2_user_2.id), result_ids)
