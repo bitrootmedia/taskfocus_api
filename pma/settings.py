@@ -230,7 +230,6 @@ STORAGES = {
    "default": {
         "BACKEND" : DEFAULT_FILE_STORAGE,
     },
-
     "staticfiles":  {
         "BACKEND" : "django.core.files.storage.FileSystemStorage",
     },
