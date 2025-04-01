@@ -32,6 +32,7 @@ class User(AbstractUser):
     archived_at = models.DateTimeField(null=True, blank=True)
     config = models.JSONField(default=dict, blank=True)
     teams = models.ManyToManyField(Team)
+    use_beacons = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["username"]

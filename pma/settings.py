@@ -226,6 +226,15 @@ LOGGING = {
     },
 }
 
+STORAGES = {
+    "default": {
+        "BACKEND": DEFAULT_FILE_STORAGE,
+    },
+    "staticfiles": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+}
+
 SENTRY_DSN = env.str("SENTRY_DSN", default=None)
 SENTRY_ENVIRONMENT = env.str("SENTRY_ENVIRONMENT", default="production")
 if SENTRY_DSN is not None:

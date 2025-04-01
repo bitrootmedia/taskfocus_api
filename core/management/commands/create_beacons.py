@@ -12,7 +12,9 @@ class Command(BaseCommand):
         but Beacons are to be created randomly for user"""
 
         cutoff_time = timezone.now() - timedelta(minutes=30)
-        for tws in TaskWorkSession.objects.filter(stopped_at__isnull=True, started_at__lte=cutoff_time):
+        for tws in TaskWorkSession.objects.filter(
+            stopped_at__isnull=True, started_at__lte=cutoff_time, user__use_beacons=True
+        ):
             beacon = Beacon.objects.filter(user=tws.user, confirmed_at__isnull=True).first()
 
             if not beacon:
