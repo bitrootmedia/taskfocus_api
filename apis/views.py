@@ -1735,18 +1735,18 @@ class SideAppHomeView(APIView):
         user = request.user
 
         buttons = [
-            {
-                "id": "done",
-                "label": "Done for today",
-            },
-            {
-                "id": "brb",
-                "label": "Be right back",
-            },
-            {
-                "id": "afk",
-                "label": "Away from keyboard",
-            },
+            # {
+            #     "id": "done",
+            #     "label": "Done for today",
+            # },
+            # {
+            #     "id": "brb",
+            #     "label": "Be right back",
+            # },
+            # {
+            #     "id": "afk",
+            #     "label": "Away from keyboard",
+            # },
         ]
 
         response = {"instant_actions": buttons, "currently_working_on": None}
