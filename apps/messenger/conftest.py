@@ -57,7 +57,7 @@ def make_task(db, make_user):
 def make_thread(db, make_user, make_project, make_task):
     def _make_thread(**kwargs):
         if "user" not in kwargs:
-            kwargs["user"] = make_user(username="thread_user", password="password")
+            kwargs["user"] = make_user()
         if "project" not in kwargs and "task" not in kwargs:
             kwargs["project"] = make_project(owner=kwargs["user"])
 
@@ -70,7 +70,7 @@ def make_thread(db, make_user, make_project, make_task):
 def make_thread_ack(db, make_user, make_thread):
     def _make_thread_ack(**kwargs):
         if "user" not in kwargs:
-            kwargs["user"] = make_user(username="ack_user", password="password")
+            kwargs["user"] = make_user()
         if "thread" not in kwargs:
             kwargs["thread"] = make_thread()
         return ThreadAck.objects.create(seen_at=datetime.now(), **kwargs)
@@ -82,7 +82,7 @@ def make_thread_ack(db, make_user, make_thread):
 def make_message(db, make_user, make_thread):
     def _make_message(**kwargs):
         if "sender" not in kwargs:
-            kwargs["sender"] = make_user(username="message_sender", password="password")
+            kwargs["sender"] = make_user()
         if "thread" not in kwargs:
             kwargs["thread"] = make_thread()
         return Message.objects.create(content="Test message", **kwargs)
@@ -95,8 +95,8 @@ def make_direct_thread(db, make_user):
     def _make_direct_thread(**kwargs):
         if "users" not in kwargs:
             kwargs["users"] = [
-                make_user(username="user1", password="password"),
-                make_user(username="user2", password="password"),
+                make_user(),
+                make_user(),
             ]
         direct_thread = DirectThread.objects.create()
         direct_thread.users.set(kwargs["users"])
@@ -109,7 +109,7 @@ def make_direct_thread(db, make_user):
 def make_direct_thread_ack(db, make_user, make_direct_thread):
     def _make_direct_thread_ack(**kwargs):
         if "user" not in kwargs:
-            kwargs["user"] = make_user(username="direct_ack_user", password="password")
+            kwargs["user"] = make_user()
         if "thread" not in kwargs:
             kwargs["thread"] = make_direct_thread()
         return DirectThreadAck.objects.create(seen_at=datetime.now(), **kwargs)
@@ -121,7 +121,7 @@ def make_direct_thread_ack(db, make_user, make_direct_thread):
 def make_direct_message(db, make_user, make_direct_thread):
     def _make_direct_message(**kwargs):
         if "sender" not in kwargs:
-            kwargs["sender"] = make_user(username="direct_message_sender", password="password")
+            kwargs["sender"] = make_user()
         if "thread" not in kwargs:
             kwargs["thread"] = make_direct_thread()
         return DirectMessage.objects.create(content="Test message", **kwargs)
@@ -138,7 +138,7 @@ def client():
 def make_auth_client(make_user):
     def _auth_client(user=None):
         if user is None:
-            user = make_user(username="auth_user", password="password")
+            user = make_user()
         client = APIClient()
         client.force_authenticate(user=user)
         token, created = Token.objects.get_or_create(user=user)

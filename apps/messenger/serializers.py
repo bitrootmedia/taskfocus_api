@@ -5,6 +5,12 @@ from core.models import User
 from .models import DirectMessage, DirectThread, Message, Thread
 
 
+class MessengerUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "image"]
+
+
 class ThreadSerializer(serializers.ModelSerializer):
     unread_count = serializers.IntegerField(read_only=True, default=0)
 
@@ -55,3 +61,8 @@ class DirectMessageSerializer(serializers.ModelSerializer):
 
 class DirectThreadAckSerializer(serializers.Serializer):
     seen_at = serializers.DateTimeField()
+
+
+class UserThreadsSerializer(serializers.Serializer):
+    user = MessengerUserSerializer()
+    unread_count = serializers.IntegerField()

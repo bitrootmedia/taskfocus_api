@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timezone
 
 from django.db.models import Count, F, OuterRef, Q, Subquery, Value
@@ -8,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from core.models import Project, ProjectAccess, Task, TaskAccess
@@ -20,8 +22,10 @@ from .serializers import (
     DirectThreadAckSerializer,
     DirectThreadSerializer,
     MessageSerializer,
+    MessengerUserSerializer,
     ThreadAckSerializer,
     ThreadSerializer,
+    UserThreadsSerializer,
 )
 
 
@@ -235,3 +239,52 @@ class DirectMessageViewSet(ModelViewSet):
             self._send_message_to_channel(direct_message, direct_message.thread)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserThreadsView(APIView):
+    serializer_class = UserThreadsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def _get_threads_for_user(self, user):
+        accessible_project_ids_qs = ProjectAccess.objects.filter(user=user)
+        accessible_task_ids_qs = TaskAccess.objects.filter(user=user)
+        accessible_project_ids = accessible_project_ids_qs.values_list("project_id", flat=True)
+        accessible_task_ids = accessible_task_ids_qs.values_list("task_id", flat=True)
+
+        return Thread.objects.filter(Q(project_id__in=accessible_project_ids) | Q(task_id__in=accessible_task_ids))
+
+    def _get_direct_threads_for_user(self, user):
+        return DirectThread.objects.filter(users=user)
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        # Get all threads and direct threads of the user
+        min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
+        response_data = defaultdict(int)
+
+        threads = self._get_threads_for_user(user)
+        for thread in threads.all():
+            thread_ack = ThreadAck.objects.filter(thread=thread.id, user=user).order_by("-created_at").first()
+            seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
+            messages = thread.messages.filter(created_at__gte=seen_at)
+            for message in messages.all():
+                response_data[message.sender] += 1
+
+        direct_threads = self._get_direct_threads_for_user(user)
+        for direct_thread in direct_threads.all():
+            thread_ack = (
+                DirectThreadAck.objects.filter(thread=direct_thread.id, user=user).order_by("-created_at").first()
+            )
+            seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
+            messages = direct_thread.direct_messages.filter(created_at__gte=seen_at)
+            for message in messages.all():
+                response_data[message.sender] += 1
+
+        response_data.pop(user, None)
+        response_data = dict(response_data)
+        sorted_response_data = dict(sorted(response_data.items(), key=lambda item: item[1], reverse=True))
+        response_data = [
+            {"user": MessengerUserSerializer(user).data, "unread_count": unread_count}
+            for user, unread_count in sorted_response_data.items()
+        ]
+        return Response(response_data)
