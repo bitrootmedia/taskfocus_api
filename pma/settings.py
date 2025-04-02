@@ -246,3 +246,8 @@ if SENTRY_DSN is not None:
 else:
     sentry_sdk.init(None)
     logger.warning("WARNING Sentry disabled.")
+
+
+CREATE_BEACONS_INTERVAL_TIME_MIN = env.int("CREATE_BEACONS_INTERVAL_TIME_MIN", default=30)
+CREATE_BEACONS_INTERVAL_TIME_MAX = env.int("CREATE_BEACONS_INTERVAL_TIME_MAX", default=60)
+CREATE_BEACONS_ALLOWED_CLICK_TIME = env.int("CREATE_BEACONS_ALLOWED_CLICK_TIME", default=60)
