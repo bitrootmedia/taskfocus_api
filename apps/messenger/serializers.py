@@ -66,3 +66,5 @@ class DirectThreadAckSerializer(serializers.Serializer):
 class UserThreadsSerializer(serializers.Serializer):
     user = MessengerUserSerializer()
     unread_count = serializers.IntegerField()
+    threads = serializers.ListField(child=serializers.CharField())
+    direct_threads = serializers.ListField(child=serializers.CharField())
