@@ -43,14 +43,20 @@ def test_user_threads_no_acks(
         {
             "user": {"id": str(thread_user1.id), "username": f"{thread_user1.username}", "image": None},
             "unread_count": 3,
+            "threads": [str(thread.id)],
+            "direct_threads": [],
         },
         {
             "user": {"id": str(thread_user2.id), "username": str(thread_user2.username), "image": None},
             "unread_count": 2,
+            "threads": [str(thread.id)],
+            "direct_threads": [str(direct_thread.id)],
         },
         {
             "user": {"id": str(direct_message_user.id), "username": str(direct_message_user.username), "image": None},
             "unread_count": 1,
+            "threads": [],
+            "direct_threads": [str(direct_thread.id)],
         },
     ]
     assert response_data == expected_data
@@ -100,10 +106,14 @@ def test_user_threads_some_acks(
         {
             "user": {"id": str(thread_user1.id), "username": f"{thread_user1.username}", "image": None},
             "unread_count": 2,
+            "threads": [str(thread.id)],
+            "direct_threads": [],
         },
         {
             "user": {"id": str(thread_user2.id), "username": str(thread_user2.username), "image": None},
             "unread_count": 1,
+            "threads": [],
+            "direct_threads": [str(direct_thread.id)],
         },
     ]
     assert response_data == expected_data
