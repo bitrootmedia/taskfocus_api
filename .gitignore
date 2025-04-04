@@ -11,3 +11,4 @@ deployment/ansible_vars.yml
 TODO.txt
 .venv/
 staticfiles/
+credentials.txt

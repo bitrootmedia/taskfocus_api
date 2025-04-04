@@ -260,7 +260,9 @@ class UserThreadsView(APIView):
         user = request.user
         # Get all threads and direct threads of the user
         min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
-        response_data = defaultdict(int)
+        response_data = defaultdict(
+            lambda: {"unread_count": 0, "threads": set(), "direct_threads": set()},
+        )
 
         threads = self._get_threads_for_user(user)
         for thread in threads.all():
@@ -268,7 +270,8 @@ class UserThreadsView(APIView):
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
             messages = thread.messages.filter(created_at__gte=seen_at)
             for message in messages.all():
-                response_data[message.sender] += 1
+                response_data[message.sender]["unread_count"] += 1
+                response_data[message.sender]["threads"].add(thread.id)
 
         direct_threads = self._get_direct_threads_for_user(user)
         for direct_thread in direct_threads.all():
@@ -278,13 +281,21 @@ class UserThreadsView(APIView):
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
             messages = direct_thread.direct_messages.filter(created_at__gte=seen_at)
             for message in messages.all():
-                response_data[message.sender] += 1
+                response_data[message.sender]["unread_count"] += 1
+                response_data[message.sender]["direct_threads"].add(direct_thread.id)
 
         response_data.pop(user, None)
         response_data = dict(response_data)
-        sorted_response_data = dict(sorted(response_data.items(), key=lambda item: item[1], reverse=True))
+        sorted_response_data = dict(
+            sorted(response_data.items(), key=lambda item: item[1]["unread_count"], reverse=True)
+        )
         response_data = [
-            {"user": MessengerUserSerializer(user).data, "unread_count": unread_count}
-            for user, unread_count in sorted_response_data.items()
+            {
+                "user": MessengerUserSerializer(user).data,
+                "unread_count": data["unread_count"],
+                "threads": list(data["threads"]),
+                "direct_threads": list(data["direct_threads"]),
+            }
+            for user, data in sorted_response_data.items()
         ]
         return Response(response_data)
