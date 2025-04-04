@@ -30,4 +30,5 @@ urlpatterns += [
     ),
     path("messenger/", include("apps.messenger.urls")),
     path("", admin.site.urls),
+    path("admin-panel/", include("apps.admin_panel.urls")),
 ]
