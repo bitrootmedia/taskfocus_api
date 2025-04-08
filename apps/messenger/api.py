@@ -19,6 +19,7 @@ from .serializers import (
     MessengerProjectSerializer,
     MessengerTaskSerializer,
     MessengerUserSerializer,
+    ThreadSerializer,
     UnreadThreadSerializer,
     UserThreadsSerializer,
 )
@@ -83,6 +84,17 @@ class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
             for user, data in sorted_response_data.items()
         ]
         return Response(response_data)
+
+
+class AllThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
+    serializer_class = ThreadSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        threads = self._get_threads_for_user(request.user)
+        paginated_messages, paginator = self.paginate_queryset(threads)
+        serializer = self.serializer_class(paginated_messages, many=True)
+        return self.get_paginated_response(serializer.data, paginator)
 
 
 class UnreadThreadsView(APIView, UserThreadsMixin):
