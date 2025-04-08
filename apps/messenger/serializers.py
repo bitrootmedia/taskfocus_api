@@ -1,6 +1,7 @@
 from rest_framework import serializers
+from yaml import serialize_all
 
-from core.models import User
+from core.models import Project, Task, User
 
 from .models import DirectMessage, DirectThread, Message, Thread
 
@@ -9,6 +10,20 @@ class MessengerUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "image"]
+
+
+class MessengerProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ["id", "title"]
+        read_only_fields = ["id", "title"]
+
+
+class MessengerTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ["id", "title"]
+        read_only_fields = ["id", "title"]
 
 
 class ThreadSerializer(serializers.ModelSerializer):
@@ -66,5 +81,13 @@ class DirectThreadAckSerializer(serializers.Serializer):
 class UserThreadsSerializer(serializers.Serializer):
     user = MessengerUserSerializer()
     unread_count = serializers.IntegerField()
-    threads = serializers.ListField(child=serializers.CharField())
-    direct_threads = serializers.ListField(child=serializers.CharField())
+    last_unread_message_date = serializers.DateTimeField()
+
+
+class UnreadThreadSerializer(serializers.Serializer):
+    project = MessengerProjectSerializer()
+    task = MessengerTaskSerializer(allow_null=True)
+    type = serializers.ChoiceField(choices=["project", "task"])
+    name = serializers.CharField()
+    last_unread_message_date = serializers.DateTimeField()
+    unread_count = serializers.IntegerField()
