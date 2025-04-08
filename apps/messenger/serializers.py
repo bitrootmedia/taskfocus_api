@@ -27,12 +27,9 @@ class MessengerTaskSerializer(serializers.ModelSerializer):
 
 
 class ThreadSerializer(serializers.ModelSerializer):
-    unread_count = serializers.IntegerField(read_only=True, default=0)
-
     class Meta:
         model = Thread
-        fields = ["id", "task", "project", "unread_count", "created_at", "user"]
-        extra_kwargs = {"user": {"write_only": True}}
+        fields = ["id", "task", "project", "created_at", "user"]
 
 
 class MessageSerializer(serializers.ModelSerializer):
