@@ -87,6 +87,7 @@ class UserThreadsSerializer(serializers.Serializer):
 class UnreadThreadSerializer(serializers.Serializer):
     project = MessengerProjectSerializer()
     task = MessengerTaskSerializer(allow_null=True)
+    thread = serializers.UUIDField()
     type = serializers.ChoiceField(choices=["project", "task"])
     name = serializers.CharField()
     last_unread_message_date = serializers.DateTimeField()
