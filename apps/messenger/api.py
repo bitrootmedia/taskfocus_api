@@ -156,6 +156,7 @@ class ThreadViewByUser(APIView, UserThreadsMixin):
 class ThreadView(APIView, UserThreadsMixin, PaginatedResponseMixin):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = PageNumberPagination
 
     def _get_thread(self, thread_id):
         thread = get_object_or_404(Thread, id=thread_id)
