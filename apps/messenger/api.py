@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -23,6 +24,17 @@ from .serializers import (
 )
 
 
+class PaginatedResponseMixin:
+    def paginate_queryset(self, queryset):
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Default page size
+        paginated_queryset = paginator.paginate_queryset(queryset, self.request)
+        return paginated_queryset, paginator
+
+    def get_paginated_response(self, data, paginator):
+        return paginator.get_paginated_response(data)
+
+
 class UserThreadsMixin:
     def _get_threads_for_user(self, user):
         accessible_project_ids_qs = ProjectAccess.objects.filter(user=user)
@@ -33,7 +45,7 @@ class UserThreadsMixin:
         return Thread.objects.filter(Q(project_id__in=accessible_project_ids) | Q(task_id__in=accessible_task_ids))
 
 
-class UserThreadsView(APIView, UserThreadsMixin):
+class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
     serializer_class = UserThreadsSerializer
     permission_classes = [IsAuthenticated]
 
@@ -141,7 +153,7 @@ class ThreadViewByUser(APIView, UserThreadsMixin):
         return Response(sorted_response_data, status=status.HTTP_200_OK)
 
 
-class ThreadView(APIView, UserThreadsMixin):
+class ThreadView(APIView, UserThreadsMixin, PaginatedResponseMixin):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
 
@@ -156,9 +168,11 @@ class ThreadView(APIView, UserThreadsMixin):
 
     def get(self, request, thread_id, *args, **kwargs):
         thread = self._get_thread(thread_id)
+        messages = Message.objects.filter(thread=thread)
 
-        serializer = self.serializer_class(Message.objects.filter(thread=thread), many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginated_messages, paginator = self.paginate_queryset(messages)
+        serializer = self.serializer_class(paginated_messages, many=True)
+        return self.get_paginated_response(serializer.data, paginator)
 
     def post(self, request, thread_id, *args, **kwargs):
         user = request.user

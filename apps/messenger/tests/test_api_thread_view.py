@@ -22,9 +22,9 @@ def test_thread_view_get_messages(make_auth_client, make_user, make_project, mak
 
     assert response.status_code == status.HTTP_200_OK
     response_data = response.json()
-    assert len(response_data) == 2
-    assert response_data[0]["content"] == message1.content
-    assert response_data[1]["content"] == message2.content
+    assert len(response_data["results"]) == 2
+    assert response_data["results"][0]["content"] == message1.content
+    assert response_data["results"][1]["content"] == message2.content
 
 
 @pytest.mark.django_db

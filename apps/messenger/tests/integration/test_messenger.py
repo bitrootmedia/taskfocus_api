@@ -68,9 +68,9 @@ def test_messenger(make_auth_client, make_user, make_project, make_thread):
     response = user2_auth_client.get(f"/messenger/conversations/{thread.id}")
     assert response.status_code == status.HTTP_200_OK
     results = response.json()
-    print(results)
-    assert len(results) == 1
-    data = results[0]
+
+    assert len(results["results"]) == 1
+    data = results["results"][0]
     assert data["sender"] == str(integration_user1.id)
     assert data["content"] == "Hello, User2!"
     assert data["thread"] == str(thread_id)
