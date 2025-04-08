@@ -10,6 +10,6 @@ router.register(r"direct-threads", DirectThreadViewSet, basename="direct-thread"
 router.register(r"direct-threads/(?P<thread_id>[^/.]+)/messages", DirectMessageViewSet, basename="direct-messages")
 
 urlpatterns = [
-    path("user-threads", UserThreadsView.as_view(), name="user-threads"),
+    path("users", UserThreadsView.as_view(), name="users"),
     path("", include(router.urls)),
 ]

@@ -272,17 +272,24 @@ class UserThreadsView(APIView):
             for message in messages.all():
                 response_data[message.sender]["unread_count"] += 1
                 response_data[message.sender]["threads"].add(thread.id)
+                response_data[message.sender]["last_unread_message_date"] = max(
+                    response_data[message.sender].get(
+                        "last_unread_message_date", datetime.min.replace(tzinfo=timezone.utc)
+                    ),
+                    message.created_at,
+                )
 
-        direct_threads = self._get_direct_threads_for_user(user)
-        for direct_thread in direct_threads.all():
-            thread_ack = (
-                DirectThreadAck.objects.filter(thread=direct_thread.id, user=user).order_by("-created_at").first()
-            )
-            seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
-            messages = direct_thread.direct_messages.filter(created_at__gte=seen_at)
-            for message in messages.all():
-                response_data[message.sender]["unread_count"] += 1
-                response_data[message.sender]["direct_threads"].add(direct_thread.id)
+        # Below code should be uncomment when direct threads are implemented
+        # direct_threads = self._get_direct_threads_for_user(user)
+        # for direct_thread in direct_threads.all():
+        #     thread_ack = (
+        #         DirectThreadAck.objects.filter(thread=direct_thread.id, user=user).order_by("-created_at").first()
+        #     )
+        #     seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
+        #     messages = direct_thread.direct_messages.filter(created_at__gte=seen_at)
+        #     for message in messages.all():
+        #         response_data[message.sender]["unread_count"] += 1
+        #         response_data[message.sender]["direct_threads"].add(direct_thread.id)
 
         response_data.pop(user, None)
         response_data = dict(response_data)
@@ -293,8 +300,7 @@ class UserThreadsView(APIView):
             {
                 "user": MessengerUserSerializer(user).data,
                 "unread_count": data["unread_count"],
-                "threads": list(data["threads"]),
-                "direct_threads": list(data["direct_threads"]),
+                "last_unread_message_date": data["last_unread_message_date"],
             }
             for user, data in sorted_response_data.items()
         ]

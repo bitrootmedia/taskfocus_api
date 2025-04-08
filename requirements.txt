@@ -30,6 +30,7 @@ black==25.1.0
 isort==6.0.1
 flake8==7.1.2
 mypy==1.15.0
+freezegun==1.5.1
 
 # Typings
 djangorestframework-stubs==3.15.3
