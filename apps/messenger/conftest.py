@@ -46,8 +46,14 @@ def make_task(db, make_user):
     def _make_task(**kwargs):
         if "owner" not in kwargs:
             kwargs["owner"] = make_user(username="task_owner", password="password")
+
+        members = kwargs.pop("members", [])
         task = Task.objects.create(**kwargs)
         TaskAccess.objects.create(task=task, user=kwargs["owner"])
+        for member in members:
+            if member == kwargs["owner"]:
+                continue
+            TaskAccess.objects.create(task=task, user=member)
         return task
 
     return _make_task

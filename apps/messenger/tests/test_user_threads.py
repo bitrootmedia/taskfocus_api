@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
-from rest_framework import status
 from freezegun import freeze_time
+from rest_framework import status
 
 
 @pytest.mark.django_db

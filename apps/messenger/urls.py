@@ -1,15 +1,10 @@
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 
-from .api import DirectMessageViewSet, DirectThreadViewSet, MessageViewSet, ThreadViewSet, UserThreadsView
-
-router = DefaultRouter()
-router.register(r"threads", ThreadViewSet, basename="thread")
-router.register(r"threads/(?P<thread_id>[^/.]+)/messages", MessageViewSet, basename="messages")
-router.register(r"direct-threads", DirectThreadViewSet, basename="direct-thread")
-router.register(r"direct-threads/(?P<thread_id>[^/.]+)/messages", DirectMessageViewSet, basename="direct-messages")
+from .api import ThreadView, ThreadViewByUser, UnreadThreadsView, UserThreadsView
 
 urlpatterns = [
     path("users", UserThreadsView.as_view(), name="users"),
-    path("", include(router.urls)),
+    path("unread-threads", UnreadThreadsView.as_view(), name="unread-threads"),
+    path("threads/<uuid:user_id>", ThreadViewByUser.as_view(), name="thread-by-user"),
+    path("conversations/<uuid:thread_id>", ThreadView.as_view(), name="thread"),
 ]
