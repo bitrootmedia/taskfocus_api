@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "dj_rest_auth",
     "simple_history",
+    "silk",
     # local
     "apis",
     "core",
@@ -46,6 +47,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",  # automatically track user for history
+    "silk.middleware.SilkyMiddleware",
 ]
 
 CORS_ALLOWED_ORIGINS = env(
