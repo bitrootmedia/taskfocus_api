@@ -12,9 +12,11 @@ urlpatterns: URLList = []
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += [path("silk/", include("silk.urls", namespace="silk"))]
+
+
 
 urlpatterns += [
+    path("silk/", include("silk.urls", namespace="silk")),
     path("api/", include("apis.urls")),
     path("api/auth/", include("dj_rest_auth.urls")),
     # path("api-auth/", include("rest_framework.urls")),
