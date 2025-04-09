@@ -60,16 +60,18 @@ class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
         )
 
         threads = self._get_threads_for_user(user)
-        for thread in threads.all():
+        for thread in threads.prefetch_related("messages").all():
             thread_ack = ThreadAck.objects.filter(thread=thread.id, user=user).order_by("-created_at").first()
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
-            messages = thread.messages.filter(created_at__gte=seen_at)
-            for message in messages.all():
-                response_data[message.sender]["unread_count"] += 1
-                response_data[message.sender]["last_unread_message_date"] = max(
-                    response_data[message.sender]["last_unread_message_date"],
-                    message.created_at,
-                )
+            for message in thread.messages.all():
+                if message.created_at >= seen_at:
+                    response_data[message.sender]["unread_count"] += 1
+                    response_data[message.sender]["last_unread_message_date"] = max(
+                        response_data[message.sender]["last_unread_message_date"],
+                        message.created_at,
+                    )
+                else:
+                    response_data[message.sender]["unread_count"] += 0
 
         response_data.pop(user, None)
         response_data = dict(response_data)
@@ -99,6 +101,7 @@ class AllThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
         return (
             super()
             ._get_threads_for_user(user)
+            .prefetch_related("messages")
             .annotate(
                 latest_message_created_at=Coalesce(
                     Subquery(latest_message_date, output_field=DateTimeField()),
@@ -149,7 +152,7 @@ class UnreadThreadsView(APIView, UserThreadsMixin):
         response_data = []
 
         threads = self._get_threads_for_user(user)
-        for thread in threads.all():
+        for thread in threads.prefetch_related("messages").all():
             thread_ack = ThreadAck.objects.filter(thread=thread.id, user=user).order_by("-created_at").first()
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
             messages = thread.messages.filter(created_at__gte=seen_at).exclude(sender=user).order_by("-created_at")
