@@ -92,4 +92,5 @@ def test_messenger(make_auth_client, make_user, make_project, make_thread):
     response = user2_auth_client.get("/messenger/users")
     assert response.status_code == status.HTTP_200_OK
     results = response.json()
-    assert len(results) == 0
+    assert len(results) == 1
+    assert results[0]["unread_count"] == 0
