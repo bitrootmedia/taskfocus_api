@@ -19,6 +19,9 @@ jobs:
       - name: Install requirements
         run: pip install -r requirements.txt
 
+      - name: Collectstatic
+        run: python manage.py collectstatic --noinput
+
       - name: Run migrations
         run: python manage.py migrate
 
