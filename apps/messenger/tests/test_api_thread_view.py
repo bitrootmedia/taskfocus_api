@@ -42,7 +42,7 @@ def test_thread_view_post_message(make_auth_client, make_user, make_project, mak
     assert response.status_code == status.HTTP_201_CREATED
     response_data = response.json()
     assert response_data["content"] == "New message"
-    assert response_data["sender"] == str(user.id)
+    assert response_data["sender"]["id"] == str(user.id)
     assert Message.objects.filter(thread=thread, content="New message").exists()
 
 

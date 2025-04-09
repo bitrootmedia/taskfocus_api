@@ -1,7 +1,8 @@
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from django.db.models import Q
+from django.db.models import DateTimeField, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -90,11 +91,51 @@ class AllThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
     serializer_class = ThreadSerializer
     permission_classes = [IsAuthenticated]
 
+    def _get_threads_for_user(self, user):
+        latest_message_date = (
+            Message.objects.filter(thread_id=OuterRef("pk")).order_by("-created_at").values("created_at")[:1]
+        )
+
+        return (
+            super()
+            ._get_threads_for_user(user)
+            .annotate(
+                latest_message_created_at=Coalesce(
+                    Subquery(latest_message_date, output_field=DateTimeField()),
+                    datetime.min.replace(tzinfo=timezone.utc),
+                )
+            )
+            .order_by("-latest_message_created_at")
+        )
+
     def get(self, request, *args, **kwargs):
         threads = self._get_threads_for_user(request.user)
-        paginated_messages, paginator = self.paginate_queryset(threads)
-        serializer = self.serializer_class(paginated_messages, many=True)
-        return self.get_paginated_response(serializer.data, paginator)
+        paginated_threads, paginator = self.paginate_queryset(threads)
+
+        user = request.user
+        min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
+        response_data = []
+        for thread in paginated_threads:
+            thread_ack = ThreadAck.objects.filter(thread=thread.id, user=user).order_by("-created_at").first()
+            seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
+            messages = thread.messages.filter(created_at__gte=seen_at).exclude(sender=user).order_by("-created_at")
+            recent_message = messages.first()
+            response_data.append(
+                {
+                    "unread_count": messages.count(),
+                    "project": MessengerProjectSerializer(thread.project or thread.task.project).data,
+                    "task": MessengerTaskSerializer(thread.task).data if thread.task else None,
+                    "type": "project" if thread.project else "task",
+                    "name": thread.project.title if thread.project else thread.task.title,
+                    "last_unread_message_date": recent_message and recent_message.created_at,
+                    "thread": str(thread.id),
+                }
+            )
+
+        sorted_response_data = sorted(
+            response_data, key=lambda item: item.get("last_unread_message_date") or min_utc_aware, reverse=True
+        )
+        return self.get_paginated_response(sorted_response_data, paginator)
 
 
 class UnreadThreadsView(APIView, UserThreadsMixin):

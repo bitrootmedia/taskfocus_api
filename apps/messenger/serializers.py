@@ -33,6 +33,8 @@ class ThreadSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    sender = MessengerUserSerializer(read_only=True)
+
     class Meta:
         model = Message
         fields = "__all__"

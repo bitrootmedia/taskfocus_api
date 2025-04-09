@@ -32,7 +32,7 @@ def test_messenger(make_auth_client, make_user, make_project, make_thread):
     created_message = response.json()
     assert created_message["content"] == "Hello, User2!"
     assert created_message["thread"] == str(thread_id)
-    assert created_message["sender"] == str(integration_user1.id)
+    assert created_message["sender"]["id"] == str(integration_user1.id)
 
     # User2 opens chat and sees all unread users
     response = user2_auth_client.get("/messenger/users")
@@ -71,7 +71,7 @@ def test_messenger(make_auth_client, make_user, make_project, make_thread):
 
     assert len(results["results"]) == 1
     data = results["results"][0]
-    assert data["sender"] == str(integration_user1.id)
+    assert data["sender"]["id"] == str(integration_user1.id)
     assert data["content"] == "Hello, User2!"
     assert data["thread"] == str(thread_id)
 
