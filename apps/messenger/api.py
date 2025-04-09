@@ -46,21 +46,50 @@ class UserThreadsMixin:
 
         return Thread.objects.filter(Q(project_id__in=accessible_project_ids) | Q(task_id__in=accessible_task_ids))
 
+    def _get_threads_for_users(self, users: list[User]):
+        accessible_project_ids_qs = ProjectAccess.objects.filter(user__in=users)
+        accessible_task_ids_qs = TaskAccess.objects.filter(user__in=users)
+        accessible_project_ids = list(set(accessible_project_ids_qs.values_list("project_id", flat=True)))
+        accessible_task_ids = list(set(accessible_task_ids_qs.values_list("task_id", flat=True)))
+
+        return Thread.objects.filter(Q(project_id__in=accessible_project_ids) | Q(task_id__in=accessible_task_ids))
+
 
 class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
     serializer_class = UserThreadsSerializer
     permission_classes = [IsAuthenticated]
 
+    def _get_all_users_requester_can_chat_with(self, user):
+        project_users = (
+            ProjectAccess.objects.filter(
+                project_id__in=ProjectAccess.objects.filter(user=user).values_list("project_id", flat=True)
+            )
+            .exclude(user=user)
+            .values("user")
+        )
+
+        task_users = (
+            TaskAccess.objects.filter(
+                task_id__in=TaskAccess.objects.filter(user=user).values_list("task_id", flat=True)
+            )
+            .exclude(user=user)
+            .values("user")
+        )
+
+        user_ids = set(project_users.values_list("user", flat=True)) | set(task_users.values_list("user", flat=True))
+        return User.objects.filter(id__in=user_ids).distinct()
+
     def get(self, request, *args, **kwargs):
         user = request.user
-        # Get all threads and direct threads of the user
         min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
         response_data = defaultdict(
             lambda: {"unread_count": 0, "last_unread_message_date": datetime.min.replace(tzinfo=timezone.utc)},
         )
 
-        threads = self._get_threads_for_user(user)
-        for thread in threads.prefetch_related("messages").all():
+        chat_users = self._get_all_users_requester_can_chat_with(user)
+        chat_users_threads = self._get_threads_for_users(list(chat_users))
+
+        for thread in chat_users_threads.prefetch_related("messages").all():
             thread_ack = ThreadAck.objects.filter(thread=thread.id, user=user).order_by("-created_at").first()
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
             for message in thread.messages.all():
@@ -73,6 +102,10 @@ class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
                 else:
                     response_data[message.sender]["unread_count"] += 0
 
+        for chat_user in chat_users:
+            if chat_user not in response_data:
+                response_data[chat_user] = {"unread_count": 0, "last_unread_message_date": None}
+
         response_data.pop(user, None)
         response_data = dict(response_data)
         sorted_response_data = dict(
@@ -82,7 +115,7 @@ class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
             {
                 "user": MessengerUserSerializer(user).data,
                 "unread_count": data["unread_count"],
-                "last_unread_message_date": data["last_unread_message_date"],
+                "last_unread_message_date": data["last_unread_message_date"] if data["unread_count"] > 0 else None,
             }
             for user, data in sorted_response_data.items()
         ]
