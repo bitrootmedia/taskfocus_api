@@ -6,6 +6,8 @@ from django.contrib import admin
 from django.urls import URLPattern, URLResolver, include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+from .views import index as index_view
+
 URL = typing.Union[URLPattern, URLResolver]
 URLList = typing.List[URL]
 urlpatterns: URLList = []
@@ -15,6 +17,7 @@ if settings.DEBUG:
 
 
 urlpatterns += [
+    path("index/", index_view, name="index"),
     path("silk/", include("silk.urls", namespace="silk")),
     path("api/", include("apis.urls")),
     path("api/auth/", include("dj_rest_auth.urls")),
@@ -30,6 +33,7 @@ urlpatterns += [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
+    path("admin-panel/", include("apps.admin_panel.urls")),
     path("messenger/", include("apps.messenger.urls")),
     path("", admin.site.urls),
 ]

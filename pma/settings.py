@@ -14,14 +14,16 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env("SECRET_KEY", default="SETMEUP")
 DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="localhost,127.0.0.1,0.0.0.0").split(",")
-INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    # 3rd-party
+
+
+PROJECT_APPS = [
+    "apis",
+    "core",
+    "apps.messenger",
+    "apps.admin_panel",
+]
+
+DEPENDENCIES_APPS = [
     "django_extensions",
     "rest_framework",
     "rest_framework.authtoken",
@@ -31,11 +33,23 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "simple_history",
     "silk",
-    # local
-    "apis",
-    "core",
-    "apps.messenger",
+    "django_tables2",
+    "admin_tabler",
 ]
+
+INSTALLED_APPS = (
+    [
+        "django.contrib.admin",
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "django.contrib.sessions",
+        "django.contrib.messages",
+        "django.contrib.staticfiles",
+    ]
+    + DEPENDENCIES_APPS
+    + PROJECT_APPS
+)
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

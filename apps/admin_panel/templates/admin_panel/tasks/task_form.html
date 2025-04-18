@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Task Form{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{{ view.object.pk|yesno:"Edit Task,Create Task" }}</h3>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="mt-3">
+        <button type="submit" class="btn btn-success">Save</button>
+        <a href="{% url 'task-list' %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
