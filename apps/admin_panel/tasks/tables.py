@@ -17,7 +17,7 @@ class TaskTable(tables.Table):
     )
 
     actions = tables.TemplateColumn(
-        template_name="tasks/task_actions_column.html", verbose_name="Actions", orderable=False
+        template_name="admin_panel/tasks/task_actions_column.html", verbose_name="Actions", orderable=False
     )
 
     class Meta:
