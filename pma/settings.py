@@ -34,11 +34,11 @@ DEPENDENCIES_APPS = [
     "simple_history",
     "silk",
     "django_tables2",
+    "admin_tabler",
 ]
 
 INSTALLED_APPS = (
     [
-        "admin_tabler.apps.AdminTablerConfig",
         "django.contrib.admin",
         "django.contrib.auth",
         "django.contrib.contenttypes",
@@ -150,9 +150,6 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "PM",
     "VERSION": "0.1.0",
 }
-
-LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/admin-panel/"
 
 DEFAULT_FILE_STORAGE = env("DEFAULT_FILE_STORAGE", default="")
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="")
