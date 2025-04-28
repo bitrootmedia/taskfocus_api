@@ -23,8 +23,17 @@ def test_all_threads_view(make_auth_client, make_user, make_project, make_task, 
     assert response.status_code == status.HTTP_200_OK
     response_data = response.json()
     assert len(response_data["results"]) == 2
-    assert any(thread["thread"] == str(thread1.id) for thread in response_data["results"])
-    assert any(thread["thread"] == str(thread2.id) for thread in response_data["results"])
+
+    project_thread = next(e for e in response_data["results"] if e["type"] == "project")
+    task_thread = next(e for e in response_data["results"] if e["type"] == "task")
+    assert project_thread["thread"] == str(thread1.id)
+    assert task_thread["thread"] == str(thread2.id)
+
+    # We expect to return all participants except requester
+    assert len(thread1.participants) == 1
+    assert len(project_thread["participants"]) == 0
+    assert len(thread2.participants) == 3
+    assert len(task_thread["participants"]) == 2
 
 
 @pytest.mark.django_db

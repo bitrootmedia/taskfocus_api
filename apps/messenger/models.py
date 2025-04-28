@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from core.models import Project, Task, User
+from core.models import Project, ProjectAccess, Task, TaskAccess, User
 
 
 class BaseModel(models.Model):
@@ -30,6 +30,13 @@ class Thread(BaseModel):
             )
         ]
         ordering = ["-created_at"]
+
+    @property
+    def participants(self) -> list[User]:
+        if self.task:
+            return list([e.user for e in TaskAccess.objects.filter(task=self.task) if e.user])
+
+        return list([e.user for e in ProjectAccess.objects.filter(project=self.project) if e.user])
 
 
 class Message(BaseModel):

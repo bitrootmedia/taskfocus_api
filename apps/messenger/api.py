@@ -4,8 +4,10 @@ from datetime import datetime, timezone
 from django.db.models import DateTimeField, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,6 +16,7 @@ from rest_framework.views import APIView
 from core.models import ProjectAccess, TaskAccess, User
 from core.utils.websockets import WebsocketHelper
 
+from .filters import MessageFilter
 from .models import Message, Thread, ThreadAck
 from .serializers import (
     MessageSerializer,
@@ -156,6 +159,7 @@ class AllThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
             messages = thread.messages.filter(created_at__gte=seen_at).exclude(sender=user).order_by("-created_at")
             recent_message = messages.first()
+            thread_other_participants = [u for u in thread.participants if u != user]
             response_data.append(
                 {
                     "unread_count": messages.count(),
@@ -165,6 +169,7 @@ class AllThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
                     "name": thread.project.title if thread.project else thread.task.title,
                     "last_unread_message_date": recent_message and recent_message.created_at,
                     "thread": str(thread.id),
+                    "participants": MessengerUserSerializer(thread_other_participants, many=True).data,
                 }
             )
 
@@ -290,3 +295,47 @@ class ThreadView(APIView, UserThreadsMixin, PaginatedResponseMixin):
 
     def _create_thread_ack(self, thread, user):
         ThreadAck.objects.create(thread=thread, user=user, seen_at=datetime.now(timezone.utc))
+
+
+class MessageSearchView(APIView, UserThreadsMixin, PaginatedResponseMixin):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MessageSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_class = MessageFilter
+    search_fields = ["content"]
+
+    def get(self, request, *args, **kwargs):
+        user_threads = self._get_threads_for_user(request.user)
+        user_thread_ids = user_threads.values_list("id", flat=True)
+
+        # Filter messages by those threads
+        queryset = Message.objects.filter(thread_id__in=user_thread_ids)
+
+        search_query = request.query_params.get("query", None)
+        if search_query:
+            queryset = queryset.filter(content__icontains=search_query)
+
+        for backend in self.filter_backends:
+            queryset = backend().filter_queryset(request, queryset, self)
+
+        queryset = queryset.order_by("-created_at")
+        paginated_queryset, paginator = self.paginate_queryset(queryset)
+
+        response_data = []
+        for message in paginated_queryset:
+            thread = message.thread
+            message_data = self.serializer_class(message).data
+            message_data["thread"] = {
+                "id": str(thread.id),
+                "project": (
+                    MessengerProjectSerializer(thread.project or (thread.task.project if thread.task else None)).data
+                    if thread.project or thread.task
+                    else None
+                ),
+                "task": MessengerTaskSerializer(thread.task).data if thread.task else None,
+                "type": "project" if thread.project else "task",
+                "name": thread.project.title if thread.project else (thread.task.title if thread.task else "Unknown"),
+            }
+            response_data.append(message_data)
+
+        return self.get_paginated_response(response_data, paginator)

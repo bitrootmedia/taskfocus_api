@@ -91,7 +91,9 @@ def make_message(db, make_user, make_thread):
             kwargs["sender"] = make_user()
         if "thread" not in kwargs:
             kwargs["thread"] = make_thread()
-        return Message.objects.create(content="Test message", **kwargs)
+        if "content" not in kwargs:
+            kwargs["content"] = "Test message"
+        return Message.objects.create(**kwargs)
 
     return _make_message
 
