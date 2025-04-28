@@ -1,6 +1,13 @@
 from django.urls import path
 
-from .api import AllThreadsView, ThreadView, ThreadViewByUser, UnreadThreadsView, UserThreadsView
+from .api import (
+    AllThreadsView,
+    MessageSearchView,
+    ThreadView,
+    ThreadViewByUser,
+    UnreadThreadsView,
+    UserThreadsView,
+)
 
 urlpatterns = [
     path("users", UserThreadsView.as_view(), name="users"),
@@ -8,4 +15,5 @@ urlpatterns = [
     path("unread-threads", UnreadThreadsView.as_view(), name="unread-threads"),
     path("threads/<uuid:user_id>", ThreadViewByUser.as_view(), name="thread-by-user"),
     path("conversations/<uuid:thread_id>", ThreadView.as_view(), name="thread"),
+    path("search", MessageSearchView.as_view(), name="message-search"),
 ]
