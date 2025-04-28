@@ -27,9 +27,11 @@ class MessengerTaskSerializer(serializers.ModelSerializer):
 
 
 class ThreadSerializer(serializers.ModelSerializer):
+    participants = MessengerUserSerializer(many=True, read_only=True)
+
     class Meta:
         model = Thread
-        fields = ["id", "task", "project", "created_at", "user"]
+        fields = ["id", "task", "project", "created_at", "user", "participants"]
 
 
 class MessageSerializer(serializers.ModelSerializer):

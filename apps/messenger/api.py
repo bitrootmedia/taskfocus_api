@@ -156,6 +156,7 @@ class AllThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
             messages = thread.messages.filter(created_at__gte=seen_at).exclude(sender=user).order_by("-created_at")
             recent_message = messages.first()
+            thread_other_participants = [u for u in thread.participants if u != user]
             response_data.append(
                 {
                     "unread_count": messages.count(),
@@ -165,6 +166,7 @@ class AllThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
                     "name": thread.project.title if thread.project else thread.task.title,
                     "last_unread_message_date": recent_message and recent_message.created_at,
                     "thread": str(thread.id),
+                    "participants": MessengerUserSerializer(thread_other_participants, many=True).data,
                 }
             )
 
