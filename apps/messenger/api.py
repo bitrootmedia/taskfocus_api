@@ -59,7 +59,6 @@ class UserThreadsMixin:
 
 
 class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
-    serializer_class = UserThreadsSerializer
     permission_classes = [IsAuthenticated]
 
     def _get_all_users_requester_can_chat_with(self, user):
@@ -84,18 +83,25 @@ class UserThreadsView(APIView, UserThreadsMixin, PaginatedResponseMixin):
 
     def get(self, request, *args, **kwargs):
         user = request.user
+        query = request.query_params.get("query", "").strip()
+
+        chat_users = self._get_all_users_requester_can_chat_with(user)
+        if query:
+            chat_users = chat_users.filter(username__icontains=query)
+
         min_utc_aware = datetime.min.replace(tzinfo=timezone.utc)
         response_data = defaultdict(
             lambda: {"unread_count": 0, "last_unread_message_date": datetime.min.replace(tzinfo=timezone.utc)},
         )
-
-        chat_users = self._get_all_users_requester_can_chat_with(user)
         chat_users_threads = self._get_threads_for_users(list(chat_users))
 
         for thread in chat_users_threads.prefetch_related("messages").all():
             thread_ack = ThreadAck.objects.filter(thread=thread.id, user=user).order_by("-created_at").first()
             seen_at = thread_ack.seen_at if thread_ack else min_utc_aware
             for message in thread.messages.all():
+                if message.sender not in chat_users:
+                    continue
+
                 if message.created_at >= seen_at:
                     response_data[message.sender]["unread_count"] += 1
                     response_data[message.sender]["last_unread_message_date"] = max(
